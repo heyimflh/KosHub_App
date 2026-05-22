@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/searchContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:gravity="center_vertical"
+    android:clipToPadding="false"
+    android:clipChildren="false">
+
+    <!-- Search Input -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="0dp"
+        android:layout_height="@dimen/map_search_height"
+        android:layout_weight="1"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@color/md_surface_container_lowest"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/md_outline_variant"
+        app:cardPreventCornerOverlap="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/map_search_padding_horizontal"
+            android:paddingEnd="@dimen/map_search_padding_horizontal">
+
+            <ImageView
+                android:layout_width="@dimen/map_search_icon_size"
+                android:layout_height="@dimen/map_search_icon_size"
+                android:src="@drawable/ic_map_search"
+                android:contentDescription="Search icon" />
+
+            <AutoCompleteTextView
+                android:id="@+id/etSearchLocation"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:background="@android:color/transparent"
+                android:fontFamily="sans-serif"
+                android:hint="@string/map_search_hint"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
+                android:textColor="@color/md_on_surface"
+                android:textColorHint="@color/md_outline"
+                android:textSize="@dimen/map_search_text_size"
+                android:completionThreshold="1" />
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Filter Button -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/btnSearch"
+        android:layout_width="@dimen/map_filter_btn_size"
+        android:layout_height="@dimen/map_filter_btn_size"
+        android:layout_marginStart="8dp"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@color/md_surface_container_lowest"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/md_outline_variant"
+        app:cardPreventCornerOverlap="false"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_map_tune"
+            android:contentDescription="Filter" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+</LinearLayout>

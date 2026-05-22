@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/mgmt_action_bg" />
+    <corners android:radius="12dp" />
+    <size android:width="@dimen/mgmt_action_icon_size" android:height="@dimen/mgmt_action_icon_size" />
+</shape>

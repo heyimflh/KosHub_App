@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/bottomNav"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/home_nav_height"
+    android:background="@color/home_nav_bg"
+    android:elevation="8dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <!-- Home -->
+    <LinearLayout
+        android:id="@+id/navHome"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="@dimen/home_nav_icon"
+            android:layout_height="@dimen/home_nav_icon"
+            android:src="@drawable/ic_home_nav" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/home_nav_home"
+            android:textColor="@color/home_text_muted"
+            android:textSize="@dimen/home_nav_label" />
+    </LinearLayout>
+
+    <!-- Map (active) -->
+    <LinearLayout
+        android:id="@+id/navMap"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_nav_active_pill"
+            android:paddingStart="@dimen/home_nav_active_pill_h"
+            android:paddingEnd="@dimen/home_nav_active_pill_h"
+            android:paddingTop="@dimen/home_nav_active_pill_v"
+            android:paddingBottom="@dimen/home_nav_active_pill_v">
+
+            <ImageView
+                android:layout_width="@dimen/home_nav_icon"
+                android:layout_height="@dimen/home_nav_icon"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_map_nav" />
+        </FrameLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/home_nav_map"
+            android:textColor="@color/brand_green"
+            android:textSize="@dimen/home_nav_label" />
+    </LinearLayout>
+
+    <!-- Waiting List -->
+    <LinearLayout
+        android:id="@+id/navWaitlist"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="@dimen/home_nav_icon"
+            android:layout_height="@dimen/home_nav_icon"
+            android:src="@drawable/ic_list_nav" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/home_nav_waitlist"
+            android:textColor="@color/home_text_muted"
+            android:textSize="@dimen/home_nav_label" />
+    </LinearLayout>
+
+    <!-- Profile -->
+    <LinearLayout
+        android:id="@+id/navProfile"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <ImageView
+            android:layout_width="@dimen/home_nav_icon"
+            android:layout_height="@dimen/home_nav_icon"
+            android:src="@drawable/ic_user_nav" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/home_nav_profile"
+            android:textColor="@color/home_text_muted"
+            android:textSize="@dimen/home_nav_label" />
+    </LinearLayout>
+</LinearLayout>

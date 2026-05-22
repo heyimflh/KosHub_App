@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="owp_padding_horizontal">20dp</dimen>
+    <dimen name="owp_card_radius">16dp</dimen>
+    <dimen name="owp_card_radius_small">12dp</dimen>
+    <dimen name="owp_card_padding">16dp</dimen>
+    <dimen name="owp_card_elevation">2dp</dimen>
+    <dimen name="owp_section_spacing">20dp</dimen>
+    <dimen name="owp_avatar_size">80dp</dimen>
+    <dimen name="owp_avatar_border">3dp</dimen>
+    <dimen name="owp_menu_icon_size">40dp</dimen>
+    <dimen name="owp_menu_icon_inner">20dp</dimen>
+    <dimen name="owp_chevron_size">20dp</dimen>
+    <dimen name="owp_progress_height">6dp</dimen>
+    <dimen name="owp_progress_radius">3dp</dimen>
+    <dimen name="owp_nav_height">64dp</dimen>
+    <dimen name="owp_nav_icon">24dp</dimen>
+    <dimen name="owp_nav_label">11sp</dimen>
+    <dimen name="owp_edit_btn_size">36dp</dimen>
+</resources>

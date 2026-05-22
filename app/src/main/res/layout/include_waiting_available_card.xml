@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/cardAvailableStatus"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="20dp"
+    android:layout_marginEnd="20dp"
+    android:layout_marginTop="16dp"
+    android:background="@drawable/bg_waiting_card_accent_top"
+    android:elevation="3dp"
+    android:orientation="vertical"
+    android:paddingTop="4dp">
+
+    <!-- Content with padding -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Status Badge -->
+        <TextView
+            android:id="@+id/tvAvailableStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_waiting_badge_available"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="12dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="6dp"
+            android:text="✓ Tersedia! Konfirmasi dalam 24 Jam"
+            android:textColor="@color/md_on_primary"
+            android:textSize="12sp" />
+
+        <!-- Property Name -->
+        <TextView
+            android:id="@+id/tvAvailablePropertyName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="Kos Putra Harmoni"
+            android:textColor="@color/md_on_surface"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- Property Address -->
+        <TextView
+            android:id="@+id/tvAvailablePropertyAddress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="sans-serif"
+            android:text="Jl. Harmoni No. 5, Dekat Kampus PSDKU"
+            android:textColor="@color/md_on_surface_variant"
+            android:textSize="14sp" />
+
+        <!-- Thumbnail -->
+        <ImageView
+            android:id="@+id/imgAvailableProperty"
+            android:layout_width="match_parent"
+            android:layout_height="140dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_waiting_thumbnail"
+            android:contentDescription="Property image"
+            android:scaleType="centerCrop" />
+
+        <!-- Urgency Notice -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_waiting_info_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="12dp">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:contentDescription="Urgent"
+                android:src="@drawable/ic_waiting_schedule" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:fontFamily="sans-serif"
+                android:text="Segera konfirmasi sebelum slot diberikan ke antrean berikutnya"
+                android:textColor="@color/md_on_surface_variant"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Pay Button -->
+        <TextView
+            android:id="@+id/btnPayAvailable"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_waiting_btn_pay"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:text="💳 Bayar Sekarang"
+            android:textColor="@color/md_on_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <!-- View Detail -->
+        <TextView
+            android:id="@+id/btnViewDetailAvailable"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_waiting_btn_secondary"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:text="Lihat Detail Kos"
+            android:textColor="@color/md_primary"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+</LinearLayout>

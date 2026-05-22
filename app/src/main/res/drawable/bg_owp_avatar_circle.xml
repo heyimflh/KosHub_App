@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/owp_card_white" />
+    <stroke android:width="@dimen/owp_avatar_border" android:color="@color/owp_card_white" />
+    <size android:width="@dimen/owp_avatar_size" android:height="@dimen/owp_avatar_size" />
+</shape>

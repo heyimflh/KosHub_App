@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand Colors -->
+    <color name="brand_green">#FF006948</color>
+    <color name="brand_green_dark">#FF005A3D</color>
+    <color name="brand_green_light">#FF006948</color>
+
+    <!-- Background -->
+    <color name="background_screen">#FFF7FAF8</color>
+    <color name="background_white">#FFFFFFFF</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#FF1A2E23</color>
+    <color name="text_secondary">#FF6B7F72</color>
+    <color name="text_muted">#FF8A9B90</color>
+    <color name="text_label">#FF5F6D64</color>
+    <color name="text_white">#FFFFFFFF</color>
+
+    <!-- Input / Border -->
+    <color name="border_soft">#FFD4DDD7</color>
+    <color name="border_divider">#FFE4EBE6</color>
+    <color name="input_background">#FFFFFFFF</color>
+    <color name="input_icon">#FF8A9B90</color>
+
+    <!-- Toggle -->
+    <color name="toggle_background">#FFE8EFE9</color>
+    <color name="toggle_inactive_text">#FF5F6D64</color>
+
+    <!-- Footer -->
+    <color name="footer_pill_bg">#FFEEF4EF</color>
+
+    <!-- Misc -->
+    <color name="placeholder_text">#FFA3B3A9</color>
+    <color name="shadow_green">#33006948</color>
+
+    <!-- Google Button Colors -->
+    <color name="google_blue">#FF4285F4</color>
+    <color name="google_green">#FF34A853</color>
+    <color name="google_yellow">#FFFBBC05</color>
+    <color name="google_red">#FFEA4335</color>
+
+    <!-- ===== Map View Route Navigation Colors ===== -->
+    <!-- Material Design 3 Tokens from Tailwind Config -->
+    <color name="md_primary">#FF006948</color>
+    <color name="md_on_primary">#FFFFFFFF</color>
+    <color name="md_primary_container">#FF00855D</color>
+    <color name="md_on_primary_container">#FFF5FFF7</color>
+    <color name="md_surface">#FFF5FBF5</color>
+    <color name="md_on_surface">#FF171D19</color>
+    <color name="md_on_surface_variant">#FF3D4A42</color>
+    <color name="md_surface_container_lowest">#FFFFFFFF</color>
+    <color name="md_surface_container_highest">#FFDEE4DE</color>
+    <color name="md_surface_variant">#FFDEE4DE</color>
+    <color name="md_outline">#FF6D7A72</color>
+    <color name="md_outline_variant">#FFBCCAC0</color>
+    <color name="md_tertiary">#FF9B3E3B</color>
+    <color name="md_on_tertiary">#FFFFFFFF</color>
+    <color name="md_tertiary_container">#FFBA5551</color>
+    <color name="md_on_tertiary_container">#FFFFFBFF</color>
+    <color name="md_inverse_surface">#FF2C322E</color>
+    <color name="md_error">#FFBA1A1A</color>
+
+    <!-- Map specific -->
+    <color name="map_background">#FFE5E3DF</color>
+    <color name="map_route_line">#FF00855D</color>
+    <color name="map_route_badge_bg">#FFFFFFFF</color>
+    <color name="map_route_badge_border">#4D00855D</color>
+
+    <!-- Bottom Nav -->
+    <color name="nav_inactive">#FF9CA3AF</color>
+    <color name="nav_active_bg">#1A006948</color>
+
+    <!-- Toast -->
+    <color name="toast_background">#FF2C322E</color>
+    <color name="toast_text">#FFFFFFFF</color>
+
+    <!-- Card shadow overlay -->
+    <color name="card_shadow_overlay">#1F000000</color>
+    <color name="border_gray_100">#FFF3F4F6</color>
+
+    <!-- Waiting List Page Colors -->
+    <color name="md_surface_container_low">#FFEFF5EF</color>
+    <color name="md_surface_container">#FFE9EFE9</color>
+    <color name="md_surface_container_high">#FFE4EAE4</color>
+    <color name="waiting_green_confirmed">#FF16A34A</color>
+    <color name="waiting_primary_10">#1A006948</color>
+    <color name="waiting_primary_20">#33006948</color>
+
+    <!-- Home UI Colors -->
+    <color name="home_text_secondary">#FF6B7F72</color>
+    <color name="home_badge_red">#FFE31B1B</color>
+    <color name="home_card_white">#FFFFFFFF</color>
+    <color name="home_border">#FFE4EBE6</color>
+    <color name="home_chip_bg">#FFF3F4F6</color>
+    <color name="home_text_primary">#FF1A2E23</color>
+    <color name="white_80">#CCFFFFFF</color>
+    <color name="transparent">#00000000</color>
+    <color name="dot_active">#FF006948</color>
+    <color name="dot_inactive">#FFD4DDD7</color>
+
+    <!-- Material Design 3 Tokens (Missing) -->
+    <color name="md_secondary_container">#FFD6E8DB</color>
+    <color name="md_surface_tint">#FF006948</color>
+
+    <!-- Batch 2: Home & General UI -->
+    <color name="home_background">#FFF7FAF8</color>
+    <color name="home_border_input">#FFD4DDD7</color>
+    <color name="star_yellow">#FFFFC107</color>
+
+    <!-- Batch 3: Final UI Colors -->
+    <color name="home_text_placeholder">#FF8A9B90</color>
+    <color name="home_text_dark">#FF1A2E23</color>
+    <color name="home_text_muted">#FF8A9B90</color>
+    <color name="home_nav_bg">#FFFFFFFF</color>
+
+    <!-- Batch 6: Misc UI & MD3 -->
+    <color name="home_star_yellow">#FFFFC107</color>
+    <color name="md_on_secondary_container">#FF131F18</color>
+
+    <!-- Profile Page Colors -->
+    <color name="profile_background">#FFF7FAF8</color>
+    <color name="profile_card_white">#FFFFFFFF</color>
+    <color name="profile_text_primary">#FF1A2E23</color>
+    <color name="profile_text_secondary">#FF6B7F72</color>
+    <color name="profile_text_muted">#FF8A9B90</color>
+    <color name="profile_text_white">#FFFFFFFF</color>
+    <color name="profile_badge_verified_text">#FF006948</color>
+    <color name="profile_badge_active_text">#FF1E40AF</color>
+    <color name="profile_menu_divider">#FFE4EBE6</color>
+    <color name="profile_status_active">#FF16A34A</color>
+    <color name="profile_status_done">#FF0284C7</color>
+    <color name="profile_status_cancelled">#FFDC2626</color>
+    <color name="profile_logout_text">#FFDC2626</color>
+
+    <!-- Additional Profile Colors -->
+    <color name="profile_avatar_border">#33FFFFFF</color>
+    <color name="profile_badge_active_bg">#FFE0F2FE</color>
+    <color name="profile_badge_verified_bg">#FFDCFCE7</color>
+    <color name="profile_card_border">#FFE4EBE6</color>
+    <color name="profile_ripple">#1A000000</color>
+    <color name="profile_stat_icon_bg">#FFF3F4F6</color>
+    <color name="profile_edit_btn_bg">#4DFFFFFF</color>
+    <color name="profile_header_gradient_start">#FF006948</color>
+    <color name="profile_header_gradient_end">#FF059669</color>
+    <color name="profile_logout_bg">#FFFEE2E2</color>
+
+    <color name="profile_progress_bg">#FFE8EFE9</color>
+    <color name="profile_progress_fill">#FF006948</color>
+    <color name="profile_status_active_bg">#FFDCFCE7</color>
+    <color name="profile_status_cancelled_bg">#FFFEE2E2</color>
+    <color name="profile_status_done_bg">#FFE0F2FE</color>
+    <color name="profile_chevron">#FF9CA3AF</color>
+
+    <!-- Booking Status Colors -->
+    <color name="status_pending_bg">#FFFEE7CC</color>
+    <color name="status_pending_text">#FF995500</color>
+    <color name="status_accepted_bg">#FFDCFCE7</color>
+    <color name="status_accepted_text">#FF16A34A</color>
+    <color name="status_active_bg">#FFE0F2FE</color>
+    <color name="status_active_text">#FF0284C7</color>
+    <color name="status_completed_bg">#FFF3F4F6</color>
+    <color name="status_completed_text">#FF4B5563</color>
+    <color name="status_rejected_bg">#FFFEE2E2</color>
+    <color name="status_rejected_text">#FFDC2626</color>
+
+    <!-- Summary Card Colors -->
+    <color name="summary_orange_bg">#1AFA8C00</color>
+    <color name="summary_green_bg">#1A16A34A</color>
+    <color name="summary_blue_bg">#1A0284C7</color>
+    <color name="summary_red_bg">#1ADC2626</color>
+
+    <!-- Generic Status Colors -->
+    <color name="status_info_bg">#FFE0F2FE</color>
+    <color name="status_info_text">#FF0284C7</color>
+    <color name="status_warning_bg">#FFFEE7CC</color>
+    <color name="status_warning_text">#FF995500</color>
+</resources>

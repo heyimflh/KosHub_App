@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#33FFFFFF">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/owp_edit_btn_bg" />
+            <size android:width="@dimen/owp_edit_btn_size" android:height="@dimen/owp_edit_btn_size" />
+        </shape>
+    </item>
+</ripple>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#33BA1A1A">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/profile_logout_bg" />
+            <corners android:radius="@dimen/profile_card_radius" />
+        </shape>
+    </item>
+</ripple>

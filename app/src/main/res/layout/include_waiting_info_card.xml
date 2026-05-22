@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/cardInfo"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="20dp"
+    android:layout_marginEnd="20dp"
+    android:layout_marginTop="16dp"
+    android:layout_marginBottom="24dp"
+    android:background="@drawable/bg_waiting_info_card"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Title -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="Info"
+            android:src="@drawable/ic_waiting_info" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="Tentang Waiting List"
+            android:textColor="@color/md_on_surface"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- FAQ Item 1 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:fontFamily="sans-serif"
+        android:text="• Sistem antrean otomatis (FIFO) — yang mendaftar lebih dulu, dilayani lebih dulu."
+        android:textColor="@color/md_on_surface_variant"
+        android:textSize="13sp"
+        android:lineSpacingExtra="2dp" />
+
+    <!-- FAQ Item 2 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="sans-serif"
+        android:text="• Kamu akan dikabari via notifikasi saat kamar tersedia."
+        android:textColor="@color/md_on_surface_variant"
+        android:textSize="13sp"
+        android:lineSpacingExtra="2dp" />
+
+    <!-- FAQ Item 3 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="sans-serif"
+        android:text="• Kamu bisa membatalkan antrean kapan saja tanpa biaya."
+        android:textColor="@color/md_on_surface_variant"
+        android:textSize="13sp"
+        android:lineSpacingExtra="2dp" />
+
+    <!-- FAQ Item 4 -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="sans-serif"
+        android:text="• Setelah kamar tersedia, kamu punya waktu 24 jam untuk konfirmasi."
+        android:textColor="@color/md_on_surface_variant"
+        android:textSize="13sp"
+        android:lineSpacingExtra="2dp" />
+
+</LinearLayout>

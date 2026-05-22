@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardNextStep"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="20dp"
+    android:layout_marginEnd="20dp"
+    android:layout_marginTop="16dp"
+    android:background="@drawable/bg_waiting_card_elevated"
+    android:elevation="2dp"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/tvNextStepTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:text="Langkah Berikutnya"
+        android:textColor="@color/md_on_surface"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <!-- Description -->
+    <TextView
+        android:id="@+id/tvNextStepDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="sans-serif"
+        android:text="Kamu tinggal menunggu. Kami akan mengirim notifikasi saat kamar tersedia untukmu."
+        android:textColor="@color/md_on_surface_variant"
+        android:textSize="14sp"
+        android:lineSpacingExtra="3dp" />
+
+    <!-- Primary Action (Fixed Layout) -->
+    <LinearLayout
+        android:id="@+id/btnPrimaryAction"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_waiting_btn_secondary"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="Phone"
+            android:src="@drawable/ic_waiting_phone"
+            app:tint="@color/md_primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="Hubungi Pemilik"
+            android:textColor="@color/md_primary"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Secondary Action -->
+    <TextView
+        android:id="@+id/btnSecondaryAction"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_waiting_btn_danger"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:text="Batalkan Antrean"
+        android:textColor="@color/md_error"
+        android:textSize="14sp" />
+
+</LinearLayout>

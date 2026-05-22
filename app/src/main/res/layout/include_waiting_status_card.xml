@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/cardQueueStatus"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="20dp"
+    android:layout_marginEnd="20dp"
+    android:layout_marginTop="16dp"
+    android:background="@drawable/bg_waiting_status_card"
+    android:elevation="2dp"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Status Badge -->
+    <TextView
+        android:id="@+id/tvQueueStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_waiting_badge_active"
+        android:drawablePadding="6dp"
+        android:fontFamily="sans-serif-medium"
+        android:paddingStart="12dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="6dp"
+        android:text="⏳ Dalam Antrean"
+        android:textColor="@color/md_primary"
+        android:textSize="12sp" />
+
+    <!-- Property Name -->
+    <TextView
+        android:id="@+id/tvPropertyName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="Kos Putri Melati Eksklusif"
+        android:textColor="@color/md_on_surface"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <!-- Property Address -->
+    <TextView
+        android:id="@+id/tvPropertyAddress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:fontFamily="sans-serif"
+        android:text="Jl. Melati No. 12, Dekat Kampus PSDKU"
+        android:textColor="@color/md_on_surface_variant"
+        android:textSize="14sp" />
+
+    <!-- Queue Position Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- Position Number -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvQueuePosition"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:text="#1"
+                android:textColor="@color/md_primary"
+                android:textSize="32sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif"
+                android:text="Posisi Antrean"
+                android:textColor="@color/md_on_surface_variant"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:background="@color/md_outline_variant" />
+
+        <!-- Estimated Info -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvEstimatedAvailability"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:text="Menunggu Kamar"
+                android:textColor="@color/md_on_surface"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="sans-serif"
+                android:text="Kami kabari saat kamar tersedia"
+                android:textColor="@color/md_on_surface_variant"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Progress Bar -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_marginTop="16dp">
+
+        <View
+            android:id="@+id/progressQueueTrack"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_waiting_progress_track" />
+
+        <View
+            android:id="@+id/progressQueueFill"
+            android:layout_width="60dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_waiting_progress_fill" />
+    </FrameLayout>
+
+    <!-- Microcopy -->
+    <TextView
+        android:id="@+id/tvQueueMicrocopy"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:fontFamily="sans-serif"
+        android:text="Kamu berada di posisi antrean ke-1. Sistem FIFO — yang mendaftar lebih dulu, dilayani lebih dulu."
+        android:textColor="@color/md_on_surface_variant"
+        android:textSize="13sp" />
+
+</LinearLayout>

@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/mgmt_background">
+
+    <!-- Bottom Navigation -->
+    <include layout="@layout/layout_owner_bottom_nav" />
+
+    <!-- Scrollable Content -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/ownerBottomNav"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:overScrollMode="never">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- A. HEADER -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_mgmt_header_gradient"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/mgmt_padding_horizontal"
+                android:paddingTop="48dp"
+                android:paddingEnd="@dimen/mgmt_padding_horizontal"
+                android:paddingBottom="32dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/mgmt_title"
+                    android:textColor="@color/mgmt_text_white"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/mgmt_subtitle"
+                    android:textColor="@color/mgmt_text_white"
+                    android:alpha="0.85"
+                    android:textSize="13sp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_mgmt_badge_active"
+                    android:text="@string/mgmt_badge_verified"
+                    android:textColor="@color/mgmt_badge_active_text"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Content -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="-16dp"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/mgmt_padding_horizontal"
+                android:paddingEnd="@dimen/mgmt_padding_horizontal"
+                android:paddingBottom="24dp">
+
+                <!-- B. PROPERTY SELECTOR -->
+                <LinearLayout
+                    android:id="@+id/cardPropertySelector"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_mgmt_card_ripple"
+                    android:clickable="true"
+                    android:elevation="@dimen/mgmt_card_elevation"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="@dimen/mgmt_card_padding">
+                    <FrameLayout
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_mgmt_action_icon">
+                        <ImageView android:layout_width="24dp" android:layout_height="24dp" android:layout_gravity="center" android:contentDescription="Kos" android:src="@drawable/ic_owner_building" />
+                    </FrameLayout>
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="@string/mgmt_property_name" android:textColor="@color/mgmt_text_primary" android:textSize="15sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_property_location" android:textColor="@color/mgmt_text_muted" android:textSize="12sp" />
+                    </LinearLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_mgmt_status_occupied"
+                        android:text="@string/mgmt_property_status"
+                        android:textColor="@color/mgmt_status_occupied"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- C. SUMMARY STATS -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mgmt_section_spacing" android:orientation="horizontal">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_mgmt_stat_card" android:elevation="1dp" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_total_kamar_value" android:textColor="@color/mgmt_text_primary" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_summary_total_kamar" android:textColor="@color/mgmt_text_secondary" android:textSize="10sp" />
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:layout_marginEnd="3dp" android:layout_weight="1" android:background="@drawable/bg_mgmt_stat_card" android:elevation="1dp" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_terisi_value" android:textColor="@color/mgmt_status_occupied" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_summary_terisi" android:textColor="@color/mgmt_text_secondary" android:textSize="10sp" />
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:layout_weight="1" android:background="@drawable/bg_mgmt_stat_card" android:elevation="1dp" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_kosong_value" android:textColor="@color/mgmt_status_empty" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_summary_kosong" android:textColor="@color/mgmt_text_secondary" android:textSize="10sp" />
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_mgmt_stat_card" android:elevation="1dp" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_penyewa_value" android:textColor="@color/mgmt_text_primary" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_summary_penyewa" android:textColor="@color/mgmt_text_secondary" android:textSize="10sp" />
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:layout_marginEnd="3dp" android:layout_weight="1" android:background="@drawable/bg_mgmt_stat_card" android:elevation="1dp" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_booking_value" android:textColor="@color/mgmt_status_pending" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_summary_booking" android:textColor="@color/mgmt_text_secondary" android:textSize="10sp" />
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:layout_weight="1" android:background="@drawable/bg_mgmt_stat_card" android:elevation="1dp" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_maintenance_value" android:textColor="@color/mgmt_status_maintenance" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_summary_maintenance" android:textColor="@color/mgmt_text_secondary" android:textSize="10sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- J. ALERT CARD -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mgmt_section_spacing" android:background="@drawable/bg_mgmt_alert_card" android:orientation="vertical" android:padding="14dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:contentDescription="Alert" android:src="@drawable/ic_owner_warning" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:fontFamily="sans-serif-medium" android:text="@string/mgmt_alert_title" android:textColor="@color/mgmt_alert_icon" android:textSize="13sp" android:textStyle="bold" />
+                    </LinearLayout>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/mgmt_alert_1" android:textColor="@color/mgmt_text_primary" android:textSize="12sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/mgmt_alert_2" android:textColor="@color/mgmt_text_primary" android:textSize="12sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/mgmt_alert_3" android:textColor="@color/mgmt_text_primary" android:textSize="12sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/mgmt_alert_4" android:textColor="@color/mgmt_text_primary" android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- D. QUICK ACTIONS -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mgmt_section_spacing" android:fontFamily="sans-serif-medium" android:text="@string/mgmt_actions_title" android:textColor="@color/mgmt_text_primary" android:textSize="15sp" android:textStyle="bold" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">
+                    <LinearLayout android:id="@+id/actionMgmtTambahKamar" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
+                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Tambah" android:src="@drawable/ic_owner_add" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_tambah_kamar" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
+                    </LinearLayout>
+                    <LinearLayout android:id="@+id/actionMgmtKelolaKamar" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
+                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Kelola" android:src="@drawable/ic_mgmt_room" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_kelola_kamar" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
+                    </LinearLayout>
+                    <LinearLayout android:id="@+id/actionMgmtKelolaPenyewa" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
+                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Penyewa" android:src="@drawable/ic_owner_people" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_kelola_penyewa" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal">
+                    <LinearLayout android:id="@+id/actionMgmtKonfirmasi" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
+                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Konfirmasi" android:src="@drawable/ic_mgmt_confirm" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_konfirmasi_booking" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
+                    </LinearLayout>
+                    <LinearLayout android:id="@+id/actionMgmtFasilitas" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
+                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Fasilitas" android:src="@drawable/ic_mgmt_facility" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_fasilitas" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
+                    </LinearLayout>
+                    <LinearLayout android:id="@+id/actionMgmtMaintenance" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
+                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Maintenance" android:src="@drawable/ic_mgmt_maintenance" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_maintenance" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- E. ROOM MANAGEMENT -->
+                <LinearLayout android:id="@+id/sectionRooms" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mgmt_section_spacing" android:background="@drawable/bg_mgmt_card" android:elevation="@dimen/mgmt_card_elevation" android:orientation="vertical" android:padding="@dimen/mgmt_card_padding">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:text="@string/mgmt_room_title" android:textColor="@color/mgmt_text_primary" android:textSize="15sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/btnSeeAllRooms" android:layout_width="wrap_content" android:layout_height="wrap_content" android:clickable="true" android:focusable="true" android:text="@string/mgmt_room_see_all" android:textColor="@color/brand_green" android:textSize="13sp" android:textStyle="bold" />
+                    </LinearLayout>
+                    <!-- Room 1 -->
+                    <LinearLayout android:id="@+id/roomItem1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:orientation="horizontal" android:padding="4dp">
+                        <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_mgmt_action_icon">
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_mgmt_room" />
+                        </FrameLayout>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+                            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:text="Kamar A-01" android:textColor="@color/mgmt_text_primary" android:textSize="14sp" />
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_status_occupied" android:text="@string/mgmt_room_status_occupied" android:textColor="@color/mgmt_status_occupied" android:textSize="10sp" android:textStyle="bold" />
+                            </LinearLayout>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Muhammad Fakhri • Rp 850.000/bln" android:textColor="@color/mgmt_text_muted" android:textSize="11sp" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="AC, WiFi, Kamar Mandi Dalam" android:textColor="@color/mgmt_text_muted" android:textSize="10sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="10dp" android:layout_marginBottom="10dp" android:background="@color/mgmt_divider" />
+                    <!-- Room 2 -->
+                    <LinearLayout android:id="@+id/roomItem2" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:orientation="horizontal" android:padding="4dp">
+                        <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_mgmt_action_icon">
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_mgmt_room" />
+                        </FrameLayout>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+                            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:text="Kamar A-02" android:textColor="@color/mgmt_text_primary" android:textSize="14sp" />
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_status_empty" android:text="@string/mgmt_room_status_empty" android:textColor="@color/mgmt_status_empty" android:textSize="10sp" android:textStyle="bold" />
+                            </LinearLayout>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Rp 850.000/bln • Tersedia" android:textColor="@color/mgmt_text_muted" android:textSize="11sp" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="WiFi, Lemari, Kasur" android:textColor="@color/mgmt_text_muted" android:textSize="10sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="10dp" android:layout_marginBottom="10dp" android:background="@color/mgmt_divider" />
+                    <!-- Room 3 -->
+                    <LinearLayout android:id="@+id/roomItem3" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:orientation="horizontal" android:padding="4dp">
+                        <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_mgmt_action_icon">
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:layout_gravity="center" android:src="@drawable/ic_mgmt_maintenance" />
+                        </FrameLayout>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+                            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:text="Kamar B-04" android:textColor="@color/mgmt_text_primary" android:textSize="14sp" />
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_status_maintenance" android:text="@string/mgmt_room_status_maintenance" android:textColor="@color/mgmt_status_maintenance" android:textSize="10sp" android:textStyle="bold" />
+                            </LinearLayout>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Perbaikan AC • Estimasi 2 hari" android:textColor="@color/mgmt_text_muted" android:textSize="11sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- G. BOOKING REQUEST -->
+                <LinearLayout android:id="@+id/sectionBooking" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mgmt_section_spacing" android:background="@drawable/bg_mgmt_card" android:elevation="@dimen/mgmt_card_elevation" android:orientation="vertical" android:padding="@dimen/mgmt_card_padding">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:text="@string/mgmt_booking_title" android:textColor="@color/mgmt_text_primary" android:textSize="15sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/btnSeeAllBooking" android:layout_width="wrap_content" android:layout_height="wrap_content" android:clickable="true" android:focusable="true" android:text="@string/mgmt_booking_see_all" android:textColor="@color/brand_green" android:textSize="13sp" android:textStyle="bold" />
+                    </LinearLayout>
+                    <!-- Booking 1 -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:gravity="center_vertical" android:orientation="horizontal">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="Raka Pratama" android:textColor="@color/mgmt_text_primary" android:textSize="14sp" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Kamar A-02 • 19 Mei 2026" android:textColor="@color/mgmt_text_muted" android:textSize="11sp" />
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal">
+                            <TextView android:id="@+id/btnAcceptBooking1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_btn_accept" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_accept" android:textColor="@color/mgmt_text_white" android:textSize="11sp" android:textStyle="bold" />
+                            <TextView android:id="@+id/btnRejectBooking1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/bg_mgmt_btn_reject" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_reject" android:textColor="@color/mgmt_btn_reject_text" android:textSize="11sp" android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="10dp" android:layout_marginBottom="10dp" android:background="@color/mgmt_divider" />
+                    <!-- Booking 2 -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="Dinda Ayu" android:textColor="@color/mgmt_text_primary" android:textSize="14sp" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Kamar C-01 • 18 Mei 2026" android:textColor="@color/mgmt_text_muted" android:textSize="11sp" />
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal">
+                            <TextView android:id="@+id/btnAcceptBooking2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_btn_accept" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_accept" android:textColor="@color/mgmt_text_white" android:textSize="11sp" android:textStyle="bold" />
+                            <TextView android:id="@+id/btnRejectBooking2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/bg_mgmt_btn_reject" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_reject" android:textColor="@color/mgmt_btn_reject_text" android:textSize="11sp" android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- F. TENANT SECTION -->
+                <LinearLayout android:id="@+id/sectionTenants" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mgmt_section_spacing" android:background="@drawable/bg_mgmt_card" android:elevation="@dimen/mgmt_card_elevation" android:orientation="vertical" android:padding="@dimen/mgmt_card_padding">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:text="@string/mgmt_tenant_title" android:textColor="@color/mgmt_text_primary" android:textSize="15sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/btnSeeAllTenants" android:layout_width="wrap_content" android:layout_height="wrap_content" android:clickable="true" android:focusable="true" android:text="@string/mgmt_tenant_see_all" android:textColor="@color/brand_green" android:textSize="13sp" android:textStyle="bold" />
+                    </LinearLayout>
+                    <!-- Tenant 1 -->
+                    <LinearLayout android:id="@+id/tenantItem1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:orientation="horizontal" android:padding="4dp">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="Muhammad Fakhri" android:textColor="@color/mgmt_text_primary" android:textSize="14sp" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Kamar A-01 • Masuk: 1 Jan 2026" android:textColor="@color/mgmt_text_muted" android:textSize="11sp" />
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_status_occupied" android:text="@string/mgmt_tenant_status_lunas" android:textColor="@color/mgmt_status_occupied" android:textSize="10sp" android:textStyle="bold" />
+                    </LinearLayout>
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="10dp" android:layout_marginBottom="10dp" android:background="@color/mgmt_divider" />
+                    <!-- Tenant 2 -->
+                    <LinearLayout android:id="@+id/tenantItem2" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center_vertical" android:orientation="horizontal" android:padding="4dp">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="Siti Nurhaliza" android:textColor="@color/mgmt_text_primary" android:textSize="14sp" />
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Kamar A-05 • Masuk: 15 Feb 2026" android:textColor="@color/mgmt_text_muted" android:textSize="11sp" />
+                        </LinearLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_status_late" android:text="@string/mgmt_tenant_status_late" android:textColor="@color/mgmt_status_late" android:textSize="10sp" android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</RelativeLayout>

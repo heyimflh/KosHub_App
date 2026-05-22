@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Owner Dashboard Strings -->
+    <string name="owner_greeting">Halo, Pak Ahmad!</string>
+    <string name="owner_subtitle">Kelola kos Anda dengan mudah hari ini</string>
+    <string name="owner_badge_verified">Owner Terverifikasi</string>
+    <string name="owner_date_today">Rabu, 20 Mei 2026</string>
+
+    <!-- Stats -->
+    <string name="owner_stat_total_kos">Total Kos</string>
+    <string name="owner_stat_total_kos_value">2</string>
+    <string name="owner_stat_kamar_terisi">Kamar Terisi</string>
+    <string name="owner_stat_kamar_terisi_value">15</string>
+    <string name="owner_stat_booking_masuk">Booking Masuk</string>
+    <string name="owner_stat_booking_masuk_value">4</string>
+    <string name="owner_stat_pendapatan">Pendapatan</string>
+    <string name="owner_stat_pendapatan_value">Rp 12.5jt</string>
+    <string name="owner_stat_kos_indicator">+1 bulan ini</string>
+    <string name="owner_stat_kamar_indicator">dari 20 kamar</string>
+    <string name="owner_stat_booking_indicator">3 baru hari ini</string>
+    <string name="owner_stat_pendapatan_indicator">+12%% vs bulan lalu</string>
+
+    <!-- Wallet & Actions -->
+    <string name="owner_saldo_title">Saldo Owner</string>
+    <string name="owner_saldo_tersedia">Saldo Tersedia</string>
+    <string name="owner_saldo_pending">Saldo Pending</string>
+    <string name="owner_saldo_ready">Siap ditarik</string>
+    <string name="owner_saldo_waiting">Menunggu check-in</string>
+    <string name="owner_btn_tarik_saldo">Tarik Saldo</string>
+    <string name="owner_action_needed_title">Perlu Ditindaklanjuti</string>
+    <string name="owner_mini_komplain">Komplain Baru</string>
+    <string name="owner_mini_komplain_sub">3 laporan perlu ditanggapi</string>
+    <string name="owner_mini_checkin">Siap Check-in</string>
+    <string name="owner_mini_checkin_sub">2 booking menunggu kunci</string>
+
+    <!-- Occupancy -->
+    <string name="owner_occupancy_title">Tingkat Hunian</string>
+    <string name="owner_occupancy_percent">75%%</string>
+    <string name="owner_occupancy_detail">15 dari 20 kamar sudah terisi</string>
+    <string name="owner_occupancy_kamar_kosong">5 kamar kosong tersedia</string>
+
+    <!-- Quick Actions -->
+    <string name="owner_quick_actions_title">Aksi Cepat</string>
+    <string name="owner_action_tambah_kos">Tambah Kos</string>
+    <string name="owner_action_tambah_kamar">Tambah Kamar</string>
+    <string name="owner_action_kelola_penyewa">Kelola Penyewa</string>
+    <string name="owner_action_lihat_booking">Lihat Booking</string>
+    <string name="owner_action_atur_harga">Atur Harga</string>
+    <string name="owner_action_buat_promo">Buat Promo</string>
+
+    <!-- Recent Bookings -->
+    <string name="owner_booking_title">Booking Terbaru</string>
+    <string name="owner_booking_see_all">Lihat Semua</string>
+    <string name="owner_booking_status_pending">Menunggu</string>
+    <string name="owner_booking_status_accepted">Diterima</string>
+    <string name="owner_booking_status_rejected">Ditolak</string>
+
+    <!-- Property Overview -->
+    <string name="owner_property_title">Kos Saya</string>
+    <string name="owner_property_see_all">Lihat Semua</string>
+    <string name="owner_property_badge_active">Aktif</string>
+
+    <!-- Revenue -->
+    <string name="owner_revenue_title">Pendapatan Bulan Ini</string>
+    <string name="owner_revenue_total">Rp 12.500.000</string>
+    <string name="owner_revenue_masuk">Pembayaran Masuk</string>
+    <string name="owner_revenue_masuk_value">Rp 9.800.000</string>
+    <string name="owner_revenue_pending">Pembayaran Pending</string>
+    <string name="owner_revenue_pending_value">Rp 2.700.000</string>
+    <string name="owner_revenue_estimasi">Estimasi Bulan Depan</string>
+    <string name="owner_revenue_estimasi_value">Rp 13.200.000</string>
+
+    <!-- Alerts -->
+    <string name="owner_alert_title">Perlu Perhatian</string>
+    <string name="owner_alert_1">2 booking menunggu konfirmasi</string>
+    <string name="owner_alert_2">1 pembayaran perlu dicek</string>
+    <string name="owner_alert_3">3 kamar belum memiliki foto</string>
+
+    <!-- Bottom Nav -->
+    <string name="owner_nav_dashboard">Dashboard</string>
+    <string name="owner_nav_kos">Kos Saya</string>
+    <string name="owner_nav_booking">Booking</string>
+    <string name="owner_nav_chat">Chat</string>
+    <string name="owner_nav_profile">Profile</string>
+</resources>

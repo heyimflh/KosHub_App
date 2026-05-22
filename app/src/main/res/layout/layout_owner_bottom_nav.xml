@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ownerBottomNav"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/owner_nav_height"
+    android:layout_alignParentBottom="true"
+    android:background="@color/owner_card_white"
+    android:elevation="8dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <!-- Dashboard -->
+    <LinearLayout
+        android:id="@+id/ownerNavDashboard"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical">
+        <FrameLayout
+            android:id="@+id/ownerNavDashboardPill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <ImageView
+                android:id="@+id/ownerNavDashboardIcon"
+                android:layout_width="@dimen/owner_nav_icon"
+                android:layout_height="@dimen/owner_nav_icon"
+                android:layout_gravity="center"
+                android:contentDescription="Dashboard"
+                android:src="@drawable/ic_owner_dashboard" />
+        </FrameLayout>
+        <TextView
+            android:id="@+id/ownerNavDashboardLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/owner_nav_dashboard"
+            android:textColor="@color/owner_nav_inactive"
+            android:textSize="@dimen/owner_nav_label" />
+    </LinearLayout>
+
+    <!-- Kos Saya -->
+    <LinearLayout
+        android:id="@+id/ownerNavKos"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical">
+        <FrameLayout
+            android:id="@+id/ownerNavKosPill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <ImageView
+                android:id="@+id/ownerNavKosIcon"
+                android:layout_width="@dimen/owner_nav_icon"
+                android:layout_height="@dimen/owner_nav_icon"
+                android:layout_gravity="center"
+                android:contentDescription="Kos"
+                android:src="@drawable/ic_owner_building" />
+        </FrameLayout>
+        <TextView
+            android:id="@+id/ownerNavKosLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/owner_nav_kos"
+            android:textColor="@color/owner_nav_inactive"
+            android:textSize="@dimen/owner_nav_label" />
+    </LinearLayout>
+
+    <!-- Booking -->
+    <LinearLayout
+        android:id="@+id/ownerNavBooking"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical">
+        <FrameLayout
+            android:id="@+id/ownerNavBookingPill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <ImageView
+                android:id="@+id/ownerNavBookingIcon"
+                android:layout_width="@dimen/owner_nav_icon"
+                android:layout_height="@dimen/owner_nav_icon"
+                android:layout_gravity="center"
+                android:contentDescription="Booking"
+                android:src="@drawable/ic_owner_booking" />
+        </FrameLayout>
+        <TextView
+            android:id="@+id/ownerNavBookingLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/owner_nav_booking"
+            android:textColor="@color/owner_nav_inactive"
+            android:textSize="@dimen/owner_nav_label" />
+    </LinearLayout>
+
+    <!-- Chat -->
+    <LinearLayout
+        android:id="@+id/ownerNavChat"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical">
+        <FrameLayout
+            android:id="@+id/ownerNavChatPill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <ImageView
+                android:id="@+id/ownerNavChatIcon"
+                android:layout_width="@dimen/owner_nav_icon"
+                android:layout_height="@dimen/owner_nav_icon"
+                android:layout_gravity="center"
+                android:contentDescription="Chat"
+                android:src="@drawable/ic_owner_chat" />
+        </FrameLayout>
+        <TextView
+            android:id="@+id/ownerNavChatLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/owner_nav_chat"
+            android:textColor="@color/owner_nav_inactive"
+            android:textSize="@dimen/owner_nav_label" />
+    </LinearLayout>
+
+    <!-- Profile -->
+    <LinearLayout
+        android:id="@+id/ownerNavProfile"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical">
+        <FrameLayout
+            android:id="@+id/ownerNavProfilePill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <ImageView
+                android:id="@+id/ownerNavProfileIcon"
+                android:layout_width="@dimen/owner_nav_icon"
+                android:layout_height="@dimen/owner_nav_icon"
+                android:layout_gravity="center"
+                android:contentDescription="Profile"
+                android:src="@drawable/ic_profile_person" />
+        </FrameLayout>
+        <TextView
+            android:id="@+id/ownerNavProfileLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/owner_nav_profile"
+            android:textColor="@color/owner_nav_inactive"
+            android:textSize="@dimen/owner_nav_label" />
+    </LinearLayout>
+</LinearLayout>

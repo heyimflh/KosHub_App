@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="finance_background">#FFF7FAF8</color>
+    <color name="finance_header_gradient_start">#FF006948</color>
+    <color name="finance_header_gradient_end">#FF00855D</color>
+    <color name="finance_card_white">#FFFFFFFF</color>
+    <color name="finance_card_border">#FFE4EBE6</color>
+    <color name="finance_text_primary">#FF1A2E23</color>
+    <color name="finance_text_secondary">#FF5F6D64</color>
+    <color name="finance_text_muted">#FF8A9B90</color>
+    <color name="finance_text_white">#FFFFFFFF</color>
+    <color name="finance_income_green">#FF16A34A</color>
+    <color name="finance_income_green_bg">#FFDCFCE7</color>
+    <color name="finance_expense_red">#FFDC2626</color>
+    <color name="finance_expense_red_bg">#FFFEE2E2</color>
+    <color name="finance_pending_orange">#FFD97706</color>
+    <color name="finance_pending_orange_bg">#FFFFF7ED</color>
+    <color name="finance_info_blue">#FF2563EB</color>
+    <color name="finance_info_blue_bg">#FFEFF6FF</color>
+    <color name="finance_chip_active_bg">#FF006948</color>
+    <color name="finance_chip_active_text">#FFFFFFFF</color>
+    <color name="finance_chip_inactive_bg">#FFEEF4EF</color>
+    <color name="finance_chip_inactive_text">#FF5F6D64</color>
+    <color name="finance_divider">#FFF0F4F1</color>
+    <color name="finance_progress_bg">#FFE4EBE6</color>
+    <color name="finance_progress_fill">#FF006948</color>
+    <color name="finance_bar_m1">#FF006948</color>
+    <color name="finance_bar_m2">#FF00855D</color>
+    <color name="finance_bar_m3">#FF16A34A</color>
+    <color name="finance_bar_m4">#FF4ADE80</color>
+    <color name="finance_insight_bg">#FFF0FDF4</color>
+    <color name="finance_insight_border">#FFBBF7D0</color>
+    <color name="finance_ripple">#1A006948</color>
+    <color name="finance_nav_inactive">#FF9CA3AF</color>
+    <color name="finance_export_btn_bg">#FF006948</color>
+</resources>

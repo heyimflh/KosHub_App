@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Owner Dashboard Dimensions -->
+    <dimen name="owner_padding_horizontal">20dp</dimen>
+    <dimen name="owner_card_radius">16dp</dimen>
+    <dimen name="owner_card_radius_small">12dp</dimen>
+    <dimen name="owner_card_padding">16dp</dimen>
+    <dimen name="owner_card_elevation">2dp</dimen>
+    <dimen name="owner_section_spacing">20dp</dimen>
+    <dimen name="owner_stat_icon_size">44dp</dimen>
+    <dimen name="owner_action_icon_size">44dp</dimen>
+    <dimen name="owner_nav_height">64dp</dimen>
+    <dimen name="owner_nav_icon">24dp</dimen>
+    <dimen name="owner_nav_label">11sp</dimen>
+    <dimen name="owner_progress_height">8dp</dimen>
+    <dimen name="owner_progress_radius">4dp</dimen>
+    <dimen name="owner_badge_radius">20dp</dimen>
+    <dimen name="owner_notif_btn_size">40dp</dimen>
+    <dimen name="owner_avatar_size">44dp</dimen>
+</resources>

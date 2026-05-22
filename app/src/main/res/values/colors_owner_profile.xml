@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="owp_background">#FFF7FAF8</color>
+    <color name="owp_header_gradient_start">#FF006948</color>
+    <color name="owp_header_gradient_end">#FF00855D</color>
+    <color name="owp_card_white">#FFFFFFFF</color>
+    <color name="owp_card_border">#FFE4EBE6</color>
+    <color name="owp_text_primary">#FF1A2E23</color>
+    <color name="owp_text_secondary">#FF5F6D64</color>
+    <color name="owp_text_muted">#FF8A9B90</color>
+    <color name="owp_text_white">#FFFFFFFF</color>
+    <color name="owp_badge_verified_bg">#FFE8F5E9</color>
+    <color name="owp_badge_verified_text">#FF2E7D32</color>
+    <color name="owp_badge_kos_bg">#FFEFF6FF</color>
+    <color name="owp_badge_kos_text">#FF2563EB</color>
+    <color name="owp_progress_bg">#FFE4EBE6</color>
+    <color name="owp_progress_fill">#FF006948</color>
+    <color name="owp_stat_icon_bg">#FFEEF4EF</color>
+    <color name="owp_menu_divider">#FFF0F4F1</color>
+    <color name="owp_chevron">#FFBCCAC0</color>
+    <color name="owp_logout_bg">#FFFFDAD6</color>
+    <color name="owp_logout_text">#FF93000A</color>
+    <color name="owp_ripple">#1A006948</color>
+    <color name="owp_nav_inactive">#FF9CA3AF</color>
+    <color name="owp_edit_btn_bg">#33FFFFFF</color>
+    <color name="owp_switch_track">#FFE4EBE6</color>
+    <color name="owp_switch_thumb">#FF006948</color>
+    <color name="owp_security_bg">#FFF0FDF4</color>
+    <color name="owp_security_border">#FFBBF7D0</color>
+</resources>
