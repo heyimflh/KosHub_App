@@ -237,7 +237,7 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        btnBackChat.setOnClickListener(v -> finish());
+        btnBackChat.setOnClickListener(v -> NavigationTransitionHelper.finishWithBackTransition(this));
 
         btnMoreOptions.setOnClickListener(v ->
                 Toast.makeText(this, "Opsi chat belum tersedia", Toast.LENGTH_SHORT).show());
@@ -257,6 +257,12 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
         btnTemplatePesan.setOnClickListener(v -> showTemplateDialog());
 
         btnSendMessage.setOnClickListener(v -> sendMessage());
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        NavigationTransitionHelper.finishWithBackTransition(this);
     }
 
     private void showTemplateDialog() {

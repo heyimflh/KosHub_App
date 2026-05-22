@@ -13,3 +13,11 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Local configuration files
+secrets.properties
+app/src/main/res/values/developer-config.xml
+
+# Keystores
+*.jks
+*.keystore

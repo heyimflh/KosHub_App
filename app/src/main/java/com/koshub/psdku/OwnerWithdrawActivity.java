@@ -35,14 +35,20 @@ public class OwnerWithdrawActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        btnBack.setOnClickListener(v -> finish());
+        btnBack.setOnClickListener(v -> NavigationTransitionHelper.finishWithBackTransition(this));
 
         btnSubmit.setOnClickListener(v -> {
             if (validateForm()) {
                 showToast("Permintaan tarik saldo berhasil diajukan");
-                finish();
+                NavigationTransitionHelper.finishWithBackTransition(this);
             }
         });
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        NavigationTransitionHelper.finishWithBackTransition(this);
     }
 
     private boolean validateForm() {

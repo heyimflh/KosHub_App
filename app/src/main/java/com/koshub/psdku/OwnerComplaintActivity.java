@@ -34,7 +34,13 @@ public class OwnerComplaintActivity extends AppCompatActivity {
     private void initViews() {
         btnBack = findViewById(R.id.btnBackComplaint);
         complaintListContainer = findViewById(R.id.complaintListContainer);
-        btnBack.setOnClickListener(v -> finish());
+        btnBack.setOnClickListener(v -> NavigationTransitionHelper.finishWithBackTransition(this));
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        NavigationTransitionHelper.finishWithBackTransition(this);
     }
 
     private void setupDummyData() {

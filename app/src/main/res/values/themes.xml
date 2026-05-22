@@ -61,4 +61,13 @@
         <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 
+    <!-- Splash Screen Theme -->
+    <style name="Theme.KosHub.Splash" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/bg_splash_gradient</item>
+        <item name="android:statusBarColor">@color/brand_green_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@color/brand_green</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
 </resources>

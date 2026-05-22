@@ -64,8 +64,14 @@ public class NavigationHelper {
                 Intent intent = new Intent(activity, MapViewRouteNavigationActivity.class);
                 if (cachedKosList != null && !cachedKosList.isEmpty()) {
                     intent.putExtra("kos_list", new ArrayList<>(cachedKosList));
+                } else if (activity instanceof StudentHomeActivity) {
+                    // Try to fallback if it's home activity
+                    List<KosItem> list = ((StudentHomeActivity) activity).getAllKosList();
+                    if (list != null) {
+                        intent.putExtra("kos_list", new ArrayList<>(list));
+                    }
                 }
-                NavigationTransitionHelper.navigateDetailWithIntent(activity, intent);
+                NavigationTransitionHelper.navigateMainWithIntent(activity, intent);
             }
         });
 

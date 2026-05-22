@@ -34,7 +34,7 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
 
     // Export
     private LinearLayout btnExportReport;
-    private View btnFinanceExportHeader;
+    private View btnFinanceExportHeader, btnBackFinance;
 
 
     @Override
@@ -73,6 +73,7 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
 
         btnExportReport = findViewById(R.id.btnExportReport);
         btnFinanceExportHeader = findViewById(R.id.btnFinanceExportHeader);
+        btnBackFinance = findViewById(R.id.btnBackFinance);
     }
 
     private void setupFilterChips() {
@@ -124,8 +125,7 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
         cardNetIncome.setOnClickListener(v ->
                 showToast("✅ Saldo bersih: Rp 10.200.000"));
         btnTarikSaldo.setOnClickListener(v -> {
-            Intent intent = new Intent(this, OwnerWithdrawActivity.class);
-            startActivity(intent);
+            NavigationTransitionHelper.navigateDetail(this, OwnerWithdrawActivity.class);
         });
     }
 
@@ -149,6 +149,14 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
                 showToast("📥 Fitur export laporan akan tersedia."));
         btnFinanceExportHeader.setOnClickListener(v ->
                 showToast("📥 Download laporan keuangan..."));
+        if (btnBackFinance != null) {
+            btnBackFinance.setOnClickListener(v -> NavigationTransitionHelper.finishWithBackTransition(this));
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        NavigationTransitionHelper.finishWithBackTransition(this);
     }
 
 

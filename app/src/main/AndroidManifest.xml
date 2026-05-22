@@ -17,16 +17,20 @@
         android:theme="@style/Theme.KosHub">
 
         <activity
-            android:name=".LoginActivity"
+            android:name=".SplashActivity"
             android:exported="true"
-            android:theme="@style/Theme.KosHub"
-            android:windowSoftInputMode="adjustResize">
-
+            android:theme="@style/Theme.KosHub.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
 
+        <activity
+            android:name=".LoginActivity"
+            android:exported="true"
+            android:theme="@style/Theme.KosHub"
+            android:windowSoftInputMode="adjustResize">
         </activity>
 
         <activity

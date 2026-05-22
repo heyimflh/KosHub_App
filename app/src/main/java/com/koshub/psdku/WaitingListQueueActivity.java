@@ -194,7 +194,7 @@ public class WaitingListQueueActivity extends AppCompatActivity {
         }
         
         intent.putExtra("kos_item", selectedKos);
-        startActivity(intent);
+        NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 
     private void showCancelDialog() {

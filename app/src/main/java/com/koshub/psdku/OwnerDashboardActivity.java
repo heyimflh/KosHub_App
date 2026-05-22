@@ -138,36 +138,30 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         statBookingMasuk.setOnClickListener(v ->
                 showToast("📅 4 booking masuk, 3 baru hari ini"));
         statPendapatan.setOnClickListener(v -> {
-            Intent intent = new Intent(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
-            startActivity(intent);
+            NavigationTransitionHelper.navigateDetail(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
         });
 
         cardSaldoOwner.setOnClickListener(v -> {
-            Intent intent = new Intent(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
-            startActivity(intent);
+            NavigationTransitionHelper.navigateDetail(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
         });
 
         btnTarikSaldo.setOnClickListener(v ->
                 showToast("🏧 Membuka fitur tarik saldo..."));
 
         cardSaldoTersedia.setOnClickListener(v -> {
-            Intent intent = new Intent(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
-            startActivity(intent);
+            NavigationTransitionHelper.navigateDetail(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
         });
 
         cardSaldoPending.setOnClickListener(v -> {
-            Intent intent = new Intent(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
-            startActivity(intent);
+            NavigationTransitionHelper.navigateDetail(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
         });
 
         cardKomplainMasuk.setOnClickListener(v -> {
-            Intent intent = new Intent(OwnerDashboardActivity.this, OwnerComplaintActivity.class);
-            startActivity(intent);
+            NavigationTransitionHelper.navigateDetail(OwnerDashboardActivity.this, OwnerComplaintActivity.class);
         });
 
         cardSiapCheckin.setOnClickListener(v -> {
-            Intent intent = new Intent(OwnerDashboardActivity.this, OwnerBookingActivity.class);
-            startActivity(intent);
+            NavigationTransitionHelper.navigateMain(OwnerDashboardActivity.this, OwnerBookingActivity.class);
         });
     }
 
@@ -210,8 +204,7 @@ public class OwnerDashboardActivity extends AppCompatActivity {
 
     private void setupRevenue() {
         cardRevenue.setOnClickListener(v -> {
-            Intent intent = new Intent(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
-            startActivity(intent);
+            NavigationTransitionHelper.navigateDetail(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
         });
     }
 

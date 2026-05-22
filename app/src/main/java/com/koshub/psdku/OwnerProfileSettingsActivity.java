@@ -42,7 +42,7 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
 
     private void setupListeners() {
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> finish());
+            btnBack.setOnClickListener(v -> NavigationTransitionHelper.finishWithBackTransition(this));
         }
 
         if (btnEditProfile != null) {
@@ -62,7 +62,7 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
             showToast("👋 Keluar dari akun...");
             Intent intent = new Intent(OwnerProfileSettingsActivity.this, LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
+            NavigationTransitionHelper.navigateMainWithIntent(this, intent);
         });
     }
 
@@ -70,5 +70,11 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
 
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        NavigationTransitionHelper.finishWithBackTransition(this);
     }
 }

@@ -4,10 +4,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Real Mapbox MapView -->
-    <com.mapbox.maps.MapView
-        android:id="@+id/mapView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+    <!-- MapView will be added here programmatically if token is valid -->
 
 </FrameLayout>

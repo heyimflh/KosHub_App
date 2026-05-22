@@ -22,6 +22,15 @@ public class NavigationTransitionHelper {
     }
 
     /**
+     * Navigates to a main tab activity with a smooth fade transition, supporting Intent extras.
+     */
+    public static void navigateMainWithIntent(Activity current, Intent intent) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        current.startActivity(intent);
+        current.overridePendingTransition(R.anim.nav_fade_in, R.anim.nav_fade_out);
+    }
+
+    /**
      * Navigates to a detail/derived page with a slide-in transition.
      */
     public static void navigateDetail(Activity current, Class<?> target) {

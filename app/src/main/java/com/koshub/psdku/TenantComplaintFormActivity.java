@@ -46,16 +46,22 @@ public class TenantComplaintFormActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        btnBack.setOnClickListener(v -> finish());
+        btnBack.setOnClickListener(v -> NavigationTransitionHelper.finishWithBackTransition(this));
 
         btnUploadPhoto.setOnClickListener(v -> showToast("Upload foto belum tersedia"));
 
         btnSubmit.setOnClickListener(v -> {
             if (validateForm()) {
                 showToast("Laporan komplain berhasil dikirim ke owner");
-                finish();
+                NavigationTransitionHelper.finishWithBackTransition(this);
             }
         });
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        NavigationTransitionHelper.finishWithBackTransition(this);
     }
 
     private boolean validateForm() {

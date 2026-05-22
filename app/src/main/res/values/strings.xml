@@ -1,109 +1,96 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">KosHub PSDKU</string>
+    <string name="app_name">KosHub_PSDKU</string>
+    <string name="splash_title">KosHub</string>
+    <string name="splash_tagline">Temukan kos nyaman, kelola lebih mudah</string>
 
-    <!-- Login Page -->
-    <string name="login_label">MASUK SEBAGAI</string>
-    <string name="login_title_mahasiswa">Halo Mahasiswa!</string>
-    <string name="login_title_owner">Halo Mitra KosHub!</string>
-    <string name="login_subtitle_mahasiswa">Masuk ke akunmu dan temukan kos terbaik di sekitar kampus.</string>
-    <string name="login_subtitle_owner">Masuk dan kelola properti serta pantau penghuni kos kamu.</string>
-    <string name="hint_email">Alamat email</string>
-    <string name="hint_password">Password</string>
-    <string name="forgot_password">Lupa password?</string>
-    <string name="btn_login">Masuk</string>
+    <!-- Login Screen -->
+    <string name="login_label">Masuk Sebagai</string>
+    <string name="role_mahasiswa">Mahasiswa</string>
+    <string name="role_owner">Pemilik / Mitra</string>
+    <string name="login_title_mahasiswa">Selamat Datang,</string>
+    <string name="login_subtitle_mahasiswa">Cari kos impianmu dengan mudah dan cepat di sekitar kampus.</string>
+    <string name="login_title_owner">Halo, Mitra KosHub!</string>
+    <string name="login_subtitle_owner">Kelola kos Anda dengan lebih efisien dan capai lebih banyak penyewa.</string>
+    <string name="hint_email">Alamat Email</string>
+    <string name="hint_password">Kata Sandi</string>
+    <string name="forgot_password">Lupa Kata Sandi?</string>
+    <string name="btn_login">Masuk Sekarang</string>
     <string name="divider_or">atau</string>
     <string name="btn_google_login">Masuk dengan Google</string>
-    <string name="login_help">Masalah saat masuk?</string>
-    <string name="login_footer">Belum punya akun? </string>
-    <string name="login_footer_link">Daftar sekarang</string>
+    <string name="login_footer">Belum punya akun?</string>
+    <string name="login_footer_link"> Daftar di sini</string>
 
-    <!-- Register Page -->
-    <string name="register_label">DAFTAR SEBAGAI</string>
-    <string name="register_title_mahasiswa">Daftar sebagai Mahasiswa</string>
-    <string name="register_title_owner">Daftar sebagai Mitra</string>
-    <string name="register_subtitle_mahasiswa">Buat akunmu dan temukan kos terbaik di sekitar kampus.</string>
-    <string name="register_subtitle_owner">Gabung dan kelola properti kos kamu dengan mudah.</string>
-    <string name="btn_register">Buat Akun</string>
-    <string name="password_helper">Gunakan karakter, angka, dan simbol.</string>
+    <!-- Register Screen -->
+    <string name="register_label">Daftar Sebagai</string>
+    <string name="register_title_mahasiswa">Buat Akun Baru</string>
+    <string name="register_subtitle_mahasiswa">Daftar sekarang untuk mulai mencari kos yang sesuai dengan keinginanmu.</string>
+    <string name="register_title_owner">Daftar Mitra KosHub</string>
+    <string name="register_subtitle_owner">Gabung sekarang dan mulai kelola properti kos Anda dengan lebih profesional.</string>
+    <string name="password_helper">Minimal 8 karakter dengan kombinasi angka.</string>
+    <string name="btn_register">Daftar Sekarang</string>
     <string name="btn_google_register">Daftar dengan Google</string>
-    <string name="terms_text">Dengan mendaftar, kamu menyetujui </string>
-    <string name="terms_link_1">Ketentuan Pengguna</string>
-    <string name="terms_and"> &amp; </string>
-    <string name="terms_link_2">Kebijakan Privasi</string>
-    <string name="terms_suffix"> KosHub.</string>
-    <string name="register_footer">Sudah punya akun? </string>
-    <string name="register_footer_link">Masuk sekarang</string>
+    <string name="register_footer">Sudah punya akun?</string>
+    <string name="register_footer_link"> Masuk di sini</string>
 
-    <!-- Toggle -->
-    <string name="role_mahasiswa">Mahasiswa</string>
-    <string name="role_owner">Mitra / Owner</string>
+    <!-- Owner Chat -->
+    <string name="owner_chat_unread_count">%1$d Pesan Belum Dibaca</string>
+    <string name="owner_chat_tab_semua">Semua</string>
+    <string name="owner_chat_tab_unread">Belum Dibaca</string>
+    <string name="owner_chat_tab_booking">Booking</string>
+    <string name="owner_chat_tab_aktif">Aktif</string>
+    <string name="owner_chat_tab_komplain">Komplain</string>
 
-    <!-- ===== Map View Route Navigation ===== -->
-    <string name="map_title">KosHub PSDKU</string>
-    <string name="map_search_hint">Cari area atau nama kos…</string>
-    <string name="map_campus_label">Gerbang PSDKU</string>
-    <string name="map_kos_putri_label">Kos Putri</string>
-    <string name="map_kos_selected_label">Kos Putra Harmoni</string>
-    <string name="map_route_badge">10 mnt jalan kaki</string>
-    <string name="map_card_kos_name">Kos Putra Harmoni</string>
-    <string name="map_card_kos_distance">300m ke Gerbang PSDKU</string>
-    <string name="map_card_kos_price">Rp 750rb</string>
-    <string name="map_card_kos_price_period">/bln</string>
-    <string name="map_card_btn_detail">Lihat Detail</string>
-    <string name="nav_home">Home</string>
-    <string name="nav_map">Map</string>
-    <string name="nav_waiting_list">Waiting List</string>
-    <string name="nav_profile">Profile</string>
-    <string name="toast_locate_me">📍 Menampilkan lokasi Anda</string>
-    <string name="toast_route_shown">🧭 Rute menuju kos ditampilkan</string>
-    <string name="toast_search_empty">Ketik lokasi atau nama kos terlebih dahulu</string>
-    <string name="toast_filter_applied">Filter diterapkan</string>
-
-    <!-- ===== Waiting List Queue Page ===== -->
-    <string name="waiting_title">Waiting List</string>
-    <string name="waiting_subtitle">Pantau status antrean kos kamu</string>
-    <string name="waiting_page_title">Antrean Kos Kamu</string>
-    <string name="waiting_page_desc">Sistem antrean otomatis (FIFO). Kamu akan dikabari jika kamar tersedia.</string>
-    <string name="waiting_status_in_queue">\u23F3 Dalam Antrean</string>
-    <string name="waiting_status_available">\u2713 Tersedia! Konfirmasi dalam 24 Jam</string>
-    <string name="waiting_status_cancelled">\u274C Dibatalkan</string>
-    <string name="waiting_status_confirmed">\u2705 Terkonfirmasi</string>
-    <string name="waiting_position_label">Posisi Antrean</string>
-    <string name="waiting_estimated_label">Menunggu Kamar</string>
-    <string name="waiting_estimated_desc">Kami kabari saat kamar tersedia</string>
-    <string name="waiting_btn_pay">\uD83D\uDCB3 Bayar Sekarang</string>
-    <string name="waiting_btn_processing">\u23F3 Memproses…</string>
-    <string name="waiting_btn_confirmed">\u2705 Terkonfirmasi</string>
-    <string name="waiting_btn_view_detail">Lihat Detail Kos</string>
-    <string name="waiting_btn_contact">Hubungi Pemilik</string>
-    <string name="waiting_btn_cancel">Batalkan Antrean</string>
-    <string name="waiting_next_step_title">Langkah Berikutnya</string>
-    <string name="waiting_next_step_desc">Kamu tinggal menunggu. Kami akan mengirim notifikasi saat kamar tersedia untukmu.</string>
-    <string name="waiting_cancel_title">Batalkan Antrean?</string>
-    <string name="waiting_cancel_message">Kamu akan keluar dari waiting list kos ini. Posisi antreanmu tidak bisa dikembalikan.</string>
-    <string name="waiting_cancel_positive">Ya, Batalkan</string>
-    <string name="waiting_cancel_negative">Kembali</string>
-    <string name="waiting_toast_payment">\uD83D\uDCB3 Pembayaran berhasil! (Mock)</string>
-    <string name="waiting_toast_cancelled">Antrean berhasil dibatalkan</string>
-    <string name="waiting_toast_contact">Menghubungi pemilik kos…</string>
-    <string name="waiting_toast_detail">Membuka detail kos</string>
-    <string name="waiting_info_title">Tentang Waiting List</string>
-    <string name="waiting_timeline_title">Status Antrean</string>
-    <string name="waiting_detail_title">Detail Kos</string>
-    <string name="waiting_payment_title">Pembayaran</string>
-    <string name="waiting_payment_deposit">Deposit konfirmasi booking</string>
-    <string name="waiting_payment_deadline">Konfirmasi dalam 24 jam</string>
-    <string name="waiting_urgency_notice">Segera konfirmasi sebelum slot diberikan ke antrean berikutnya</string>
-
-    <!-- Mapbox Access Token (Placeholder) -->
-    <string name="mapbox_access_token" translatable="false">YOUR_MAPBOX_ACCESS_TOKEN</string>
-
-    <!-- Batch 2: Home Specific Strings -->
+    <!-- General -->
     <string name="home_brand">KosHub</string>
-    <string name="home_search_hint">Cari area atau nama kos…</string>
+    <string name="btn_see_all">Lihat Semua</string>
+    <string name="btn_retry">Coba Lagi</string>
 
-    <!-- Batch 3: Final Strings -->
+    <!-- Booking -->
+    <string name="booking_owner_title">Booking Saya</string>
+    <string name="booking_owner_subtitle">Kelola pesanan kamar kos Anda</string>
+    <string name="booking_list_title">Daftar Booking</string>
+    <string name="empty_booking_title">Belum ada booking</string>
+    <string name="empty_booking_sub">Pesanan penyewa akan muncul di sini.</string>
+    <string name="btn_manage_kos">Kelola Kos</string>
+    <string name="loading_booking">Memuat booking...</string>
+    <string name="error_booking">Gagal memuat booking</string>
+    <string name="error_booking_sub">Terjadi kesalahan saat mengambil data.</string>
+
+    <!-- Chat -->
+    <string name="owner_chat_title">Pesan</string>
+    <string name="owner_chat_subtitle">Komunikasi dengan calon penyewa</string>
+    <string name="owner_chat_room_hint">Tulis pesan...</string>
+
+    <!-- Profile & Settings -->
+    <string name="profile_menu_settings">Pengaturan</string>
+    <string name="profile_menu_help">Pusat Bantuan</string>
+    <string name="profile_menu_logout">Keluar</string>
+    <string name="waiting_cancel_negative">Tidak, Kembali</string>
+
+    <!-- Profile -->
+    <string name="profile_name">Pengguna KosHub</string>
+    <string name="profile_email">user@example.com</string>
+    <string name="profile_status_verified">Terverifikasi</string>
+    <string name="profile_badge_active">Aktif</string>
+    <string name="profile_completion_title">Lengkapi Profil Anda</string>
+    <string name="profile_completion_percent">75%</string>
+    <string name="profile_completion_cta">Lengkapi Sekarang</string>
+    <string name="profile_stat_booking">Booking</string>
+    <string name="profile_stat_booking_value">12</string>
+    <string name="profile_stat_favorite">Favorit</string>
+    <string name="profile_stat_favorite_value">24</string>
+    <string name="profile_stat_review">Ulasan</string>
+    <string name="profile_stat_review_value">8</string>
+    <string name="profile_stat_transaction">Transaksi</string>
+    <string name="profile_stat_transaction_value">Rp 5.2jt</string>
+    <string name="profile_history_title">Riwayat Sewa</string>
+    <string name="profile_history_see_all">Lihat Semua</string>
+    <string name="profile_history_status_done">Selesai</string>
+    <string name="profile_history_status_cancelled">Dibatalkan</string>
+    <string name="profile_empty_title">Belum ada riwayat</string>
+
+    <!-- Student Home -->
+    <string name="home_search_hint">Cari nama kos atau lokasi...</string>
     <string name="home_chip_semua">Semua</string>
     <string name="home_chip_putra">Putra</string>
     <string name="home_chip_putri">Putri</string>
@@ -112,171 +99,72 @@
     <string name="home_map_view">Map</string>
     <string name="home_section_label">Rekomendasi Terdekat</string>
 
-    <!-- Navigation Labels -->
+    <!-- Home Navigation -->
     <string name="home_nav_home">Home</string>
-    <string name="home_nav_map">Map</string>
-    <string name="home_nav_waitlist">Waiting List</string>
+    <string name="home_nav_map">Eksplor</string>
+    <string name="home_nav_waitlist">Waitlist</string>
     <string name="home_nav_profile">Profil</string>
 
-    <!-- ===== Profile History Page ===== -->
-    <string name="profile_name">Siti Aminah</string>
-    <string name="profile_email">siti.aminah@student.uns.ac.id</string>
-    <string name="profile_status_verified">Terverifikasi</string>
-    <string name="profile_badge_active">Aktif</string>
-    <string name="profile_completion_title">Kelengkapan Profil</string>
-    <string name="profile_completion_percent">85%</string>
-    <string name="profile_completion_cta">Lengkapi Data</string>
-    <string name="profile_stat_booking">Booking</string>
-    <string name="profile_stat_booking_value">3</string>
-    <string name="profile_stat_favorite">Favorit</string>
-    <string name="profile_stat_favorite_value">7</string>
-    <string name="profile_stat_review">Review</string>
-    <string name="profile_stat_review_value">2</string>
-    <string name="profile_stat_transaction">Transaksi</string>
-    <string name="profile_stat_transaction_value">5</string>
-    <string name="profile_menu_personal">Data Pribadi</string>
-    <string name="profile_menu_history">Riwayat Pemesanan</string>
-    <string name="profile_menu_wishlist">Wishlist Kos</string>
-    <string name="profile_menu_payment">Metode Pembayaran</string>
-    <string name="profile_menu_document">Dokumen Mahasiswa</string>
-    <string name="profile_menu_help">Pusat Bantuan</string>
-    <string name="profile_menu_settings">Pengaturan Akun</string>
-    <string name="profile_menu_logout">Keluar Akun</string>
-
-    <!-- Additional Profile Menu Subs -->
-    <string name="profile_menu_personal_sub">Ubah detail profil dan data dirimu</string>
-    <string name="profile_menu_history_sub">Lihat status dan riwayat sewa kosmu</string>
-    <string name="profile_menu_wishlist_sub">Daftar kos yang kamu sukai</string>
-    <string name="profile_menu_payment_sub">Kelola kartu dan e-wallet kamu</string>
-    <string name="profile_menu_document_sub">KTM dan dokumen verifikasi lainnya</string>
-    <string name="profile_menu_help_sub">Punya kendala? Hubungi tim support kami</string>
-    <string name="profile_menu_settings_sub">Keamanan, bahasa, dan notifikasi</string>
-
-    <string name="profile_history_title">Riwayat Pemesanan Terbaru</string>
-    <string name="profile_history_see_all">Lihat Semua</string>
-    <string name="profile_history_status_active">Aktif</string>
-    <string name="profile_history_status_done">Selesai</string>
-    <string name="profile_history_status_cancelled">Dibatalkan</string>
-    <string name="profile_empty_title">Belum Ada Riwayat</string>
-    <string name="profile_empty_subtitle">Temukan kos impianmu dan mulai booking!</string>
-    <string name="profile_empty_cta">Cari Kos Sekarang</string>
-    <string name="profile_nav_home">Home</string>
-    <string name="profile_nav_explore">Explore</string>
-    <string name="profile_nav_wishlist">Wishlist</string>
-    <string name="profile_nav_history">Riwayat</string>
-    <string name="profile_nav_profile">Profil</string>
-
-    <!-- Filter Strings -->
+    <!-- Home Filter -->
     <string name="home_filter_title">Filter Kos</string>
-    <string name="home_filter_sort">Urutkan Berdasarkan</string>
+    <string name="home_filter_sort">Urutkan</string>
     <string name="home_filter_type">Tipe Kos</string>
     <string name="home_filter_facility">Fasilitas</string>
     <string name="home_filter_apply">Terapkan Filter</string>
     <string name="home_filter_reset">Atur Ulang</string>
 
-    <!-- Property Detail Strings -->
+    <!-- Map -->
+    <string name="map_search_hint">Cari area atau nama kos...</string>
+    <string name="map_card_kos_name">Nama Kos</string>
+    <string name="map_card_kos_distance">0.5 km dari lokasi</string>
+    <string name="map_card_kos_price">Rp 1.500.000</string>
+    <string name="map_card_kos_price_period">/bulan</string>
+    <string name="map_card_btn_detail">Lihat Detail</string>
+
+    <!-- Profile Menu -->
+    <string name="profile_menu_personal">Informasi Pribadi</string>
+    <string name="profile_menu_personal_sub">Kelola data diri dan kontak</string>
+    <string name="profile_menu_history">Riwayat Sewa</string>
+    <string name="profile_menu_history_sub">Lihat kos yang pernah disewa</string>
+    <string name="profile_menu_wishlist">Kos Favorit</string>
+    <string name="profile_menu_wishlist_sub">Kos yang Anda simpan</string>
+    <string name="profile_menu_payment">Metode Pembayaran</string>
+    <string name="profile_menu_payment_sub">Kelola cara pembayaran Anda</string>
+    <string name="profile_menu_document">Dokumen Saya</string>
+    <string name="profile_menu_document_sub">KTP, KTM, dan dokumen lainnya</string>
+    <string name="profile_menu_settings_sub">Notifikasi dan privasi</string>
+    <string name="profile_menu_help_sub">Bantuan dan kontak kami</string>
+    <string name="profile_empty_subtitle">Mulai cari kos impianmu sekarang!</string>
+    <string name="profile_empty_cta">Cari Kos</string>
+
+    <!-- Property Detail -->
     <string name="detail_section_fasilitas">Fasilitas</string>
-    <string name="detail_price_label">Harga Sewa</string>
-    <string name="detail_price_value">Rp 750rb</string>
-    <string name="detail_price_period">/bln</string>
-    <string name="detail_sisa_kamar">Tersedia 2 kamar</string>
-    <string name="detail_btn_waitlist">Waiting List</string>
-    <string name="detail_btn_booking">Booking Sekarang</string>
-    <string name="detail_section_deskripsi">Deskripsi</string>
-    <string name="detail_description">Kos putra dengan fasilitas lengkap, bersih, dan nyaman. Lokasi sangat strategis dekat dengan kampus.</string>
     <string name="detail_section_lokasi">Lokasi</string>
-    <string name="detail_route_title">Rute ke Kampus</string>
-    <string name="detail_route_distance">300m</string>
-    <string name="detail_route_time">10 mnt jalan kaki</string>
     <string name="detail_section_ulasan">Ulasan</string>
-    <string name="detail_rating">4.8</string>
-    <string name="detail_rating_count">(24 ulasan)</string>
+    <string name="detail_section_deskripsi">Deskripsi</string>
+    <string name="detail_title">Nama Kos Eksklusif</string>
+    <string name="detail_location">Kec. Jebres, Surakarta</string>
     <string name="detail_badge_putra">Putra</string>
     <string name="detail_badge_sisa">Sisa 2 Kamar</string>
-    <string name="detail_title">Kos Putra Harmoni</string>
-    <string name="detail_location">Kec. Lowokwaru, Kota Malang</string>
+    <string name="detail_price_label">Harga Mulai</string>
+    <string name="detail_price_value">Rp 1.200.000</string>
+    <string name="detail_price_period">/bulan</string>
+    <string name="detail_sisa_kamar">Tersisa 2 kamar</string>
+    <string name="detail_btn_waitlist">Waitlist</string>
+    <string name="detail_btn_booking">Booking Sekarang</string>
+    <string name="detail_rating">4.8</string>
+    <string name="detail_rating_count">(120 Ulasan)</string>
+    <string name="detail_description">Kos nyaman dengan fasilitas lengkap, dekat dengan kampus dan pusat perbelanjaan.</string>
+    <string name="detail_route_title">Rute Tercepat</string>
+    <string name="detail_route_distance">1.2 km</string>
+    <string name="detail_route_time">5 menit</string>
 
-    <!-- ===== Owner Booking Page ===== -->
-    <string name="booking_owner_title">Booking Masuk</string>
-    <string name="booking_owner_subtitle">Kelola permintaan sewa kos Anda</string>
-    <string name="booking_owner_new_badge">4 Booking Baru</string>
-    <string name="booking_search_hint">Cari nama penyewa, kos, atau kamar...</string>
-    <string name="booking_filter">Filter</string>
+    <!-- Waiting List -->
+    <string name="waiting_page_title">Daftar Tunggu</string>
 
-    <!-- Summary Labels -->
-    <string name="summary_pending">Menunggu</string>
-    <string name="summary_pending_sub">Perlu konfirmasi</string>
-    <string name="summary_accepted">Diterima</string>
-    <string name="summary_accepted_sub">Siap check-in</string>
-    <string name="summary_completed">Selesai</string>
-    <string name="summary_completed_sub">Bulan ini</string>
-    <string name="summary_rejected">Ditolak</string>
-    <string name="summary_rejected_sub">Tidak sesuai</string>
-
-    <!-- Tabs -->
-    <string name="tab_all">Semua</string>
-    <string name="tab_pending">Menunggu</string>
-    <string name="tab_accepted">Diterima</string>
-    <string name="tab_active">Aktif</string>
-    <string name="tab_completed">Selesai</string>
-    <string name="tab_rejected">Ditolak</string>
-
-    <!-- Priority Alert -->
-    <string name="alert_priority_title">3 booking perlu dikonfirmasi hari ini</string>
-    <string name="alert_priority_sub">Segera respon agar calon penyewa tidak menunggu terlalu lama.</string>
-    <string name="btn_see_booking">Lihat Booking</string>
-
-    <!-- List -->
-    <string name="booking_list_title">Daftar Booking</string>
-    <string name="btn_see_all">Lihat Semua</string>
-
-    <!-- Actions -->
-    <string name="btn_accept">Terima</string>
-    <string name="btn_reject">Tolak</string>
-    <string name="btn_detail">Detail</string>
-    <string name="btn_chat">Chat</string>
-    <string name="btn_view_reason">Lihat Alasan</string>
-    <string name="btn_close">Tutup</string>
-
-    <!-- Empty/Loading/Error -->
-    <string name="empty_booking_title">Belum ada booking masuk</string>
-    <string name="empty_booking_sub">Permintaan sewa dari calon penyewa akan muncul di sini.</string>
-    <string name="btn_manage_kos">Kelola Kos Saya</string>
-    <string name="loading_booking">Memuat data booking...</string>
-    <string name="error_booking">Gagal memuat booking</string>
-    <string name="error_booking_sub">Periksa koneksi Anda lalu coba lagi.</string>
-    <string name="btn_retry">Coba Lagi</string>
-
-    <!-- ===== Owner Chat Page ===== -->
-    <string name="owner_chat_title">Chat Penyewa</string>
-    <string name="owner_chat_subtitle">Kelola percakapan dengan calon penyewa</string>
-    <string name="owner_chat_unread_count">%1$d pesan belum dibaca</string>
-    <string name="owner_chat_search_hint">Cari nama, kos, atau pesan...</string>
-    <string name="owner_chat_tab_semua">Semua</string>
-    <string name="owner_chat_tab_unread">Belum Dibaca</string>
-    <string name="owner_chat_tab_booking">Booking</string>
-    <string name="owner_chat_tab_aktif">Aktif Ngekos</string>
-    <string name="owner_chat_tab_komplain">Komplain</string>
-    <string name="owner_chat_status_checkin">Siap Ambil Kunci</string>
-    <string name="owner_chat_status_complaint">Komplain Baru</string>
-    <string name="owner_chat_status_active">Aktif Ngekos</string>
-    <string name="owner_chat_status_waiting">Booking Menunggu</string>
-    <string name="owner_chat_status_done">Selesai</string>
-    <string name="owner_chat_empty_title">Belum ada chat penyewa</string>
-    <string name="owner_chat_empty_sub">Percakapan dari calon penyewa akan muncul di sini.</string>
-
-    <!-- Owner Chat Room -->
-    <string name="owner_chat_room_subtitle">Mahasiswa UNS • Online</string>
-    <string name="owner_chat_room_context_status">Status: %1$s</string>
-    <string name="owner_chat_room_today">Hari ini</string>
-    <string name="owner_chat_room_template">Template Pesan</string>
-    <string name="owner_chat_room_accept">Terima Booking</string>
-    <string name="owner_chat_room_reject">Tolak Booking</string>
-    <string name="owner_chat_room_hint">Tulis pesan...</string>
-    <string name="owner_chat_room_toast_empty">Pesan tidak boleh kosong</string>
-    <string name="owner_chat_room_toast_sent">Pesan terkirim</string>
-    <string name="owner_chat_room_toast_options">Opsi chat belum tersedia</string>
-    <string name="owner_chat_room_toast_attach">Upload bukti/foto belum tersedia</string>
-    <string name="owner_chat_room_toast_booking_accept">Booking diterima</string>
-    <string name="owner_chat_room_toast_booking_reject">Booking ditolak</string>
+    <!-- Mapbox & Safety -->
+    <string name="mapbox_access_token" translatable="false">YOUR_MAPBOX_PUBLIC_TOKEN_HERE</string>
+    <string name="map_fallback_title">Peta belum tersedia</string>
+    <string name="map_fallback_sub">Tambahkan Mapbox access token untuk mengaktifkan fitur peta.</string>
 </resources>
+

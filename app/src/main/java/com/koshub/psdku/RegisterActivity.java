@@ -211,14 +211,12 @@ public class RegisterActivity extends AppCompatActivity {
     private void setupNavigation() {
         // Navigate to Login
         TextView tvGoToLogin = findViewById(R.id.tvGoToLogin);
-        tvGoToLogin.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
-                startActivity(intent);
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-                finish();
-            }
-        });
+        tvGoToLogin.setOnClickListener(v -> NavigationTransitionHelper.finishWithBackTransition(RegisterActivity.this));
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        NavigationTransitionHelper.finishWithBackTransition(this);
     }
 }

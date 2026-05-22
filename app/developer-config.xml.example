@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      INSTRUCTIONS:
+      1. Copy this file to app/src/main/res/values/developer-config.xml
+      2. Get your Mapbox Public Access Token from https://account.mapbox.com/
+      3. Paste your token (starts with pk.) below.
+      4. DO NOT commit developer-config.xml to GitHub (it is in .gitignore).
+    -->
+    <string name="mapbox_access_token" translatable="false">YOUR_MAPBOX_PUBLIC_TOKEN_HERE</string>
+</resources>

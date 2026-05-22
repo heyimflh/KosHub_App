@@ -188,8 +188,7 @@ public class OwnerBookingActivity extends AppCompatActivity {
                 btnAccept.setOnClickListener(v -> showToast("Booking diterima"));
                 btnReject.setOnClickListener(v -> showToast("Booking ditolak"));
                 btnChat.setOnClickListener(v -> {
-                    Intent intent = new Intent(this, OwnerChatActivity.class);
-                    startActivity(intent);
+                    NavigationTransitionHelper.navigateDetail(this, OwnerChatActivity.class);
                 });
                 btnViewReason.setOnClickListener(v -> showToast("Alasan: Dokumen tidak lengkap"));
                 btnDetail.setOnClickListener(v -> showBookingDetailDialog(item));

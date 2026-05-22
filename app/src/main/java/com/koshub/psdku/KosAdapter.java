@@ -26,7 +26,7 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
     }
 
     public KosAdapter(List<KosItem> kosList, OnKosClickListener listener) {
-        this.kosList = kosList;
+        this.kosList = (kosList != null) ? kosList : new java.util.ArrayList<>();
         this.listener = listener;
     }
 
@@ -46,7 +46,7 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
 
     @Override
     public int getItemCount() {
-        return kosList.size();
+        return (kosList != null) ? kosList.size() : 0;
     }
 
     public void updateList(List<KosItem> newList) {

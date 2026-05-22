@@ -142,6 +142,6 @@ public class OwnerChatActivity extends AppCompatActivity {
         intent.putExtra("KAMAR", kamar);
         intent.putExtra("STATUS", status);
         intent.putExtra("INITIAL", initial);
-        startActivity(intent);
+        NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 }

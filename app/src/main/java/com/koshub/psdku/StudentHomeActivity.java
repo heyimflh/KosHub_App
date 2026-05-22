@@ -32,11 +32,10 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
 
     private RecyclerView rvKosList;
     private KosAdapter adapter;
-    private List<KosItem> allKosList;
-    private List<KosItem> filteredList;
-    private EditText etSearch;
     private TextView tvResultCount;
-    private View emptyState;
+    private List<KosItem> allKosList = new ArrayList<>();
+    private List<KosItem> filteredList = new ArrayList<>();
+    private EditText etSearch;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -155,6 +154,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
                 baseLat + 0.0015, baseLng + 0.001));
 
         filteredList = new ArrayList<>(allKosList);
+        NavigationHelper.cachedKosList = new ArrayList<>(allKosList);
     }
 
     private void setupViews() {
@@ -282,7 +282,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
                     Intent intent = new Intent(this, MapViewRouteNavigationActivity.class);
                     // Ensure we pass a serializable ArrayList
                     intent.putExtra("kos_list", new ArrayList<>(allKosList));
-                    startActivity(intent);
+                    NavigationTransitionHelper.navigateMainWithIntent(this, intent);
                 } catch (Exception e) {
                     Toast.makeText(this, "Gagal membuka peta: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
@@ -318,16 +318,20 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     }
 
     private void updateResultCount() {
-        if (tvResultCount != null) {
+        if (tvResultCount != null && filteredList != null) {
             tvResultCount.setText(filteredList.size() + " kos");
         }
+    }
+
+    public List<KosItem> getAllKosList() {
+        return allKosList;
     }
 
     @Override
     public void onKosClick(KosItem item, int position) {
         Intent intent = new Intent(this, PropertyDetailBookingActivity.class);
         intent.putExtra("kos_item", item);
-        startActivity(intent);
+        NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 
     @Override

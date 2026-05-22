@@ -163,13 +163,11 @@ public class LoginActivity extends AppCompatActivity {
                                         .start();
                                         
                                 // Success transition based on role
-                                Intent intent;
                                 if ("owner".equals(selectedRole)) {
-                                    intent = new Intent(LoginActivity.this, OwnerDashboardActivity.class);
+                                    NavigationTransitionHelper.navigateMain(LoginActivity.this, OwnerDashboardActivity.class);
                                 } else {
-                                    intent = new Intent(LoginActivity.this, StudentHomeActivity.class);
+                                    NavigationTransitionHelper.navigateMain(LoginActivity.this, StudentHomeActivity.class);
                                 }
-                                startActivity(intent);
                                 finish();
                             }
                         })
@@ -191,13 +189,6 @@ public class LoginActivity extends AppCompatActivity {
     private void setupNavigation() {
         // Navigate to Register
         TextView tvGoToRegister = findViewById(R.id.tvGoToRegister);
-        tvGoToRegister.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
-                startActivity(intent);
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-            }
-        });
+        tvGoToRegister.setOnClickListener(v -> NavigationTransitionHelper.navigateDetail(LoginActivity.this, RegisterActivity.class));
     }
 }

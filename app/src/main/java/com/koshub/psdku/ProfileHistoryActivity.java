@@ -180,8 +180,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
 
             btnAmbilKunci.setOnClickListener(v -> showAmbilKunciDialog());
             btnLaporkanKomplain.setOnClickListener(v -> {
-                Intent intent = new Intent(this, TenantComplaintFormActivity.class);
-                startActivity(intent);
+                NavigationTransitionHelper.navigateDetail(this, TenantComplaintFormActivity.class);
             });
 
             // History item click listeners

@@ -1,5 +1,6 @@
 package com.koshub.psdku;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -7,6 +8,7 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -52,15 +54,19 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_property_detail_booking);
 
-        currentItem = (KosItem) getIntent().getSerializableExtra("kos_item");
+        Intent intent = getIntent();
+        if (intent == null) {
+            Toast.makeText(this, "Data tidak ditemukan", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        currentItem = (KosItem) intent.getSerializableExtra("kos_item");
         if (currentItem == null) {
-            // Default "Real" Data if none passed
-            currentItem = new KosItem(
-                    "Kos Putra Harmoni", "Jl. Pendidikan No. 12, Kebumen",
-                    "Rp 750rb", 750000, "5 mnt", 5, "4.8", "Putra",
-                    java.util.Arrays.asList("WiFi", "K. Mandi Dalam", "Laundry"),
-                    R.drawable.kos_03, false, null,
-                    -7.68307 + 0.0005, 109.6645 + 0.0005);
+            // Safety fallback if intent failed
+            Toast.makeText(this, "Detail kos tidak tersedia", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
         }
         handler = new Handler(Looper.getMainLooper());
 
@@ -88,11 +94,11 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         
         amenityChipGroup = findViewById(R.id.amenityChipGroup);
         reviewContainer = findViewById(R.id.reviewContainer);
-        mapView = findViewById(R.id.mapView);
+        // MapView is now handled programmatically in setupMap()
     }
 
     private void setupListeners() {
-        btnBack.setOnClickListener(v -> finish());
+        btnBack.setOnClickListener(v -> NavigationTransitionHelper.finishWithBackTransition(this));
 
         btnFavorite.setOnClickListener(v -> {
             isFavorited = !isFavorited;
@@ -198,6 +204,7 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
 
     private void populateAmenities(List<String> facilities) {
         amenityChipGroup.removeAllViews();
+        if (facilities == null) return;
         for (String facility : facilities) {
             Chip chip = new Chip(this);
             chip.setText(facility);
@@ -254,31 +261,77 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     }
 
     private void setupMap() {
-        if (mapView != null) {
-            mapView.getMapboxMap().loadStyle(Style.STANDARD, style -> {
-                // Set initial camera position (dummy point near Madiun/Kebumen area)
-                Point madiun = Point.fromLngLat(111.5231, -7.6298);
-                mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
-                        .center(madiun)
-                        .zoom(14.0)
-                        .build());
-            });
+        FrameLayout mapContainer = findViewById(R.id.mapContainer);
+        if (mapContainer == null) return;
+
+        if (!MapboxTokenHelper.hasValidMapboxToken(this)) {
+            showMapFallback(mapContainer);
+            return;
         }
+
+        try {
+            mapView = new MapView(this);
+            mapContainer.addView(mapView);
+
+            mapView.getMapboxMap().loadStyle(Style.STANDARD, style -> {
+                runOnUiThread(() -> {
+                    try {
+                        // Set initial camera position (use currentItem location if available)
+                        double lat = currentItem != null ? currentItem.getLatitude() : -7.6298;
+                        double lng = currentItem != null ? currentItem.getLongitude() : 111.5231;
+                        
+                        Point location = Point.fromLngLat(lng, lat);
+                        mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
+                                .center(location)
+                                .zoom(15.0)
+                                .build());
+                    } catch (Exception e) {
+                        android.util.Log.e("MapboxSafety", "Error in style loaded callback", e);
+                    }
+                });
+            });
+        } catch (Exception e) {
+            android.util.Log.e("MapboxSafety", "Failed to initialize MapView", e);
+            showMapFallback(mapContainer);
+        }
+    }
+
+    private void showMapFallback(FrameLayout container) {
+        if (container == null) return;
+        container.removeAllViews();
+        View fallbackView = LayoutInflater.from(this).inflate(R.layout.layout_map_fallback, container, false);
+        
+        // Adjust text for detail view
+        TextView tvSub = fallbackView.findViewById(R.id.tvMapFallbackSub);
+        if (tvSub != null) {
+            tvSub.setText("Lokasi kos tidak dapat ditampilkan saat ini.");
+        }
+        
+        container.addView(fallbackView);
     }
 
     private List<Review> getDummyReviews(String kosName) {
         List<Review> list = new ArrayList<>();
+        if (kosName == null) kosName = "Kos";
         int hash = kosName.hashCode();
         
+        List<String> facilities = currentItem.getFacilities();
+        String distance = currentItem.getDistance() != null ? currentItem.getDistance() : "dekat";
+
         if (hash % 3 == 0) {
-            list.add(new Review("Rina Amanda", "Mahasiswa PSDKU • 1 bulan lalu", "Tempatnya tenang banget, cocok buat yang butuh fokus belajar. Fasilitas " + currentItem.getFacilities().get(0) + " oke banget."));
-            list.add(new Review("Fajar Kurniawan", "Mahasiswa PSDKU • 3 bulan lalu", "Suka sama lokasinya yang cuma " + currentItem.getDistance() + " ke kampus. Gak pernah telat lagi masuk kelas."));
+            String f1 = (facilities != null && !facilities.isEmpty()) ? facilities.get(0) : "fasilitas";
+            list.add(new Review("Rina Amanda", "Mahasiswa PSDKU • 1 bulan lalu", "Tempatnya tenang banget, cocok buat yang butuh fokus belajar. Fasilitas " + f1 + " oke banget."));
+            list.add(new Review("Fajar Kurniawan", "Mahasiswa PSDKU • 3 bulan lalu", "Suka sama lokasinya yang cuma " + distance + " ke kampus. Gak pernah telat lagi masuk kelas."));
         } else if (hash % 3 == 1) {
             StringBuilder facilitiesStr = new StringBuilder();
-            int limit = Math.min(2, currentItem.getFacilities().size());
-            for (int i = 0; i < limit; i++) {
-                facilitiesStr.append(currentItem.getFacilities().get(i));
-                if (i < limit - 1) facilitiesStr.append(" & ");
+            if (facilities != null && !facilities.isEmpty()) {
+                int limit = Math.min(2, facilities.size());
+                for (int i = 0; i < limit; i++) {
+                    facilitiesStr.append(facilities.get(i));
+                    if (i < limit - 1) facilitiesStr.append(" & ");
+                }
+            } else {
+                facilitiesStr.append("lengkap");
             }
             list.add(new Review("Siti Zulaikha", "Mahasiswa PSDKU • 2 minggu lalu", "Penjaga kosnya ramah pol! Kamar mandi dalam juga bersih dan air lancar. Sangat recommended!"));
             list.add(new Review("Dedi Pratama", "Mahasiswa PSDKU • 4 bulan lalu", "Harga segini dapet fasilitas " + facilitiesStr.toString() + " mah worth it banget."));
@@ -310,6 +363,12 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private int dpToPx(int dp) {
         float density = getResources().getDisplayMetrics().density;
         return Math.round(dp * density);
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        NavigationTransitionHelper.finishWithBackTransition(this);
     }
 
     private static class Review {
