@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -65,6 +66,12 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     implementation("com.mapbox.maps:android:11.10.0")
+
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-storage")
 
     testImplementation(libs.junit)
 

@@ -21,3 +21,6 @@ app/src/main/res/values/developer-config.xml
 # Keystores
 *.jks
 *.keystore
+
+# Firebase
+app/google-services.json
