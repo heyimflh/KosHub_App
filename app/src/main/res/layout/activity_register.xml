@@ -127,6 +127,41 @@
             android:textColor="@color/text_secondary"
             android:textSize="@dimen/subtitle_size" />
 
+        <!-- Name Input -->
+        <LinearLayout
+            android:id="@+id/inputNameContainer"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/input_height"
+            android:layout_marginBottom="@dimen/input_gap"
+            android:background="@drawable/bg_input_field"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/input_padding_horizontal"
+            android:paddingEnd="@dimen/input_padding_horizontal">
+
+            <ImageView
+                android:layout_width="@dimen/input_icon_size"
+                android:layout_height="@dimen/input_icon_size"
+                android:contentDescription="@string/hint_name"
+                android:src="@drawable/ic_profile_person" />
+
+            <EditText
+                android:id="@+id/etName"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:fontFamily="sans-serif"
+                android:hint="@string/hint_name"
+                android:inputType="textPersonName"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/placeholder_text"
+                android:textSize="@dimen/input_text_size" />
+
+        </LinearLayout>
+
         <!-- Email Input -->
         <LinearLayout
             android:id="@+id/inputEmailContainer"
@@ -154,6 +189,41 @@
                 android:fontFamily="sans-serif"
                 android:hint="@string/hint_email"
                 android:inputType="textEmailAddress"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/placeholder_text"
+                android:textSize="@dimen/input_text_size" />
+
+        </LinearLayout>
+
+        <!-- Phone Input -->
+        <LinearLayout
+            android:id="@+id/inputPhoneContainer"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/input_height"
+            android:layout_marginBottom="@dimen/input_gap"
+            android:background="@drawable/bg_input_field"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/input_padding_horizontal"
+            android:paddingEnd="@dimen/input_padding_horizontal">
+
+            <ImageView
+                android:layout_width="@dimen/input_icon_size"
+                android:layout_height="@dimen/input_icon_size"
+                android:contentDescription="@string/hint_phone"
+                android:src="@drawable/ic_waiting_phone" />
+
+            <EditText
+                android:id="@+id/etPhone"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@null"
+                android:fontFamily="sans-serif"
+                android:hint="@string/hint_phone"
+                android:inputType="phone"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp"
                 android:textColor="@color/text_primary"
@@ -212,6 +282,13 @@
             android:text="@string/password_helper"
             android:textColor="@color/text_muted"
             android:textSize="@dimen/helper_text_size" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
 
         <!-- Primary Button "Buat Akun" -->
         <TextView

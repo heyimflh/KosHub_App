@@ -12,6 +12,8 @@
     <string name="login_title_owner">Halo, Mitra KosHub!</string>
     <string name="login_subtitle_owner">Kelola kos Anda dengan lebih efisien dan capai lebih banyak penyewa.</string>
     <string name="hint_email">Alamat Email</string>
+    <string name="hint_name">Nama Lengkap</string>
+    <string name="hint_phone">Nomor WhatsApp</string>
     <string name="hint_password">Kata Sandi</string>
     <string name="forgot_password">Lupa Kata Sandi?</string>
     <string name="btn_login">Masuk Sekarang</string>

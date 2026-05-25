@@ -30,6 +30,7 @@ public class Kos implements Serializable {
     private double latitude;
     private double longitude;
     private long createdAt;
+    private long updatedAt;
 
     public Kos() {
         // Required for Firebase
@@ -56,6 +57,7 @@ public class Kos implements Serializable {
         this.latitude = latitude;
         this.longitude = longitude;
         this.createdAt = System.currentTimeMillis();
+        this.updatedAt = System.currentTimeMillis();
         // Convert dummy rating text to double if possible
         try {
             this.rating = Double.parseDouble(ratingText);
@@ -130,4 +132,7 @@ public class Kos implements Serializable {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public long getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
 }

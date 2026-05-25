@@ -13,8 +13,11 @@ public class User implements Serializable {
     private String phone;
     private String role; // "student" or "owner"
     private String profileImageUrl;
+    private String provider; // "email" or "google"
+    private boolean emailVerified;
     private long createdAt;
-    private boolean isVerified;
+    private long updatedAt;
+    private boolean isVerified; // Legacy backward compatibility
 
     public User() {
         // Required for Firebase
@@ -27,6 +30,7 @@ public class User implements Serializable {
         this.role = role;
         this.isVerified = false;
         this.createdAt = System.currentTimeMillis();
+        this.updatedAt = System.currentTimeMillis();
     }
 
     public String getId() { return id; }
@@ -47,8 +51,17 @@ public class User implements Serializable {
     public String getProfileImageUrl() { return profileImageUrl; }
     public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
 
+    public String getProvider() { return provider; }
+    public void setProvider(String provider) { this.provider = provider; }
+
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public long getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
 
     public boolean isVerified() { return isVerified; }
     public void setVerified(boolean verified) { isVerified = verified; }

@@ -56,4 +56,36 @@ public class DatabaseConstants {
     public static final String WITHDRAWAL_PROCESSING = "processing";
     public static final String WITHDRAWAL_SUCCESS = "success";
     public static final String WITHDRAWAL_FAILED = "failed";
+    // Providers
+    public static final String PROVIDER_EMAIL = "email";
+    public static final String PROVIDER_GOOGLE = "google";
+
+    // User Fields
+    public static final String FIELD_ID = "id";
+    public static final String FIELD_NAME = "name";
+    public static final String FIELD_EMAIL = "email";
+    public static final String FIELD_PHONE = "phone";
+    public static final String FIELD_ROLE = "role";
+    public static final String FIELD_PROFILE_IMAGE_URL = "profileImageUrl";
+    public static final String FIELD_PROVIDER = "provider";
+    public static final String FIELD_EMAIL_VERIFIED = "emailVerified";
+    public static final String FIELD_CREATED_AT = "createdAt";
+    public static final String FIELD_UPDATED_AT = "updatedAt";
+
+    // Kos & Room Fields
+    public static final String FIELD_OWNER_ID = "ownerId";
+    public static final String FIELD_ADDRESS = "address";
+    public static final String FIELD_DESCRIPTION = "description";
+    public static final String FIELD_PRICE = "price";
+    public static final String FIELD_CATEGORY = "category";
+    public static final String FIELD_FACILITIES = "facilities";
+    public static final String FIELD_IMAGE_URLS = "imageUrls";
+    public static final String FIELD_RATING = "rating";
+    public static final String FIELD_LATITUDE = "latitude";
+    public static final String FIELD_LONGITUDE = "longitude";
+    public static final String FIELD_AVAILABLE_ROOMS = "availableRooms";
+    public static final String FIELD_IS_PREMIUM = "isPremium";
+    public static final String FIELD_KOS_ID = "kosId";
+    public static final String FIELD_ROOM_NAME = "roomName";
+    public static final String FIELD_STATUS = "status";
 }

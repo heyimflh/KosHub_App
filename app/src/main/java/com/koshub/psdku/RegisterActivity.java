@@ -10,23 +10,38 @@ import android.text.style.ForegroundColorSpan;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.firebase.auth.FirebaseUser;
+import com.koshub.psdku.repositories.AuthRepository;
+import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.ValidationHelper;
+
 public class RegisterActivity extends AppCompatActivity {
 
     private boolean isPasswordVisible = false;
-    private String selectedRole = "mahasiswa";
+    private String selectedRole = DatabaseConstants.ROLE_STUDENT;
+    private AuthRepository authRepository;
+    private ProgressBar progressBar;
+    private View btnRegister;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
+
+        authRepository = AuthRepository.getInstance();
+        progressBar = findViewById(R.id.progressBar);
+        btnRegister = findViewById(R.id.btnRegister);
 
         // Handle window insets for status bar
         View root = findViewById(R.id.imgLogo);
@@ -62,8 +77,8 @@ public class RegisterActivity extends AppCompatActivity {
         });
 
         btnMahasiswa.setOnClickListener(v -> {
-            if (selectedRole.equals("mahasiswa")) return;
-            selectedRole = "mahasiswa";
+            if (selectedRole.equals(DatabaseConstants.ROLE_STUDENT)) return;
+            selectedRole = DatabaseConstants.ROLE_STUDENT;
 
             // Animate indicator
             indicator.animate()
@@ -88,8 +103,8 @@ public class RegisterActivity extends AppCompatActivity {
         });
 
         btnOwner.setOnClickListener(v -> {
-            if (selectedRole.equals("owner")) return;
-            selectedRole = "owner";
+            if (selectedRole.equals(DatabaseConstants.ROLE_OWNER)) return;
+            selectedRole = DatabaseConstants.ROLE_OWNER;
 
             // Animate indicator
             indicator.animate()
@@ -145,39 +160,80 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void setupRegisterButton() {
-        TextView btnRegister = findViewById(R.id.btnRegister);
-
         btnRegister.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // Scale animation on press
-                view.animate()
-                        .scaleX(0.975f)
-                        .scaleY(0.975f)
-                        .setDuration(100)
-                        .withEndAction(new Runnable() {
-                            @Override
-                            public void run() {
-                                view.animate()
-                                        .scaleX(1f)
-                                        .scaleY(1f)
-                                        .setDuration(100)
-                                        .start();
-                            }
-                        })
-                        .start();
-
-                // TODO: Implement actual register logic
-                EditText etEmail = findViewById(R.id.etEmail);
-                EditText etPassword = findViewById(R.id.etPassword);
-                String email = etEmail.getText().toString().trim();
-                String password = etPassword.getText().toString().trim();
-
-                if (!email.isEmpty() && !password.isEmpty()) {
-                    // Proceed with registration
-                }
+                handleRegister();
             }
         });
+    }
+
+    private void handleRegister() {
+        EditText etName = findViewById(R.id.etName);
+        EditText etEmail = findViewById(R.id.etEmail);
+        EditText etPhone = findViewById(R.id.etPhone);
+        EditText etPassword = findViewById(R.id.etPassword);
+
+        String name = etName.getText().toString().trim();
+        String email = etEmail.getText().toString().trim();
+        String phone = etPhone.getText().toString().trim();
+        String password = etPassword.getText().toString().trim();
+
+        if (ValidationHelper.isEmpty(name)) {
+            etName.setError("Nama tidak boleh kosong");
+            return;
+        }
+        if (!ValidationHelper.isValidEmail(email)) {
+            etEmail.setError("Email tidak valid");
+            return;
+        }
+        if (!ValidationHelper.isValidPassword(password)) {
+            etPassword.setError("Kata sandi minimal 8 karakter");
+            return;
+        }
+
+        setLoading(true);
+        authRepository.registerWithEmail(name, email, phone, password, selectedRole, new AuthRepository.AuthCallback<FirebaseUser>() {
+            @Override
+            public void onSuccess(FirebaseUser result) {
+                authRepository.logout(RegisterActivity.this, new AuthRepository.AuthCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void res) {
+                        setLoading(false);
+                        showSuccessDialog();
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        setLoading(false);
+                        showSuccessDialog(); // Still show success for register even if logout failed
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                setLoading(false);
+                Toast.makeText(RegisterActivity.this, message, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void setLoading(boolean loading) {
+        if (progressBar != null) progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
+        btnRegister.setEnabled(!loading);
+        btnRegister.setAlpha(loading ? 0.5f : 1.0f);
+    }
+
+    private void showSuccessDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Pendaftaran Berhasil")
+                .setMessage("Akun Anda telah dibuat. Silakan cek email untuk verifikasi sebelum masuk.")
+                .setPositiveButton("Ke Login", (dialog, which) -> {
+                    finish();
+                })
+                .setCancelable(false)
+                .show();
     }
 
     private void setupTermsText() {

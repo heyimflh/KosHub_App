@@ -73,6 +73,9 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-storage")
 
+    // Google Sign In
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+
     testImplementation(libs.junit)
 
     androidTestImplementation(libs.espresso.core)

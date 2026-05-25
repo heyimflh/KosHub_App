@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,11 +38,16 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     private List<KosItem> allKosList = new ArrayList<>();
     private List<KosItem> filteredList = new ArrayList<>();
     private EditText etSearch;
+    private ProgressBar progressBar;
+    private KosRepository kosRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_student_home);
+
+        kosRepository = KosRepository.getInstance();
+        progressBar = findViewById(R.id.progressBar);
 
         // Handle window insets for status bar
         View navbar = findViewById(R.id.navbar);
@@ -78,11 +84,31 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     }
 
     private void initData() {
-        // Fetch data from Repository (Stage 0: Dummy data from repository)
-        // TODO: Replace dummy data with Firebase Firestore query in backend integration phase.
-        allKosList = KosRepository.getInstance().getAllKosSync();
-        filteredList = new ArrayList<>(allKosList);
-        NavigationHelper.cachedKosList = new ArrayList<>(allKosList);
+        setLoading(true);
+        kosRepository.getAllKosItems(new KosRepository.KosItemListCallback() {
+            @Override
+            public void onSuccess(List<KosItem> items) {
+                setLoading(false);
+                allKosList.clear();
+                allKosList.addAll(items);
+                filteredList.clear();
+                filteredList.addAll(items);
+                NavigationHelper.cachedKosList = new ArrayList<>(allKosList);
+                adapter.notifyDataSetChanged();
+                updateResultCount();
+            }
+
+            @Override
+            public void onError(String message) {
+                setLoading(false);
+                Toast.makeText(StudentHomeActivity.this, "Gagal memuat data: " + message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void setLoading(boolean loading) {
+        if (progressBar != null) progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
+        if (rvKosList != null) rvKosList.setAlpha(loading ? 0.5f : 1.0f);
     }
 
     private void setupViews() {

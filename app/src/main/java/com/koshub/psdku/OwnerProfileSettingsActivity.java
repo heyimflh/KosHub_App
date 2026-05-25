@@ -59,10 +59,28 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
         menuHelp.setOnClickListener(v -> showToast("❓ Menghubungi CS KosHub..."));
 
         btnLogout.setOnClickListener(v -> {
-            showToast("👋 Keluar dari akun...");
-            Intent intent = new Intent(OwnerProfileSettingsActivity.this, LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            NavigationTransitionHelper.navigateMainWithIntent(this, intent);
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Logout")
+                    .setMessage("Yakin ingin keluar dari akun?")
+                    .setPositiveButton("Ya", (dialog, which) -> {
+                        showToast("👋 Keluar dari akun...");
+                        com.koshub.psdku.repositories.AuthRepository.getInstance().logout(this, new com.koshub.psdku.repositories.AuthRepository.AuthCallback<Void>() {
+                            @Override
+                            public void onSuccess(Void result) {
+                                Intent intent = new Intent(OwnerProfileSettingsActivity.this, LoginActivity.class);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                startActivity(intent);
+                                finish();
+                            }
+
+                            @Override
+                            public void onError(String message) {
+                                showToast("Gagal logout: " + message);
+                            }
+                        });
+                    })
+                    .setNegativeButton("Batal", null)
+                    .show();
         });
     }
 

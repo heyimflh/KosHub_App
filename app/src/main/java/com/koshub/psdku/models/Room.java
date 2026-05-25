@@ -12,6 +12,8 @@ public class Room implements Serializable {
     private String roomName;
     private double price;
     private String status; // "available", "booked", "occupied"
+    private long createdAt;
+    private long updatedAt;
 
     public Room() {
         // Required for Firebase
@@ -24,6 +26,8 @@ public class Room implements Serializable {
         this.roomName = roomName;
         this.price = price;
         this.status = status;
+        this.createdAt = System.currentTimeMillis();
+        this.updatedAt = System.currentTimeMillis();
     }
 
     public String getId() { return id; }
@@ -43,4 +47,10 @@ public class Room implements Serializable {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public long getCreatedAt() { return createdAt; }
+    public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public long getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
 }
