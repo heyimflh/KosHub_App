@@ -187,6 +187,7 @@
                         </FrameLayout>
 
                         <TextView
+                            android:id="@+id/tvStatValueKos"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
@@ -240,6 +241,7 @@
                         </FrameLayout>
 
                         <TextView
+                            android:id="@+id/tvStatValueTerisi"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
@@ -633,6 +635,7 @@
                             android:textSize="15sp"
                             android:textStyle="bold" />
                         <TextView
+                            android:id="@+id/tvOccupancyPercent"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/owner_occupancy_percent"
@@ -652,6 +655,7 @@
                         android:progressDrawable="@drawable/bg_owner_progress_bar" />
 
                     <TextView
+                        android:id="@+id/tvOccupancyDetail"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
@@ -1165,6 +1169,7 @@
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal">
                                 <TextView
+                                    android:id="@+id/tvPropertyName1"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
                                     android:layout_weight="1"
@@ -1207,6 +1212,7 @@
                                     android:textColor="@color/owner_text_secondary"
                                     android:textSize="11sp" />
                                 <TextView
+                                    android:id="@+id/tvPropertyRooms1"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginStart="8dp"
@@ -1266,6 +1272,7 @@
                                 android:gravity="center_vertical"
                                 android:orientation="horizontal">
                                 <TextView
+                                    android:id="@+id/tvPropertyName2"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
                                     android:layout_weight="1"
@@ -1308,6 +1315,7 @@
                                     android:textColor="@color/owner_text_secondary"
                                     android:textSize="11sp" />
                                 <TextView
+                                    android:id="@+id/tvPropertyRooms2"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginStart="8dp"

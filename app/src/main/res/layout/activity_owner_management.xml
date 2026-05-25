@@ -91,7 +91,7 @@
                         android:layout_marginStart="12dp"
                         android:layout_weight="1"
                         android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="@string/mgmt_property_name" android:textColor="@color/mgmt_text_primary" android:textSize="15sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/tvCurrentKosName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="@string/mgmt_property_name" android:textColor="@color/mgmt_text_primary" android:textSize="15sp" android:textStyle="bold" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_property_location" android:textColor="@color/mgmt_text_muted" android:textSize="12sp" />
                     </LinearLayout>
                     <TextView
@@ -107,21 +107,21 @@
                 <!-- C. SUMMARY STATS -->
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mgmt_section_spacing" android:orientation="horizontal">
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_mgmt_stat_card" android:elevation="1dp" android:gravity="center" android:orientation="vertical" android:padding="12dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_total_kamar_value" android:textColor="@color/mgmt_text_primary" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/tvTotalKamar" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_total_kamar_value" android:textColor="@color/mgmt_text_primary" android:textSize="20sp" android:textStyle="bold" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_summary_total_kamar" android:textColor="@color/mgmt_text_secondary" android:textSize="10sp" />
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:layout_marginEnd="3dp" android:layout_weight="1" android:background="@drawable/bg_mgmt_stat_card" android:elevation="1dp" android:gravity="center" android:orientation="vertical" android:padding="12dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_terisi_value" android:textColor="@color/mgmt_status_occupied" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/tvKamarTerisi" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_terisi_value" android:textColor="@color/mgmt_status_occupied" android:textSize="20sp" android:textStyle="bold" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_summary_terisi" android:textColor="@color/mgmt_text_secondary" android:textSize="10sp" />
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:layout_weight="1" android:background="@drawable/bg_mgmt_stat_card" android:elevation="1dp" android:gravity="center" android:orientation="vertical" android:padding="12dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_kosong_value" android:textColor="@color/mgmt_status_empty" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/tvKamarKosong" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_kosong_value" android:textColor="@color/mgmt_status_empty" android:textSize="20sp" android:textStyle="bold" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_summary_kosong" android:textColor="@color/mgmt_text_secondary" android:textSize="10sp" />
                     </LinearLayout>
                 </LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_mgmt_stat_card" android:elevation="1dp" android:gravity="center" android:orientation="vertical" android:padding="12dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_penyewa_value" android:textColor="@color/mgmt_text_primary" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:id="@+id/tvStatPenyewa" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/mgmt_summary_penyewa_value" android:textColor="@color/mgmt_text_primary" android:textSize="20sp" android:textStyle="bold" />
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_summary_penyewa" android:textColor="@color/mgmt_text_secondary" android:textSize="10sp" />
                     </LinearLayout>
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:layout_marginEnd="3dp" android:layout_weight="1" android:background="@drawable/bg_mgmt_stat_card" android:elevation="1dp" android:gravity="center" android:orientation="vertical" android:padding="12dp">
@@ -149,9 +149,15 @@
                 <!-- D. QUICK ACTIONS -->
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="@dimen/mgmt_section_spacing" android:fontFamily="sans-serif-medium" android:text="@string/mgmt_actions_title" android:textColor="@color/mgmt_text_primary" android:textSize="15sp" android:textStyle="bold" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">
+                    <LinearLayout android:id="@+id/actionMgmtTambahKos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
+                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Tambah Kos" android:src="@drawable/ic_owner_add" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="Tambah Kos" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
+                    </LinearLayout>
                     <LinearLayout android:id="@+id/actionMgmtTambahKamar" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
                         <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
-                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Tambah" android:src="@drawable/ic_owner_add" />
+                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Tambah Kamar" android:src="@drawable/ic_owner_room" />
                         </FrameLayout>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_tambah_kamar" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
                     </LinearLayout>
@@ -161,25 +167,19 @@
                         </FrameLayout>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_kelola_kamar" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
                     </LinearLayout>
-                    <LinearLayout android:id="@+id/actionMgmtKelolaPenyewa" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
-                        <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
-                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Penyewa" android:src="@drawable/ic_owner_people" />
-                        </FrameLayout>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_kelola_penyewa" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
-                    </LinearLayout>
                 </LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:orientation="horizontal">
-                    <LinearLayout android:id="@+id/actionMgmtKonfirmasi" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
-                        <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
-                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Konfirmasi" android:src="@drawable/ic_mgmt_confirm" />
-                        </FrameLayout>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_konfirmasi_booking" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
-                    </LinearLayout>
                     <LinearLayout android:id="@+id/actionMgmtFasilitas" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
                         <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
                             <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Fasilitas" android:src="@drawable/ic_mgmt_facility" />
                         </FrameLayout>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_fasilitas" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
+                    </LinearLayout>
+                    <LinearLayout android:id="@+id/actionMgmtKelolaPenyewa" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
+                        <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">
+                            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:layout_gravity="center" android:contentDescription="Penyewa" android:src="@drawable/ic_owner_people" />
+                        </FrameLayout>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/mgmt_action_kelola_penyewa" android:textColor="@color/mgmt_text_primary" android:textSize="11sp" />
                     </LinearLayout>
                     <LinearLayout android:id="@+id/actionMgmtMaintenance" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/bg_mgmt_menu_ripple" android:clickable="true" android:focusable="true" android:gravity="center" android:orientation="vertical" android:padding="12dp">
                         <FrameLayout android:layout_width="@dimen/mgmt_action_icon_size" android:layout_height="@dimen/mgmt_action_icon_size" android:background="@drawable/bg_mgmt_action_icon">

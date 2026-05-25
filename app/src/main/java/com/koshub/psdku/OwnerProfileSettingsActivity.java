@@ -1,17 +1,44 @@
 package com.koshub.psdku;
 
+import android.app.AlertDialog;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.bumptech.glide.Glide;
+import com.koshub.psdku.repositories.CloudinaryRepository;
+import com.koshub.psdku.repositories.StorageRepository;
+import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.services.FirebaseService;
+import com.google.firebase.auth.FirebaseAuth;
 
 /**
  * OwnerProfileSettingsActivity - Halaman Profil & Pengaturan Pemilik Kos (Improved)
  */
 public class OwnerProfileSettingsActivity extends AppCompatActivity {
+
+    private CloudinaryRepository cloudinaryRepository;
+    private ImageView imgProfile;
+
+    private final ActivityResultLauncher<String> profilePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.GetContent(),
+            uri -> {
+                if (uri != null) {
+                    // Show local preview immediately with circle crop
+                    if (imgProfile != null) Glide.with(this).load(uri).circleCrop().into(imgProfile);
+                    uploadProfileImage(uri);
+                }
+            }
+    );
 
     private View btnBack, btnEditProfile, btnCompleteLegal;
     private LinearLayout menuLegal, menuPayment, menuSecurity, menuHelp;
@@ -22,7 +49,9 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_owner_profile_settings);
 
+        cloudinaryRepository = CloudinaryRepository.getInstance();
         initViews();
+        loadProfileData();
         setupListeners();
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.PROFILE);
     }
@@ -31,6 +60,7 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBackProfile);
         btnEditProfile = findViewById(R.id.btnEditProfileOwner);
         btnCompleteLegal = findViewById(R.id.btnCompleteLegal);
+        imgProfile = findViewById(R.id.imgOwnerAvatar);
         
         menuLegal = findViewById(R.id.menuOwnerLegal);
         menuPayment = findViewById(R.id.menuOwnerPayment);
@@ -46,7 +76,7 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
         }
 
         if (btnEditProfile != null) {
-            btnEditProfile.setOnClickListener(v -> showToast("✏️ Membuka Edit Profil..."));
+            btnEditProfile.setOnClickListener(v -> profilePickerLauncher.launch("image/*"));
         }
 
         if (btnCompleteLegal != null) {
@@ -85,6 +115,49 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
     }
 
 
+
+    private void uploadProfileImage(Uri uri) {
+        showToast("Sedang mengupdate foto profil...");
+        // Show local preview immediately with circle crop
+        Glide.with(this).load(uri).circleCrop().into(imgProfile);
+
+        cloudinaryRepository.uploadProfileImage(this, uri, new CloudinaryRepository.SimpleUploadCallback() {
+            @Override
+            public void onSuccess(String downloadUrl) {
+                showToast("Foto profil diperbarui");
+                Glide.with(OwnerProfileSettingsActivity.this)
+                        .load(downloadUrl)
+                        .placeholder(R.drawable.bg_avatar_circle)
+                        .circleCrop()
+                        .into(imgProfile);
+            }
+
+            @Override
+            public void onError(String message) {
+                showToast("Gagal upload: " + message);
+            }
+        });
+    }
+
+    private void loadProfileData() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid != null) {
+            FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS).document(uid).get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        String name = documentSnapshot.getString(DatabaseConstants.FIELD_NAME);
+                        String email = documentSnapshot.getString(DatabaseConstants.FIELD_EMAIL);
+                        String photo = documentSnapshot.getString(DatabaseConstants.FIELD_PROFILE_IMAGE_URL);
+
+                        if (name != null) ((TextView)findViewById(R.id.tvOwnerName)).setText(name);
+                        if (email != null) ((TextView)findViewById(R.id.tvOwnerEmail)).setText(email);
+                        if (photo != null && !photo.isEmpty()) {
+                            Glide.with(this).load(photo).placeholder(R.drawable.bg_avatar_circle).circleCrop().into(imgProfile);
+                        } else {
+                            Glide.with(this).load(R.drawable.bg_avatar_circle).circleCrop().into(imgProfile);
+                        }
+                    });
+        }
+    }
 
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();

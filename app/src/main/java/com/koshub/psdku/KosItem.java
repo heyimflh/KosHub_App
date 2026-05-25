@@ -14,6 +14,7 @@ public class KosItem implements Serializable {
     private String category; // "Putra", "Putri", "Campur"
     private List<String> facilities;
     private int imageRes;
+    private String imageUrl; // New field for remote images
     private boolean isFavorite;
     private boolean isPremium;
     private String sisaKamar; // null if not shown
@@ -34,6 +35,7 @@ public class KosItem implements Serializable {
         this.category = category;
         this.facilities = facilities;
         this.imageRes = imageRes;
+        this.imageUrl = null;
         this.isFavorite = false;
         this.isPremium = isPremium;
         this.sisaKamar = sisaKamar;
@@ -51,6 +53,8 @@ public class KosItem implements Serializable {
     public String getCategory() { return category; }
     public List<String> getFacilities() { return facilities; }
     public int getImageRes() { return imageRes; }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public boolean isFavorite() { return isFavorite; }
     public void setFavorite(boolean favorite) { isFavorite = favorite; }
     public boolean isPremium() { return isPremium; }

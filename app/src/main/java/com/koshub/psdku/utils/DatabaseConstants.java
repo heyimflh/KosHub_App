@@ -30,6 +30,7 @@ public class DatabaseConstants {
     public static final String ROOM_AVAILABLE = "available";
     public static final String ROOM_BOOKED = "booked";
     public static final String ROOM_OCCUPIED = "occupied";
+    public static final String ROOM_MAINTENANCE = "maintenance";
 
     // Booking Status
     public static final String BOOKING_PENDING = "pending";

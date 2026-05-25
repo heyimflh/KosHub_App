@@ -76,6 +76,13 @@ dependencies {
     // Google Sign In
     implementation("com.google.android.gms:play-services-auth:21.2.0")
 
+    // Image Loading
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+
+    // Cloudinary
+    implementation("com.cloudinary:cloudinary-android:3.0.2")
+
     testImplementation(libs.junit)
 
     androidTestImplementation(libs.espresso.core)

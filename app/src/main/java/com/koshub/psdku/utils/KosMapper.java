@@ -48,8 +48,10 @@ public class KosMapper {
                 kos.getLongitude()
         );
         
-        // Add ID if needed via a field if we add it to KosItem, 
-        // for now we use intent extras for ID.
+        if (kos.getImageUrls() != null && !kos.getImageUrls().isEmpty()) {
+            item.setImageUrl(kos.getImageUrls().get(0));
+        }
+
         return item;
     }
 

@@ -76,6 +76,11 @@ public class KosRepository {
         void onError(String message);
     }
 
+    public interface StatsCallback {
+        void onSuccess(com.koshub.psdku.models.OwnerKosStats stats);
+        void onError(String message);
+    }
+
     /**
      * Fetch all kos items from Firestore.
      */
@@ -228,6 +233,75 @@ public class KosRepository {
                         list.add(room);
                     }
                     callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void getRoomsByOwner(String ownerId, RoomListCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_ROOMS)
+                .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, ownerId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Room> list = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        Room room = doc.toObject(Room.class);
+                        room.setId(doc.getId());
+                        list.add(room);
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void calculateOwnerKosStats(String ownerId, StatsCallback callback) {
+        com.koshub.psdku.models.OwnerKosStats stats = new com.koshub.psdku.models.OwnerKosStats();
+        
+        // 1. Get Kos Count
+        db.collection(DatabaseConstants.COLLECTION_KOS)
+                .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, ownerId)
+                .get()
+                .addOnSuccessListener(kosSnapshots -> {
+                    stats.setTotalKos(kosSnapshots.size());
+                    
+                    // 2. Get Room Stats
+                    db.collection(DatabaseConstants.COLLECTION_ROOMS)
+                            .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, ownerId)
+                            .get()
+                            .addOnSuccessListener(roomSnapshots -> {
+                                int totalRooms = roomSnapshots.size();
+                                int occupied = 0;
+                                int available = 0;
+                                int maintenance = 0;
+                                
+                                for (QueryDocumentSnapshot doc : roomSnapshots) {
+                                    String status = doc.getString(DatabaseConstants.FIELD_STATUS);
+                                    if (status == null) status = DatabaseConstants.ROOM_AVAILABLE;
+                                    
+                                    switch (status) {
+                                        case DatabaseConstants.ROOM_OCCUPIED:
+                                        case DatabaseConstants.ROOM_BOOKED:
+                                            occupied++;
+                                            break;
+                                        case DatabaseConstants.ROOM_AVAILABLE:
+                                            available++;
+                                            break;
+                                        case DatabaseConstants.ROOM_MAINTENANCE:
+                                            maintenance++;
+                                            break;
+                                    }
+                                }
+                                
+                                stats.setTotalRooms(totalRooms);
+                                stats.setOccupiedRooms(occupied);
+                                stats.setAvailableRooms(available);
+                                stats.setMaintenanceRooms(maintenance);
+                                if (totalRooms > 0) {
+                                    stats.setOccupancyRate((double) occupied / totalRooms * 100);
+                                }
+                                
+                                callback.onSuccess(stats);
+                            })
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }

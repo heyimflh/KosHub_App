@@ -13,6 +13,8 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+
 import java.util.List;
 
 public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
@@ -79,7 +81,15 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
 
         void bind(KosItem item, int position) {
             // Image
-            imgKos.setImageResource(item.getImageRes());
+            if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+                Glide.with(itemView.getContext())
+                        .load(item.getImageUrl())
+                        .placeholder(R.drawable.bg_map_placeholder)
+                        .error(R.drawable.bg_map_placeholder)
+                        .into(imgKos);
+            } else {
+                imgKos.setImageResource(item.getImageRes());
+            }
 
             // Badge category
             tvBadgeCategory.setText(item.getCategory());

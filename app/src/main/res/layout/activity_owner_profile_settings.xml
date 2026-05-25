@@ -78,14 +78,16 @@
                         android:layout_height="100dp"
                         android:background="@drawable/bg_profile_avatar_circle">
                         <ImageView
-                            android:id="@+id/imgOwnerAvatarLarge"
+                            android:id="@+id/imgOwnerAvatar"
                             android:layout_width="90dp"
                             android:layout_height="90dp"
                             android:layout_gravity="center"
+                            android:scaleType="centerCrop"
                             android:src="@drawable/ic_profile_person" />
                     </FrameLayout>
 
                     <TextView
+                        android:id="@+id/tvOwnerName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
@@ -96,6 +98,7 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tvOwnerEmail"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"

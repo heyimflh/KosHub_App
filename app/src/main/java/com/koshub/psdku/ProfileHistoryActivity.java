@@ -3,12 +3,25 @@ package com.koshub.psdku;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.net.Uri;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.bumptech.glide.Glide;
+import com.koshub.psdku.repositories.CloudinaryRepository;
+import com.koshub.psdku.repositories.StorageRepository;
+import com.koshub.psdku.repositories.AuthRepository;
+import com.koshub.psdku.utils.DatabaseConstants;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.koshub.psdku.services.FirebaseService;
 
 /**
  * ProfileHistoryActivity - Halaman Profil Mahasiswa / Penyewa Kos
@@ -18,8 +31,20 @@ import androidx.appcompat.app.AppCompatActivity;
  */
 public class ProfileHistoryActivity extends AppCompatActivity {
 
-    // Header
+    private CloudinaryRepository cloudinaryRepository;
     private View btnEditProfile;
+    private ImageView imgProfile;
+
+    private final ActivityResultLauncher<String> profilePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.GetContent(),
+            uri -> {
+                if (uri != null) {
+                    // Show local preview immediately with circle crop
+                    if (imgProfile != null) Glide.with(this).load(uri).circleCrop().into(imgProfile);
+                    uploadProfileImage(uri);
+                }
+            }
+    );
 
     // Profile Completion
     private ProgressBar progressProfileCompletion;
@@ -66,7 +91,9 @@ public class ProfileHistoryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile_history);
 
+        cloudinaryRepository = CloudinaryRepository.getInstance();
         initViews();
+        loadProfileData();
         setupProfileCompletion();
         setupQuickStats();
         setupMenuListeners();
@@ -78,6 +105,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
     private void initViews() {
         // Header
         btnEditProfile = findViewById(R.id.btnEditProfile);
+        imgProfile = findViewById(R.id.imgProfileAvatar);
 
         // Profile Completion
         progressProfileCompletion = findViewById(R.id.progressProfileCompletion);
@@ -124,8 +152,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
         progressProfileCompletion.setProgress(85);
 
         // Edit profile button
-        btnEditProfile.setOnClickListener(v ->
-                showToast("✏️ Membuka halaman edit profil..."));
+        btnEditProfile.setOnClickListener(v -> profilePickerLauncher.launch("image/*"));
 
         // Complete profile CTA
         btnCompleteProfile.setOnClickListener(v ->
@@ -230,6 +257,49 @@ public class ProfileHistoryActivity extends AppCompatActivity {
 
     private void setupBottomNav() {
         NavigationHelper.setupBottomNav(this, NavigationHelper.Tab.PROFILE);
+    }
+
+    private void uploadProfileImage(Uri uri) {
+        showToast("Sedang mengupdate foto profil...");
+        // Show local preview immediately with circle crop
+        Glide.with(this).load(uri).circleCrop().into(imgProfile);
+
+        cloudinaryRepository.uploadProfileImage(this, uri, new CloudinaryRepository.SimpleUploadCallback() {
+            @Override
+            public void onSuccess(String downloadUrl) {
+                showToast("Foto profil diperbarui");
+                Glide.with(ProfileHistoryActivity.this)
+                        .load(downloadUrl)
+                        .placeholder(R.drawable.bg_avatar_circle)
+                        .circleCrop()
+                        .into(imgProfile);
+            }
+
+            @Override
+            public void onError(String message) {
+                showToast("Gagal upload: " + message);
+            }
+        });
+    }
+
+    private void loadProfileData() {
+        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (uid != null) {
+            FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS).document(uid).get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        String name = documentSnapshot.getString(DatabaseConstants.FIELD_NAME);
+                        String email = documentSnapshot.getString(DatabaseConstants.FIELD_EMAIL);
+                        String photo = documentSnapshot.getString(DatabaseConstants.FIELD_PROFILE_IMAGE_URL);
+
+                        if (name != null) ((TextView)findViewById(R.id.tvProfileName)).setText(name);
+                        if (email != null) ((TextView)findViewById(R.id.tvProfileEmail)).setText(email);
+                        if (photo != null && !photo.isEmpty()) {
+                            Glide.with(this).load(photo).placeholder(R.drawable.bg_avatar_circle).circleCrop().into(imgProfile);
+                        } else {
+                            Glide.with(this).load(R.drawable.bg_avatar_circle).circleCrop().into(imgProfile);
+                        }
+                    });
+        }
     }
 
     /**

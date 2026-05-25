@@ -1,6 +1,8 @@
 package com.koshub.psdku.models;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Model for Room within a Kos property.
@@ -12,6 +14,7 @@ public class Room implements Serializable {
     private String roomName;
     private double price;
     private String status; // "available", "booked", "occupied"
+    private List<String> imageUrls;
     private long createdAt;
     private long updatedAt;
 
@@ -26,6 +29,7 @@ public class Room implements Serializable {
         this.roomName = roomName;
         this.price = price;
         this.status = status;
+        this.imageUrls = new ArrayList<>();
         this.createdAt = System.currentTimeMillis();
         this.updatedAt = System.currentTimeMillis();
     }
@@ -47,6 +51,9 @@ public class Room implements Serializable {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public List<String> getImageUrls() { return imageUrls; }
+    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
