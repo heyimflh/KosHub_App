@@ -2,24 +2,27 @@ package com.koshub.psdku.models;
 
 import java.io.Serializable;
 
-/**
- * Model for Kos properties favorited by users.
- */
 public class Favorite implements Serializable {
-    private String id;
+    private String id; // userId + "_" + kosId
     private String userId;
     private String kosId;
+    private String kosName;
+    private String kosAddress;
+    private String kosImageUrl;
     private long createdAt;
 
     public Favorite() {
         // Required for Firebase
     }
 
-    public Favorite(String id, String userId, String kosId) {
+    public Favorite(String id, String userId, String kosId, String kosName, String kosAddress, String kosImageUrl, long createdAt) {
         this.id = id;
         this.userId = userId;
         this.kosId = kosId;
-        this.createdAt = System.currentTimeMillis();
+        this.kosName = kosName;
+        this.kosAddress = kosAddress;
+        this.kosImageUrl = kosImageUrl;
+        this.createdAt = createdAt;
     }
 
     public String getId() { return id; }
@@ -30,6 +33,15 @@ public class Favorite implements Serializable {
 
     public String getKosId() { return kosId; }
     public void setKosId(String kosId) { this.kosId = kosId; }
+
+    public String getKosName() { return kosName; }
+    public void setKosName(String kosName) { this.kosName = kosName; }
+
+    public String getKosAddress() { return kosAddress; }
+    public void setKosAddress(String kosAddress) { this.kosAddress = kosAddress; }
+
+    public String getKosImageUrl() { return kosImageUrl; }
+    public void setKosImageUrl(String kosImageUrl) { this.kosImageUrl = kosImageUrl; }
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }

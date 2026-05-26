@@ -113,6 +113,11 @@
             android:label="Laporkan Komplain"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
+        <activity
+            android:name=".ReviewFormActivity"
+            android:label="Beri Ulasan"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
     </application>
 
 </manifest>

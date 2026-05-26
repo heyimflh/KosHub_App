@@ -20,7 +20,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.koshub.psdku.models.Booking;
+import com.koshub.psdku.models.Review;
 import com.koshub.psdku.repositories.BookingRepository;
+import com.koshub.psdku.repositories.FavoriteRepository;
+import com.koshub.psdku.repositories.ReviewRepository;
 import com.mapbox.geojson.Point;
 import com.mapbox.maps.CameraOptions;
 import com.mapbox.maps.MapView;
@@ -43,6 +46,7 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private TextView tvDetailTitle, tvDetailLocation, tvDetailDescription;
     private TextView tvDetailPriceValue, tvDetailBadgeCategory, tvDetailBadgeSisa;
     private TextView tvDetailRouteDistance, tvDetailRouteTime;
+    private TextView tvDetailRating, tvDetailRatingCount;
     private ChipGroup amenityChipGroup;
     private LinearLayout reviewContainer;
     private MapView mapView;
@@ -94,6 +98,8 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         tvDetailBadgeSisa = findViewById(R.id.tvDetailBadgeSisa);
         tvDetailRouteDistance = findViewById(R.id.tvDetailRouteDistance);
         tvDetailRouteTime = findViewById(R.id.tvDetailRouteTime);
+        tvDetailRating = findViewById(R.id.tvDetailRating);
+        tvDetailRatingCount = findViewById(R.id.tvDetailRatingCount);
         
         amenityChipGroup = findViewById(R.id.amenityChipGroup);
         reviewContainer = findViewById(R.id.reviewContainer);
@@ -102,16 +108,7 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private void setupListeners() {
         btnBack.setOnClickListener(v -> NavigationTransitionHelper.finishWithBackTransition(this));
 
-        btnFavorite.setOnClickListener(v -> {
-            isFavorited = !isFavorited;
-            if (isFavorited) {
-                btnFavorite.setImageResource(R.drawable.ic_favorite_filled);
-                showCustomToast("❤️ Ditambahkan ke favorit");
-            } else {
-                btnFavorite.setImageResource(R.drawable.ic_favorite_border);
-                showCustomToast("Dihapus dari favorit");
-            }
-        });
+        btnFavorite.setOnClickListener(v -> toggleFavorite());
 
         btnShare.setOnClickListener(v ->
             showCustomToast("📤 Link kos disalin!")
@@ -167,6 +164,42 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         });
     }
 
+    private void toggleFavorite() {
+        if (currentItem == null) return;
+        FavoriteRepository.getInstance().toggleFavorite(currentItem, new FavoriteRepository.SimpleCallback() {
+            @Override
+            public void onSuccess(String message) {
+                showCustomToast(message);
+                checkFavoriteStatus();
+            }
+
+            @Override
+            public void onError(String message) {
+                showCustomToast(message);
+            }
+        });
+    }
+
+    private void checkFavoriteStatus() {
+        if (currentItem == null) return;
+        FavoriteRepository.getInstance().isFavorite(currentItem.getId(), new FavoriteRepository.FavoriteCallback() {
+            @Override
+            public void onSuccess(boolean status) {
+                isFavorited = status;
+                if (isFavorited) {
+                    btnFavorite.setImageResource(R.drawable.ic_favorite_filled);
+                } else {
+                    btnFavorite.setImageResource(R.drawable.ic_favorite_border);
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                // Ignore
+            }
+        });
+    }
+
     private void openChatWithOwner() {
         if (currentItem == null || currentItem.getId() == null) return;
         
@@ -197,6 +230,14 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         // Price formatting
         tvDetailPriceValue.setText(formatPrice(currentItem.getPriceValue()));
 
+        // Rating
+        if (tvDetailRating != null) {
+            tvDetailRating.setText(String.format(Locale.getDefault(), "%.1f", currentItem.getRatingAverage()));
+        }
+        if (tvDetailRatingCount != null) {
+            tvDetailRatingCount.setText(String.format(Locale.getDefault(), "(%d)", currentItem.getRatingCount()));
+        }
+
         // Description
         tvDetailDescription.setText(generateDescription(currentItem));
 
@@ -208,10 +249,62 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         populateAmenities(currentItem.getFacilities());
 
         // Reviews
-        populateReviews(currentItem.getName());
+        loadRealReviews();
+
+        // Favorite status
+        checkFavoriteStatus();
 
         // Map
         setupMap();
+    }
+
+    private void loadRealReviews() {
+        if (currentItem == null || currentItem.getId() == null) return;
+        
+        ReviewRepository.getInstance().getReviewsByKos(currentItem.getId(), new ReviewRepository.ReviewListCallback() {
+            @Override
+            public void onSuccess(List<com.koshub.psdku.models.Review> reviews) {
+                populateReviewsReal(reviews);
+            }
+
+            @Override
+            public void onError(String message) {
+                android.util.Log.e("KosHubReview", "Load reviews failed: " + message);
+                // Fallback or empty state
+            }
+        });
+    }
+
+    private void populateReviewsReal(List<com.koshub.psdku.models.Review> reviews) {
+        reviewContainer.removeAllViews();
+        if (reviews.isEmpty()) {
+            TextView tvEmpty = new TextView(this);
+            tvEmpty.setText("Belum ada ulasan.");
+            tvEmpty.setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8));
+            reviewContainer.addView(tvEmpty);
+            return;
+        }
+
+        for (com.koshub.psdku.models.Review r : reviews) {
+            View reviewView = LayoutInflater.from(this).inflate(R.layout.item_review_dynamic, reviewContainer, false);
+            
+            TextView tvAvatar = reviewView.findViewById(R.id.tvReviewAvatar);
+            TextView tvName = reviewView.findViewById(R.id.tvReviewName);
+            TextView tvSub = reviewView.findViewById(R.id.tvReviewSub);
+            TextView tvText = reviewView.findViewById(R.id.tvReviewText);
+            
+            String initial = r.getStudentName() != null && !r.getStudentName().isEmpty() ? 
+                             r.getStudentName().substring(0, 1) : "?";
+            tvAvatar.setText(initial);
+            tvName.setText(r.getStudentName());
+            
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd MMM yyyy", Locale.getDefault());
+            String dateStr = sdf.format(new java.util.Date(r.getCreatedAt()));
+            tvSub.setText("Mahasiswa • " + dateStr + " • ⭐ " + r.getRating());
+            tvText.setText(r.getComment());
+            
+            reviewContainer.addView(reviewView);
+        }
     }
 
     private String formatPrice(int value) {
@@ -282,8 +375,8 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
 
     private void populateReviews(String kosName) {
         reviewContainer.removeAllViews();
-        List<Review> reviews = getDummyReviews(kosName);
-        for (Review r : reviews) {
+        List<com.koshub.psdku.models.Review> reviews = getDummyReviews(kosName);
+        for (com.koshub.psdku.models.Review r : reviews) {
             View reviewView = LayoutInflater.from(this).inflate(R.layout.item_review_dynamic, reviewContainer, false);
             
             TextView tvAvatar = reviewView.findViewById(R.id.tvReviewAvatar);
@@ -291,10 +384,10 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
             TextView tvSub = reviewView.findViewById(R.id.tvReviewSub);
             TextView tvText = reviewView.findViewById(R.id.tvReviewText);
             
-            tvAvatar.setText(r.name.substring(0, 1));
-            tvName.setText(r.name);
-            tvSub.setText(r.sub);
-            tvText.setText(r.text);
+            tvAvatar.setText(r.getStudentName().substring(0, 1));
+            tvName.setText(r.getStudentName());
+            tvSub.setText("Mahasiswa • Real Review");
+            tvText.setText(r.getComment());
             
             reviewContainer.addView(reviewView);
         }
@@ -348,8 +441,8 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         container.addView(fallbackView);
     }
 
-    private List<Review> getDummyReviews(String kosName) {
-        List<Review> list = new ArrayList<>();
+    private List<com.koshub.psdku.models.Review> getDummyReviews(String kosName) {
+        List<com.koshub.psdku.models.Review> list = new ArrayList<>();
         if (kosName == null) kosName = "Kos";
         int hash = kosName.hashCode();
         
@@ -358,8 +451,8 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
 
         if (hash % 3 == 0) {
             String f1 = (facilities != null && !facilities.isEmpty()) ? facilities.get(0) : "fasilitas";
-            list.add(new Review("Rina Amanda", "Mahasiswa PSDKU • 1 bulan lalu", "Tempatnya tenang banget, cocok buat yang butuh fokus belajar. Fasilitas " + f1 + " oke banget."));
-            list.add(new Review("Fajar Kurniawan", "Mahasiswa PSDKU • 3 bulan lalu", "Suka sama lokasinya yang cuma " + distance + " ke kampus. Gak pernah telat lagi masuk kelas."));
+            list.add(createDummyReview("Rina Amanda", "Tempatnya tenang banget, cocok buat yang butuh fokus belajar. Fasilitas " + f1 + " oke banget."));
+            list.add(createDummyReview("Fajar Kurniawan", "Suka sama lokasinya yang cuma " + distance + " ke kampus. Gak pernah telat lagi masuk kelas."));
         } else if (hash % 3 == 1) {
             StringBuilder facilitiesStr = new StringBuilder();
             if (facilities != null && !facilities.isEmpty()) {
@@ -371,13 +464,21 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
             } else {
                 facilitiesStr.append("lengkap");
             }
-            list.add(new Review("Siti Zulaikha", "Mahasiswa PSDKU • 2 minggu lalu", "Penjaga kosnya ramah pol! Kamar mandi dalam juga bersih dan air lancar. Sangat recommended!"));
-            list.add(new Review("Dedi Pratama", "Mahasiswa PSDKU • 4 bulan lalu", "Harga segini dapet fasilitas " + facilitiesStr.toString() + " mah worth it banget."));
+            list.add(createDummyReview("Siti Zulaikha", "Penjaga kosnya ramah pol! Kamar mandi dalam juga bersih dan air lancar. Sangat recommended!"));
+            list.add(createDummyReview("Dedi Pratama", "Harga segini dapet fasilitas " + facilitiesStr.toString() + " mah worth it banget."));
         } else {
-            list.add(new Review("Agus Setiawan", "Mahasiswa PSDKU • 5 bulan lalu", "Lingkungan kosnya aman, parkiran luas. Gak nyesel milih kos " + kosName + " ini."));
-            list.add(new Review("Maya Putri", "Mahasiswa PSDKU • 2 bulan lalu", "Wifinya kenceng, pas banget buat ngerjain tugas akhir. Kamar juga gak pengap."));
+            list.add(createDummyReview("Agus Setiawan", "Lingkungan kosnya aman, parkiran luas. Gak nyesel milih kos " + kosName + " ini."));
+            list.add(createDummyReview("Maya Putri", "Wifinya kenceng, pas banget buat ngerjain tugas akhir. Kamar juga gak pengap."));
         }
         return list;
+    }
+
+    private com.koshub.psdku.models.Review createDummyReview(String name, String text) {
+        com.koshub.psdku.models.Review r = new com.koshub.psdku.models.Review();
+        r.setStudentName(name);
+        r.setComment(text);
+        r.setCreatedAt(System.currentTimeMillis());
+        return r;
     }
 
     private void showCustomToast(String message) {
@@ -407,14 +508,5 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     public void onBackPressed() {
         super.onBackPressed();
         NavigationTransitionHelper.finishWithBackTransition(this);
-    }
-
-    private static class Review {
-        String name;
-        String sub;
-        String text;
-        Review(String n, String s, String t) {
-            this.name = n; this.sub = s; this.text = t;
-        }
     }
 }

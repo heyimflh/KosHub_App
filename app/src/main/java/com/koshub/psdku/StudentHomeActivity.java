@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.koshub.psdku.repositories.FavoriteRepository;
 import com.koshub.psdku.repositories.KosRepository;
 
 import java.util.ArrayList;
@@ -292,7 +293,20 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
 
     @Override
     public void onFavoriteClick(KosItem item, int position) {
-        String msg = item.isFavorite() ? "Ditambahkan ke favorit" : "Dihapus dari favorit";
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        FavoriteRepository.getInstance().toggleFavorite(item, new FavoriteRepository.SimpleCallback() {
+            @Override
+            public void onSuccess(String message) {
+                Toast.makeText(StudentHomeActivity.this, message, Toast.LENGTH_SHORT).show();
+                // State is already updated in KosAdapter locally for immediate feedback
+            }
+
+            @Override
+            public void onError(String message) {
+                Toast.makeText(StudentHomeActivity.this, message, Toast.LENGTH_SHORT).show();
+                // Revert state on error
+                item.setFavorite(!item.isFavorite());
+                adapter.notifyItemChanged(position);
+            }
+        });
     }
 }

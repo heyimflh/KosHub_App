@@ -321,6 +321,7 @@
                             </FrameLayout>
 
                             <TextView
+                                android:id="@+id/tvStatFavoriteValue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
@@ -376,6 +377,7 @@
                             </FrameLayout>
 
                             <TextView
+                                android:id="@+id/tvStatReviewValue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"

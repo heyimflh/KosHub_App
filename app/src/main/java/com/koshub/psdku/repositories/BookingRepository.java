@@ -331,4 +331,20 @@ public class BookingRepository {
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
+
+    public void completeBooking(String bookingId, String roomId, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
+                .update("status", DatabaseConstants.BOOKING_COMPLETED, "updatedAt", System.currentTimeMillis())
+                .addOnSuccessListener(aVoid -> {
+                    if (roomId != null && !roomId.isEmpty()) {
+                        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)
+                                .update("status", DatabaseConstants.ROOM_AVAILABLE)
+                                .addOnSuccessListener(v -> callback.onSuccess())
+                                .addOnFailureListener(e -> callback.onSuccess());
+                    } else {
+                        callback.onSuccess();
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
 }

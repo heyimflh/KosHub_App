@@ -20,6 +20,8 @@ public class KosItem implements Serializable {
     private String sisaKamar; // null if not shown
     private double latitude;
     private double longitude;
+    private double ratingAverage;
+    private int ratingCount;
     private String id; // Real Firestore ID
     private String ownerId; // Owner ID
 
@@ -69,4 +71,10 @@ public class KosItem implements Serializable {
     public String getSisaKamar() { return sisaKamar; }
     public double getLatitude() { return latitude; }
     public double getLongitude() { return longitude; }
+
+    public double getRatingAverage() { return ratingAverage; }
+    public void setRatingAverage(double ratingAverage) { this.ratingAverage = ratingAverage; }
+
+    public int getRatingCount() { return ratingCount; }
+    public void setRatingCount(int ratingCount) { this.ratingCount = ratingCount; }
 }

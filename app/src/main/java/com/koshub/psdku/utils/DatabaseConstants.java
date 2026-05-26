@@ -72,6 +72,7 @@ public class DatabaseConstants {
 
     // User Fields
     public static final String FIELD_ID = "id";
+    public static final String FIELD_USER_ID = "userId";
     public static final String FIELD_NAME = "name";
     public static final String FIELD_EMAIL = "email";
     public static final String FIELD_PHONE = "phone";
@@ -91,12 +92,16 @@ public class DatabaseConstants {
     public static final String FIELD_FACILITIES = "facilities";
     public static final String FIELD_IMAGE_URLS = "imageUrls";
     public static final String FIELD_RATING = "rating";
+    public static final String FIELD_RATING_AVERAGE = "ratingAverage";
+    public static final String FIELD_RATING_COUNT = "ratingCount";
     public static final String FIELD_LATITUDE = "latitude";
     public static final String FIELD_LONGITUDE = "longitude";
     public static final String FIELD_AVAILABLE_ROOMS = "availableRooms";
     public static final String FIELD_IS_PREMIUM = "isPremium";
     public static final String FIELD_KOS_ID = "kosId";
     public static final String FIELD_KOS_NAME = "kosName";
+    public static final String FIELD_KOS_ADDRESS = "kosAddress";
+    public static final String FIELD_KOS_IMAGE_URL = "kosImageUrl";
     public static final String FIELD_ROOM_NAME = "roomName";
     public static final String FIELD_STATUS = "status";
 
@@ -131,6 +136,10 @@ public class DatabaseConstants {
     public static final String FIELD_TEXT = "text";
     public static final String FIELD_TYPE = "type";
     public static final String FIELD_IS_READ = "isRead";
+
+    // Review Fields
+    public static final String FIELD_RATING_VALUE = "rating";
+    public static final String FIELD_COMMENT = "comment";
 
     // Message Types
     public static final String MESSAGE_TYPE_TEXT = "text";

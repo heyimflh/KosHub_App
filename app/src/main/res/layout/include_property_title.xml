@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
@@ -56,7 +57,7 @@
 
     <!-- Location Row -->
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal">
@@ -70,9 +71,36 @@
 
         <TextView
             android:id="@+id/tvDetailLocation"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/detail_location"
+            android:textColor="@color/md_on_surface_variant"
+            android:textSize="14sp" />
+
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginEnd="4dp"
+            android:src="@drawable/ic_star_filled"
+            app:tint="#FFC107"
+            android:contentDescription="Star" />
+
+        <TextView
+            android:id="@+id/tvDetailRating"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/detail_location"
+            android:text="4.5"
+            android:textColor="@color/md_on_surface"
+            android:textStyle="bold"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvDetailRatingCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="(12)"
             android:textColor="@color/md_on_surface_variant"
             android:textSize="14sp" />
     </LinearLayout>

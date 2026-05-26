@@ -20,6 +20,8 @@ public class Kos implements Serializable {
     private int distanceMinutes; // Dummy field for UI
     private String ratingText; // Deprecated: use rating
     private double rating;
+    private double ratingAverage;
+    private int ratingCount;
     private String category; // "putra", "putri", "campur"
     private List<String> facilities;
     private int imageRes; // Local resource for dummy data
@@ -99,6 +101,12 @@ public class Kos implements Serializable {
 
     public double getRating() { return rating; }
     public void setRating(double rating) { this.rating = rating; }
+
+    public double getRatingAverage() { return ratingAverage; }
+    public void setRatingAverage(double ratingAverage) { this.ratingAverage = ratingAverage; }
+
+    public int getRatingCount() { return ratingCount; }
+    public void setRatingCount(int ratingCount) { this.ratingCount = ratingCount; }
 
     public String getRatingText() { return ratingText; }
     public void setRatingText(String ratingText) { this.ratingText = ratingText; }

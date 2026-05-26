@@ -50,6 +50,8 @@ public class KosMapper {
         
         item.setId(kos.getId());
         item.setOwnerId(kos.getOwnerId());
+        item.setRatingAverage(kos.getRatingAverage());
+        item.setRatingCount(kos.getRatingCount());
 
         if (kos.getImageUrls() != null && !kos.getImageUrls().isEmpty()) {
             item.setImageUrl(kos.getImageUrls().get(0));

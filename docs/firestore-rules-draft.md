@@ -33,6 +33,21 @@ service cloud.firestore {
                     resource.data.ownerId == request.auth.uid && 
                     !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'amount']);
     }
+
+    // Favorites
+    match /favorites/{favoriteId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Reviews
+    match /reviews/{reviewId} {
+      allow read: if true; // Publicly readable
+      allow create: if request.auth != null && request.resource.data.studentId == request.auth.uid;
+      // Prevent update/delete for now
+      allow update, delete: if false;
+    }
   }
 }
 ```

@@ -22,6 +22,8 @@ import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.StorageRepository;
 import com.koshub.psdku.repositories.AuthRepository;
+import com.koshub.psdku.repositories.FavoriteRepository;
+import com.koshub.psdku.repositories.ReviewRepository;
 import com.koshub.psdku.utils.DatabaseConstants;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.koshub.psdku.services.FirebaseService;
@@ -165,6 +167,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
     private void setupQuickStats() {
         String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
         if (uid != null) {
+            // Bookings Count
             BookingRepository.getInstance().getBookingsByStudent(uid, new BookingRepository.BookingListCallback() {
                 @Override
                 public void onSuccess(List<Booking> bookings) {
@@ -178,16 +181,46 @@ public class ProfileHistoryActivity extends AppCompatActivity {
                     showToast("Gagal memuat statistik booking");
                 }
             });
+
+            // Favorites Count
+            FavoriteRepository.getInstance().getFavoritesByUser(uid, new FavoriteRepository.FavoriteListCallback() {
+                @Override
+                public void onSuccess(List<com.koshub.psdku.models.Favorite> favorites) {
+                    TextView tvFavoriteValue = findViewById(R.id.tvStatFavoriteValue);
+                    if (tvFavoriteValue != null) tvFavoriteValue.setText(String.valueOf(favorites.size()));
+                }
+
+                @Override
+                public void onError(String message) {
+                    // Ignore
+                }
+            });
+
+            // Reviews Count
+            ReviewRepository.getInstance().getReviewsByStudent(uid, new ReviewRepository.ReviewListCallback() {
+                @Override
+                public void onSuccess(List<com.koshub.psdku.models.Review> reviews) {
+                    TextView tvReviewValue = findViewById(R.id.tvStatReviewValue);
+                    if (tvReviewValue != null) {
+                        tvReviewValue.setText(String.valueOf(reviews.size()));
+                        statReview.setOnClickListener(v -> {
+                            showToast("⭐ Kamu telah memberikan " + reviews.size() + " ulasan");
+                        });
+                    }
+                }
+
+                @Override
+                public void onError(String message) {
+                    // Ignore
+                }
+            });
         }
 
-        statFavorite.setOnClickListener(v ->
-                showToast("❤️ Fitur Wishlist segera hadir"));
-
-        statReview.setOnClickListener(v ->
-                showToast("⭐ 2 review telah kamu berikan"));
-
-        statTransaction.setOnClickListener(v ->
-                showToast("💳 5 transaksi tercatat"));
+        statFavorite.setOnClickListener(v -> {
+            TextView tvFavValue = findViewById(R.id.tvStatFavoriteValue);
+            String count = tvFavValue != null ? tvFavValue.getText().toString() : "0";
+            showToast("❤️ Kamu memiliki " + count + " kos favorit");
+        });
     }
 
     private void setupMenuListeners() {
@@ -374,6 +407,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
             layoutTenantActions.setVisibility(View.VISIBLE);
             btnAmbilKunci.setVisibility(View.GONE);
             btnLaporkanKomplain.setVisibility(View.VISIBLE);
+            btnLaporkanKomplain.setText("Komplain");
             btnLaporkanKomplain.setOnClickListener(v -> {
                 Intent intent = new Intent(this, TenantComplaintFormActivity.class);
                 intent.putExtra("bookingId", latest.getId());
@@ -383,6 +417,16 @@ public class ProfileHistoryActivity extends AppCompatActivity {
             btnLaporkanKomplain.setOnLongClickListener(v -> {
                 openChatFromBooking(latest);
                 return true;
+            });
+        } else if (DatabaseConstants.BOOKING_COMPLETED.equals(latest.getStatus())) {
+            layoutTenantActions.setVisibility(View.VISIBLE);
+            btnAmbilKunci.setVisibility(View.GONE);
+            btnLaporkanKomplain.setVisibility(View.VISIBLE);
+            btnLaporkanKomplain.setText("Beri Review");
+            btnLaporkanKomplain.setOnClickListener(v -> {
+                Intent intent = new Intent(this, ReviewFormActivity.class);
+                intent.putExtra("BOOKING_ID", latest.getId());
+                NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
             });
         } else {
             layoutTenantActions.setVisibility(View.GONE);
