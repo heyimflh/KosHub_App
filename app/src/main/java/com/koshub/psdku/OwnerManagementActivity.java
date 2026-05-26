@@ -1,6 +1,7 @@
 package com.koshub.psdku;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -75,12 +76,23 @@ public class OwnerManagementActivity extends AppCompatActivity {
     private void loadData() {
         String uid = auth.getUid();
         
+        View emptyState = findViewById(R.id.layoutEmptyStateMgmt);
+        View propertyCard = findViewById(R.id.cardPropertySelector);
+        findViewById(R.id.btnEmptyTambahKos).setOnClickListener(v -> showAddKosDialog());
+
         // 1. Load Kos List
         kosRepository.getKosByOwner(uid, new KosRepository.KosListCallback() {
             @Override
             public void onSuccess(List<Kos> kosList) {
                 ownerKosList = kosList;
-                updateKosUI(kosList);
+                if (kosList.isEmpty()) {
+                    emptyState.setVisibility(View.VISIBLE);
+                    propertyCard.setVisibility(View.GONE);
+                } else {
+                    emptyState.setVisibility(View.GONE);
+                    propertyCard.setVisibility(View.VISIBLE);
+                    updateKosUI(kosList);
+                }
             }
 
             @Override
@@ -130,19 +142,36 @@ public class OwnerManagementActivity extends AppCompatActivity {
     }
 
     private void setupPropertySelector() {
-        findViewById(R.id.cardPropertySelector).setOnClickListener(v ->
-                showToast("🏠 Ganti kos yang dikelola..."));
+        findViewById(R.id.cardPropertySelector).setOnClickListener(v -> {
+            if (ownerKosList == null || ownerKosList.isEmpty()) {
+                showToast("Belum ada kos terdaftar.");
+                return;
+            }
+            String[] names = new String[ownerKosList.size()];
+            for (int i = 0; i < ownerKosList.size(); i++) names[i] = ownerKosList.get(i).getName();
+            
+            new AlertDialog.Builder(this)
+                    .setTitle("Pilih Kos")
+                    .setItems(names, (dialog, which) -> {
+                        Kos selected = ownerKosList.get(which);
+                        ((TextView) findViewById(R.id.tvCurrentKosName)).setText(selected.getName());
+                        showToast("Beralih ke " + selected.getName());
+                    })
+                    .show();
+        });
     }
 
     private void setupQuickActions() {
         findViewById(R.id.actionMgmtTambahKos).setOnClickListener(v -> showAddKosDialog());
         findViewById(R.id.actionMgmtTambahKamar).setOnClickListener(v -> showAddRoomDialog());
         findViewById(R.id.actionMgmtKelolaKamar).setOnClickListener(v -> showManageRoomsDialog());
-        findViewById(R.id.actionMgmtKelolaPenyewa).setOnClickListener(v ->
-                showToast("👥 Fitur Kelola Penyewa tersedia di phase berikutnya"));
+        findViewById(R.id.actionMgmtKelolaPenyewa).setOnClickListener(v -> {
+            Intent intent = new Intent(this, OwnerBookingActivity.class);
+            intent.putExtra("TAB", "active");
+            startActivity(intent);
+        });
         findViewById(R.id.actionMgmtFasilitas).setOnClickListener(v -> showEditFacilitiesDialog());
-        findViewById(R.id.actionMgmtMaintenance).setOnClickListener(v ->
-                showToast("🛠️ Fitur Maintenance tersedia di phase berikutnya"));
+        findViewById(R.id.actionMgmtMaintenance).setOnClickListener(v -> showManageRoomsDialog());
     }
 
     private void showAddKosDialog() {
@@ -383,36 +412,30 @@ public class OwnerManagementActivity extends AppCompatActivity {
     }
 
     private void setupRoomSection() {
-        findViewById(R.id.btnSeeAllRooms).setOnClickListener(v ->
-                showToast("🚪 Memuat semua kamar..."));
-        findViewById(R.id.roomItem1).setOnClickListener(v ->
-                showToast("🚪 Kamar A-01 - Terisi - Muhammad Fakhri"));
-        findViewById(R.id.roomItem2).setOnClickListener(v ->
-                showToast("🚪 Kamar A-02 - Kosong - Tersedia"));
-        findViewById(R.id.roomItem3).setOnClickListener(v ->
-                showToast("🛠️ Kamar B-04 - Maintenance - Perbaikan AC"));
+        findViewById(R.id.btnSeeAllRooms).setOnClickListener(v -> showManageRoomsDialog());
+        // Hide dummy items to avoid confusion with real stats
+        findViewById(R.id.roomItem1).setVisibility(View.GONE);
+        findViewById(R.id.roomItem2).setVisibility(View.GONE);
+        findViewById(R.id.roomItem3).setVisibility(View.GONE);
     }
 
     private void setupBookingSection() {
-        findViewById(R.id.btnSeeAllBooking).setOnClickListener(v ->
-                showToast("📋 Memuat semua booking..."));
-        findViewById(R.id.btnAcceptBooking1).setOnClickListener(v ->
-                showToast("✅ Booking Raka Pratama diterima!"));
-        findViewById(R.id.btnRejectBooking1).setOnClickListener(v ->
-                showToast("❌ Booking Raka Pratama ditolak"));
-        findViewById(R.id.btnAcceptBooking2).setOnClickListener(v ->
-                showToast("✅ Booking Dinda Ayu diterima!"));
-        findViewById(R.id.btnRejectBooking2).setOnClickListener(v ->
-                showToast("❌ Booking Dinda Ayu ditolak"));
+        findViewById(R.id.btnSeeAllBooking).setOnClickListener(v -> {
+            Intent intent = new Intent(this, OwnerBookingActivity.class);
+            startActivity(intent);
+        });
+        // Hide dummy items
+        findViewById(R.id.sectionBooking).setVisibility(View.GONE);
     }
 
     private void setupTenantSection() {
-        findViewById(R.id.btnSeeAllTenants).setOnClickListener(v ->
-                showToast("👥 Memuat semua penyewa..."));
-        findViewById(R.id.tenantItem1).setOnClickListener(v ->
-                showToast("👤 Muhammad Fakhri - Kamar A-01 - Lunas"));
-        findViewById(R.id.tenantItem2).setOnClickListener(v ->
-                showToast("👤 Siti Nurhaliza - Kamar A-05 - Terlambat"));
+        findViewById(R.id.btnSeeAllTenants).setOnClickListener(v -> {
+            Intent intent = new Intent(this, OwnerBookingActivity.class);
+            intent.putExtra("TAB", "active");
+            startActivity(intent);
+        });
+        // Hide dummy items
+        findViewById(R.id.sectionTenants).setVisibility(View.GONE);
     }
 
     private void showToast(String message) {

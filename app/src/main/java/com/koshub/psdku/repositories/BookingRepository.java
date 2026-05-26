@@ -125,10 +125,16 @@ public class BookingRepository {
                                                 
                                                 callback.onSuccess();
                                             })
-                                            .addOnFailureListener(e -> {
-                                                android.util.Log.e(TAG, "Save booking failed: " + e.getMessage());
-                                                callback.onError("Gagal menyimpan booking. Silakan coba lagi.");
-                                            });
+                .addOnFailureListener(e -> {
+                    android.util.Log.e(TAG, "Save booking failed: " + e.getMessage());
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        android.util.Log.e(DatabaseConstants.LOG_TAG_SECURITY, "Permission denied creating booking: " + e.getMessage());
+                        callback.onError("Kamu tidak memiliki izin untuk membuat booking ini.");
+                    } else {
+                        callback.onError("Gagal menyimpan booking. Silakan coba lagi.");
+                    }
+                });
                                 }
                             })
                             .addOnFailureListener(e -> {
@@ -156,7 +162,13 @@ public class BookingRepository {
                 })
                 .addOnFailureListener(e -> {
                     android.util.Log.e(TAG, "getBookingsByStudent error: " + e.getMessage());
-                    callback.onError("Gagal memuat data booking. Silakan coba lagi.");
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        android.util.Log.e(DatabaseConstants.LOG_TAG_SECURITY, "Permission denied fetching student bookings: " + e.getMessage());
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError("Gagal memuat data booking. Silakan coba lagi.");
+                    }
                 });
     }
 
@@ -177,7 +189,12 @@ public class BookingRepository {
                 })
                 .addOnFailureListener(e -> {
                     android.util.Log.e(TAG, "getBookingsByOwner error: " + e.getMessage());
-                    callback.onError("Gagal memuat data booking masuk. Silakan coba lagi.");
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError("Gagal memuat data booking masuk. Silakan coba lagi.");
+                    }
                 });
     }
 
@@ -259,7 +276,12 @@ public class BookingRepository {
         })
           .addOnFailureListener(e -> {
               android.util.Log.e(TAG, "acceptBooking failed: " + e.getMessage());
-              if (callback != null) callback.onError(e.getMessage());
+              if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                  ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                  if (callback != null) callback.onError("Akses ditolak. Kamu bukan pemilik data ini.");
+              } else {
+                  if (callback != null) callback.onError(e.getMessage());
+              }
           });
     }
 
@@ -329,7 +351,12 @@ public class BookingRepository {
         })
           .addOnFailureListener(e -> {
               android.util.Log.e(TAG, "rejectBooking failed: " + e.getMessage());
-              if (callback != null) callback.onError(e.getMessage());
+              if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                  ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                  if (callback != null) callback.onError("Akses ditolak. Kamu bukan pemilik data ini.");
+              } else {
+                  if (callback != null) callback.onError(e.getMessage());
+              }
           });
     }
 

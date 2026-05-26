@@ -290,11 +290,15 @@ public class OwnerDashboardActivity extends AppCompatActivity {
             startActivity(intent);
         });
         
-        statKamarTerisi.setOnClickListener(v ->
-                showToast("🛏️ Menampilkan rincian hunian kamar..."));
+        statKamarTerisi.setOnClickListener(v -> {
+            Intent intent = new Intent(this, OwnerManagementActivity.class);
+            startActivity(intent);
+        });
         
-        statBookingMasuk.setOnClickListener(v ->
-                showToast("📅 4 booking masuk, 3 baru hari ini"));
+        statBookingMasuk.setOnClickListener(v -> {
+            Intent intent = new Intent(this, OwnerBookingActivity.class);
+            startActivity(intent);
+        });
         
         statPendapatan.setOnClickListener(v -> {
             NavigationTransitionHelper.navigateDetail(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
@@ -332,16 +336,21 @@ public class OwnerDashboardActivity extends AppCompatActivity {
     private void setupQuickActions() {
         actionTambahKos.setOnClickListener(v -> showAddKosDialog());
         actionTambahKamar.setOnClickListener(v -> showAddRoomDialog());
-        actionKelolaPenyewa.setOnClickListener(v ->
-                showToast("👥 Fitur Kelola Penyewa tersedia di phase berikutnya"));
+        actionKelolaPenyewa.setOnClickListener(v -> {
+            Intent intent = new Intent(this, OwnerBookingActivity.class);
+            intent.putExtra("TAB", "active");
+            startActivity(intent);
+        });
         actionLihatBooking.setOnClickListener(v -> {
             Intent intent = new Intent(this, OwnerBookingActivity.class);
             startActivity(intent);
         });
-        actionAturHarga.setOnClickListener(v ->
-                showToast("💲 Fitur Atur Harga tersedia di phase berikutnya"));
+        actionAturHarga.setOnClickListener(v -> {
+            Intent intent = new Intent(this, OwnerManagementActivity.class);
+            startActivity(intent);
+        });
         actionBuatPromo.setOnClickListener(v ->
-                showToast("🏷️ Fitur Buat Promo tersedia di phase berikutnya"));
+                showToast("🏷️ Fitur Buat Promo akan hadir segera."));
     }
 
     private void showAddKosDialog() {

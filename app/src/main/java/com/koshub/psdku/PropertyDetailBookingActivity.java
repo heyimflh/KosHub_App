@@ -110,9 +110,10 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
 
         btnFavorite.setOnClickListener(v -> toggleFavorite());
 
-        btnShare.setOnClickListener(v ->
-            showCustomToast("📤 Link kos disalin!")
-        );
+        btnShare.setOnClickListener(v -> {
+            copyToClipboard();
+            showCustomToast("📤 Link kos disalin ke clipboard!");
+        });
 
         btnChat.setOnClickListener(v -> openChatWithOwner());
 
@@ -502,6 +503,13 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private int dpToPx(int dp) {
         float density = getResources().getDisplayMetrics().density;
         return Math.round(dp * density);
+    }
+
+    private void copyToClipboard() {
+        if (currentItem == null) return;
+        android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+        android.content.ClipData clip = android.content.ClipData.newPlainText("KosHub Link", "https://koshub.com/kos/" + currentItem.getId());
+        if (clipboard != null) clipboard.setPrimaryClip(clip);
     }
 
     @Override

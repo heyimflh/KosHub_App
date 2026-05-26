@@ -145,7 +145,14 @@ public class ComplaintRepository {
                                     callback.onSuccess();
                                 }
                             })
-                            .addOnFailureListener(e -> callback.onError("Gagal menyimpan komplain: " + e.getMessage()));
+                            .addOnFailureListener(e -> {
+                                if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                                    ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                                    callback.onError("Kamu tidak memiliki izin untuk membuat komplain.");
+                                } else {
+                                    callback.onError("Gagal menyimpan komplain: " + e.getMessage());
+                                }
+                            });
                 })
                 .addOnFailureListener(e -> callback.onError("Gagal mengambil data booking: " + e.getMessage()));
     }
@@ -165,7 +172,14 @@ public class ComplaintRepository {
                     Collections.sort(list, (c1, c2) -> Long.compare(c2.getCreatedAt(), c1.getCreatedAt()));
                     callback.onSuccess(list);
                 })
-                .addOnFailureListener(e -> callback.onError("Gagal memuat komplain: " + e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Akses ditolak. Kamu tidak memiliki izin melihat data ini.");
+                    } else {
+                        callback.onError("Gagal memuat komplain: " + e.getMessage());
+                    }
+                });
     }
 
     public void getComplaintsByOwner(String ownerId, ComplaintListCallback callback) {
@@ -182,7 +196,14 @@ public class ComplaintRepository {
                     Collections.sort(list, (c1, c2) -> Long.compare(c2.getCreatedAt(), c1.getCreatedAt()));
                     callback.onSuccess(list);
                 })
-                .addOnFailureListener(e -> callback.onError("Gagal memuat komplain: " + e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Akses ditolak. Kamu tidak memiliki izin melihat data ini.");
+                    } else {
+                        callback.onError("Gagal memuat komplain: " + e.getMessage());
+                    }
+                });
     }
 
     public void updateComplaintStatus(String complaintId, String newStatus, String ownerResponse, SimpleCallback callback) {

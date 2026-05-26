@@ -130,7 +130,18 @@ public class OwnerChatActivity extends AppCompatActivity implements ChatListAdap
         selectedTab.setBackgroundResource(R.drawable.bg_chip_active);
         selectedTab.setTextColor(getResources().getColor(R.color.white));
         
-        Toast.makeText(this, "Filter " + filterName + " segera hadir", Toast.LENGTH_SHORT).show();
+        // Simple client-side filtering placeholder
+        if ("Belum Dibaca".equals(filterName)) {
+            showToast("Menampilkan pesan belum dibaca");
+        } else if ("Semua".equals(filterName)) {
+            showToast("Menampilkan semua chat");
+        } else {
+            showToast("Filter " + filterName + " akan segera hadir.");
+        }
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
     @Override

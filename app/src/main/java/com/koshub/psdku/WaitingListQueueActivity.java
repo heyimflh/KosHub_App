@@ -129,7 +129,10 @@ public class WaitingListQueueActivity extends AppCompatActivity {
     private void setupListeners() {
         NavigationHelper.setupBottomNav(this, NavigationHelper.Tab.WAITLIST);
 
-        btnNotification.setOnClickListener(v -> showCustomToast("Belum ada notifikasi baru"));
+        btnNotification.setOnClickListener(v -> {
+            Intent intent = new Intent(this, NotificationActivity.class);
+            NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
+        });
 
         if (btnPrimaryAction != null) {
             btnPrimaryAction.setOnClickListener(v -> {

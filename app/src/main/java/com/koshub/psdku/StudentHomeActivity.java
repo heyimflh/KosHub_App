@@ -42,6 +42,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     private RecyclerView rvKosList;
     private KosAdapter adapter;
     private TextView tvResultCount;
+    private View layoutEmptyState;
     private List<KosItem> allKosList = new ArrayList<>();
     private List<KosItem> filteredList = new ArrayList<>();
     private EditText etSearch;
@@ -135,7 +136,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
             @Override
             public void onError(String message) {
                 setLoading(false);
-                Toast.makeText(StudentHomeActivity.this, "Gagal memuat data: " + message, Toast.LENGTH_SHORT).show();
+                showToast("Gagal memuat data: " + message);
             }
         });
     }
@@ -147,6 +148,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
 
     private void setupViews() {
         rvKosList = findViewById(R.id.rvKosList);
+        layoutEmptyState = findViewById(R.id.layoutEmptyStateHome);
         rvKosList.setLayoutManager(new LinearLayoutManager(this));
         adapter = new KosAdapter(filteredList, this);
         rvKosList.setAdapter(adapter);
@@ -274,7 +276,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
                     intent.putExtra("kos_list", new ArrayList<>(allKosList));
                     NavigationTransitionHelper.navigateMainWithIntent(this, intent);
                 } catch (Exception e) {
-                    Toast.makeText(this, "Gagal membuka peta: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    showToast("Gagal membuka peta: " + e.getMessage());
                     e.printStackTrace();
                 }
             });
@@ -293,12 +295,15 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
         // Apply filter button
         sheetView.findViewById(R.id.btnApplyFilter).setOnClickListener(v -> {
             dialog.dismiss();
-            Toast.makeText(this, "Filter diterapkan", Toast.LENGTH_SHORT).show();
+            showToast("Filter diterapkan");
         });
 
         // Reset filter button
         sheetView.findViewById(R.id.btnResetFilter).setOnClickListener(v -> {
-            Toast.makeText(this, "Filter direset", Toast.LENGTH_SHORT).show();
+            etSearch.setText("");
+            filterByCategory("");
+            showToast("Filter direset");
+            dialog.dismiss();
         });
 
         // Close button
@@ -310,6 +315,10 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     private void updateResultCount() {
         if (tvResultCount != null && filteredList != null) {
             tvResultCount.setText(filteredList.size() + " kos");
+            if (layoutEmptyState != null) {
+                layoutEmptyState.setVisibility(filteredList.isEmpty() ? View.VISIBLE : View.GONE);
+                rvKosList.setVisibility(filteredList.isEmpty() ? View.GONE : View.VISIBLE);
+            }
         }
     }
 
@@ -339,17 +348,20 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
         FavoriteRepository.getInstance().toggleFavorite(item, new FavoriteRepository.SimpleCallback() {
             @Override
             public void onSuccess(String message) {
-                Toast.makeText(StudentHomeActivity.this, message, Toast.LENGTH_SHORT).show();
-                // State is already updated in KosAdapter locally for immediate feedback
+                showToast(message);
             }
 
             @Override
             public void onError(String message) {
-                Toast.makeText(StudentHomeActivity.this, message, Toast.LENGTH_SHORT).show();
+                showToast(message);
                 // Revert state on error
                 item.setFavorite(!item.isFavorite());
                 adapter.notifyItemChanged(position);
             }
         });
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }

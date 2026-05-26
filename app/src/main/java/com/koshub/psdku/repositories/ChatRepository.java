@@ -88,7 +88,14 @@ public class ChatRepository {
 
             // Room doesn't exist, create it. Need names first.
             fetchNamesAndCreateRoom(chatId, studentId, ownerId, kosId, kosName, bookingId, callback);
-        }).addOnFailureListener(e -> callback.onError("Gagal mengecek ruang chat: " + e.getMessage()));
+        }).addOnFailureListener(e -> {
+            if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                callback.onError("Kamu tidak memiliki izin untuk mengakses ruang chat ini.");
+            } else {
+                callback.onError("Gagal mengecek ruang chat: " + e.getMessage());
+            }
+        });
     }
 
     private void fetchNamesAndCreateRoom(String chatId, String studentId, String ownerId, String kosId, String kosName, String bookingId, ChatCallback callback) {
@@ -98,7 +105,7 @@ public class ChatRepository {
                     db.collection(DatabaseConstants.COLLECTION_USERS).document(ownerId).get()
                             .addOnSuccessListener(ownerDoc -> {
                                 String ownerName = ownerDoc.getString(DatabaseConstants.FIELD_NAME);
-                                
+
                                 Chat chat = new Chat(chatId, studentId, studentName, ownerId, ownerName, kosId, kosName, bookingId);
                                 db.collection(DatabaseConstants.COLLECTION_CHATS).document(chatId).set(chat)
                                         .addOnSuccessListener(aVoid -> callback.onSuccess(chat))
@@ -172,14 +179,14 @@ public class ChatRepository {
                     db.collection(DatabaseConstants.COLLECTION_USERS).document(senderId).get()
                             .addOnSuccessListener(userDoc -> {
                                 String senderName = userDoc.getString(DatabaseConstants.FIELD_NAME);
-                                
+
                                 String messageId = db.collection(DatabaseConstants.COLLECTION_CHATS).document(chatId)
                                         .collection(DatabaseConstants.COLLECTION_MESSAGES).document().getId();
-                                
+
                                 Message message = new Message(messageId, chatId, senderId, senderName, receiverId, text, DatabaseConstants.MESSAGE_TYPE_TEXT);
 
                                 WriteBatch batch = db.batch();
-                                
+
                                 // 1. Add Message
                                 DocumentReference msgRef = db.collection(DatabaseConstants.COLLECTION_CHATS).document(chatId)
                                         .collection(DatabaseConstants.COLLECTION_MESSAGES).document(messageId);
@@ -227,7 +234,11 @@ public class ChatRepository {
                 .addSnapshotListener((value, error) -> {
                     if (error != null) {
                         Log.e(TAG, "Listen messages error: " + error.getMessage());
-                        listener.onError("Gagal memuat pesan realtime.");
+                        if (error.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            listener.onError("Akses ditolak. Kamu bukan bagian dari chat ini.");
+                        } else {
+                            listener.onError("Gagal memuat pesan realtime.");
+                        }
                         return;
                     }
 
@@ -253,13 +264,17 @@ public class ChatRepository {
                 .addOnSuccessListener(documentSnapshot -> {
                     String role = documentSnapshot.getString(DatabaseConstants.FIELD_ROLE);
                     String field = DatabaseConstants.ROLE_OWNER.equals(role) ? DatabaseConstants.FIELD_OWNER_ID : DatabaseConstants.FIELD_STUDENT_ID;
-                    
+
                     Query query = db.collection(DatabaseConstants.COLLECTION_CHATS).whereEqualTo(field, uid);
-                    
+
                     query.addSnapshotListener((value, error) -> {
                         if (error != null) {
                             Log.e(TAG, "Listen chats error: " + error.getMessage());
-                            listener.onError("Gagal memuat daftar chat.");
+                            if (error.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                                listener.onError("Akses ditolak. Silakan login ulang.");
+                            } else {
+                                listener.onError("Gagal memuat daftar chat.");
+                            }
                             return;
                         }
 
@@ -277,7 +292,7 @@ public class ChatRepository {
                     });
                 });
         
-        return null; // Note: This implementation is tricky because of the async role fetch. 
+        return null; // Note: This implementation is tricky because of the async role fetch.
         // Better: Caller should pass role if known, or we fetch once at start.
     }
     
@@ -289,7 +304,11 @@ public class ChatRepository {
                 .addSnapshotListener((value, error) -> {
                     if (error != null) {
                         Log.e(TAG, "Listen chats error: " + error.getMessage());
-                        listener.onError("Gagal memuat daftar chat.");
+                        if (error.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            listener.onError("Akses ditolak. Silakan login ulang.");
+                        } else {
+                            listener.onError("Gagal memuat daftar chat.");
+                        }
                         return;
                     }
 

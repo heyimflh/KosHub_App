@@ -146,6 +146,7 @@ public class DatabaseConstants {
     // Audit Fields
     public static final String FIELD_UPDATED_BY = "updatedBy";
     public static final String FIELD_STATUS_HISTORY = "statusHistory";
+    public static final String LOG_TAG_SECURITY = "KosHubSecurity";
 
     // Chat Fields
     public static final String FIELD_OWNER_NAME = "ownerName";

@@ -75,7 +75,11 @@ public class NotificationRepository {
                 .whereEqualTo("recipientId", uid)
                 .addSnapshotListener((value, error) -> {
                     if (error != null) {
-                        callback.onError(error.getMessage());
+                        if (error.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            callback.onError("Kamu tidak memiliki izin untuk mengakses notifikasi ini.");
+                        } else {
+                            callback.onError(error.getMessage());
+                        }
                         return;
                     }
 
@@ -102,7 +106,11 @@ public class NotificationRepository {
                 .whereEqualTo("read", false)
                 .addSnapshotListener((value, error) -> {
                     if (error != null) {
-                        callback.onError(error.getMessage());
+                        if (error.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            callback.onError("Kamu tidak memiliki izin untuk mengakses notifikasi ini.");
+                        } else {
+                            callback.onError(error.getMessage());
+                        }
                         return;
                     }
                     if (value != null) {

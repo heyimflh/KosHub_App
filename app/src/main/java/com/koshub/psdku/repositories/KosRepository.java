@@ -98,7 +98,14 @@ public class KosRepository {
                     }
                     callback.onSuccess(list);
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     /**
@@ -139,7 +146,14 @@ public class KosRepository {
                         callback.onError("Kos not found");
                     }
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     public void getKosByOwner(String ownerId, KosListCallback callback) {
@@ -155,7 +169,14 @@ public class KosRepository {
                     }
                     callback.onSuccess(list);
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     public void createKos(Kos kos, SimpleCallback callback) {
@@ -172,20 +193,41 @@ public class KosRepository {
                     kos.setId(documentReference.getId());
                     callback.onSuccess();
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     public void updateKos(Kos kos, SimpleCallback callback) {
         kos.setUpdatedAt(System.currentTimeMillis());
         db.collection(DatabaseConstants.COLLECTION_KOS).document(kos.getId()).set(kos)
                 .addOnSuccessListener(aVoid -> callback.onSuccess())
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     public void deleteKos(String kosId, SimpleCallback callback) {
         db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId).delete()
                 .addOnSuccessListener(aVoid -> callback.onSuccess())
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
         // TODO: Handle related rooms and images in Storage
     }
 
@@ -200,7 +242,14 @@ public class KosRepository {
                 .addOnSuccessListener(taskSnapshot -> ref.getDownloadUrl()
                         .addOnSuccessListener(uri -> callback.onSuccess(uri.toString()))
                         .addOnFailureListener(e -> callback.onError(e.getMessage())))
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     public void addRoom(Room room, SimpleCallback callback) {
@@ -219,7 +268,14 @@ public class KosRepository {
                     updateAvailableRoomsCount(room.getKosId());
                     callback.onSuccess();
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     public void getRoomsByKos(String kosId, RoomListCallback callback) {
@@ -235,7 +291,14 @@ public class KosRepository {
                     }
                     callback.onSuccess(list);
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     public void getRoomsByOwner(String ownerId, RoomListCallback callback) {
@@ -251,7 +314,14 @@ public class KosRepository {
                     }
                     callback.onSuccess(list);
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     public void calculateOwnerKosStats(String ownerId, StatsCallback callback) {
@@ -302,9 +372,23 @@ public class KosRepository {
                                 
                                 callback.onSuccess(stats);
                             })
-                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                            .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     public void updateRoomStatus(String roomId, String status, String kosId, SimpleCallback callback) {
@@ -314,7 +398,14 @@ public class KosRepository {
                     updateAvailableRoomsCount(kosId);
                     callback.onSuccess();
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
     }
 
     private void updateAvailableRoomsCount(String kosId) {

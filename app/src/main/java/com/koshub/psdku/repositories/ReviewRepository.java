@@ -121,7 +121,12 @@ public class ReviewRepository {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "getReviewsByKos error: " + e.getMessage());
-                    callback.onError("Gagal memuat ulasan.");
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk melihat ulasan ini.");
+                    } else {
+                        callback.onError("Gagal memuat ulasan.");
+                    }
                 });
     }
 
@@ -173,7 +178,12 @@ public class ReviewRepository {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "getReviewsByStudent error: " + e.getMessage());
-                    callback.onError("Gagal memuat riwayat ulasan.");
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk melihat riwayat ulasan ini.");
+                    } else {
+                        callback.onError("Gagal memuat riwayat ulasan.");
+                    }
                 });
     }
 }

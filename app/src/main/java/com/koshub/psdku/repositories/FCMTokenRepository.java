@@ -80,7 +80,12 @@ public class FCMTokenRepository {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error saving token", e);
-                    if (callback != null) callback.onError(e.getMessage());
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        if (callback != null) callback.onError("Akses ditolak. Gagal memperbarui token notifikasi.");
+                    } else {
+                        if (callback != null) callback.onError(e.getMessage());
+                    }
                 });
     }
 

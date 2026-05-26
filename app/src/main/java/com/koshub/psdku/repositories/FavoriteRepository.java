@@ -134,7 +134,12 @@ public class FavoriteRepository {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "getFavoritesByUser error: " + e.getMessage());
-                    callback.onError("Gagal memuat favorit. Silakan coba lagi.");
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk melihat daftar favorit ini.");
+                    } else {
+                        callback.onError("Gagal memuat favorit. Silakan coba lagi.");
+                    }
                 });
     }
 }

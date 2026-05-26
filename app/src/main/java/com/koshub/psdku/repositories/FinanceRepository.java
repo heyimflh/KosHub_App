@@ -135,7 +135,7 @@ public class FinanceRepository {
 
                     for (QueryDocumentSnapshot doc : querySnapshot) {
                         DocumentReference ref = doc.getReference();
-                        batch.update(ref, 
+                        batch.update(ref,
                                 "status", DatabaseConstants.TRANSACTION_AVAILABLE,
                                 "updatedAt", now,
                                 "availableAt", now);
@@ -202,7 +202,14 @@ public class FinanceRepository {
                     Collections.sort(list, (t1, t2) -> Long.compare(t2.getCreatedAt(), t1.getCreatedAt()));
                     callback.onSuccess(list);
                 })
-                .addOnFailureListener(e -> callback.onError("Gagal memuat daftar transaksi: " + e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data keuangan ini.");
+                    } else {
+                        callback.onError("Gagal memuat daftar transaksi: " + e.getMessage());
+                    }
+                });
     }
 
     public void getFinanceSummary(String ownerId, FinanceSummaryCallback callback) {
@@ -225,7 +232,7 @@ public class FinanceRepository {
 
     private FinanceSummary calculateSummary(com.google.firebase.firestore.QuerySnapshot transSnapshot, com.google.firebase.firestore.QuerySnapshot withSnapshot) {
         FinanceSummary summary = new FinanceSummary();
-        
+
         double totalIncome = 0;
         double availableBalance = 0;
         double pendingBalance = 0;
@@ -350,7 +357,14 @@ public class FinanceRepository {
                     Collections.sort(list, (w1, w2) -> Long.compare(w2.getCreatedAt(), w1.getCreatedAt()));
                     callback.onSuccess(list);
                 })
-                .addOnFailureListener(e -> callback.onError("Gagal memuat riwayat withdraw: " + e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Akses ditolak. Kamu tidak memiliki izin melihat riwayat withdraw.");
+                    } else {
+                        callback.onError("Gagal memuat riwayat withdraw: " + e.getMessage());
+                    }
+                });
     }
 
     public void updateWithdrawalStatus(String withdrawalId, String status, String note, SimpleCallback callback) {

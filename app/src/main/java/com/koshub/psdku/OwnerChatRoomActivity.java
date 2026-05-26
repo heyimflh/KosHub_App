@@ -216,8 +216,12 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
         btnSendMessage.setOnClickListener(v -> sendMessage());
         btnTemplatePesan.setOnClickListener(v -> showTemplateDialog());
         
-        btnAttach.setOnClickListener(v -> Toast.makeText(this, "Kirim gambar segera hadir", Toast.LENGTH_SHORT).show());
-        btnMoreOptions.setOnClickListener(v -> Toast.makeText(this, "Opsi lainnya segera hadir", Toast.LENGTH_SHORT).show());
+        btnAttach.setOnClickListener(v -> showToast("📎 Kirim gambar segera hadir di versi production."));
+        btnMoreOptions.setOnClickListener(v -> showToast("⚙️ Opsi lainnya segera hadir."));
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
     private void sendMessage() {

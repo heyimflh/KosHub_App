@@ -1,0 +1,358 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HELPER FUNCTIONS ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && uid() == userId;
+    }
+
+    function userDoc(userId) {
+      return get(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(uid()));
+    }
+
+    function currentRole() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(uid()))
+        ? currentUserDoc().data.role
+        : null;
+    }
+
+    function isStudent() {
+      return currentRole() == "student";
+    }
+
+    function isOwner() {
+      return currentRole() == "owner";
+    }
+
+    function isKosOwner(kosId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/kos/$(kosId))
+        && get(/databases/$(database)/documents/kos/$(kosId)).data.ownerId == uid();
+    }
+
+    function isBookingParticipant(data) {
+      return isSignedIn()
+        && (data.studentId == uid() || data.ownerId == uid());
+    }
+
+    function isComplaintParticipant(data) {
+      return isSignedIn()
+        && (data.studentId == uid() || data.ownerId == uid());
+    }
+
+    function isChatParticipant(chatId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/chats/$(chatId))
+        && (
+          get(/databases/$(database)/documents/chats/$(chatId)).data.studentId == uid()
+          || get(/databases/$(database)/documents/chats/$(chatId)).data.ownerId == uid()
+        );
+    }
+
+    function canCreateReviewForBooking(bookingId) {
+      return exists(/databases/$(database)/documents/bookings/$(bookingId))
+        && get(/databases/$(database)/documents/bookings/$(bookingId)).data.studentId == uid()
+        && get(/databases/$(database)/documents/bookings/$(bookingId)).data.status == "completed";
+    }
+
+    // --- STATUS VALIDATIONS ---
+
+    function validBookingStatus(status) {
+      return status in [
+        "pending",
+        "accepted",
+        "rejected",
+        "waiting_checkin",
+        "active",
+        "completed",
+        "cancelled"
+      ];
+    }
+
+    function validComplaintStatus(status) {
+      return status in ["new", "process", "done", "rejected"];
+    }
+
+    function validTransactionStatus(status) {
+      return status in ["pending", "available", "withdrawn", "cancelled"];
+    }
+
+    function validWithdrawalStatus(status) {
+      return status in ["pending", "processing", "success", "failed"];
+    }
+
+    function validNotificationType(type) {
+      return type in [
+        "booking_new",
+        "booking_accepted",
+        "booking_rejected",
+        "chat_message",
+        "complaint_new",
+        "complaint_process",
+        "complaint_done",
+        "complaint_rejected",
+        "withdraw_requested",
+        "withdraw_processing",
+        "withdraw_success",
+        "withdraw_failed",
+        "finance_available"
+      ];
+    }
+
+    // --- COLLECTION RULES ---
+
+    // USERS
+    match /users/{userId} {
+      allow read: if isSelf(userId);
+      allow create: if isSelf(userId)
+        && request.resource.data.id == userId;
+      allow update: if isSelf(userId)
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+
+      match /fcmTokens/{tokenId} {
+        allow read: if isSelf(userId);
+        allow create, update: if isSelf(userId);
+        allow delete: if isSelf(userId);
+      }
+    }
+
+    // KOS
+    match /kos/{kosId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && isOwner()
+        && request.resource.data.ownerId == uid();
+
+      allow update: if isSignedIn()
+        && (
+          // Owner can update full data
+          (resource.data.ownerId == uid() && request.resource.data.ownerId == resource.data.ownerId)
+          ||
+          // Students can update rating average/count during review
+          (isStudent()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'ratingAverage', 'ratingCount', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isSignedIn()
+        && resource.data.ownerId == uid();
+    }
+
+    // ROOMS
+    match /rooms/{roomId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && isOwner()
+        && request.resource.data.ownerId == uid()
+        && isKosOwner(request.resource.data.kosId);
+
+      allow update: if isSignedIn()
+        && (
+          // Owner can update full data
+          (resource.data.ownerId == uid() && request.resource.data.ownerId == resource.data.ownerId)
+          ||
+          // Student can update status (booked/occupied) during booking process
+          (isStudent()
+             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isSignedIn()
+        && resource.data.ownerId == uid();
+    }
+
+    // BOOKINGS
+    match /bookings/{bookingId} {
+      allow read: if isBookingParticipant(resource.data);
+
+      allow create: if isSignedIn()
+        && isStudent()
+        && request.resource.data.studentId == uid()
+        && validBookingStatus(request.resource.data.status)
+        && request.resource.data.status == "pending";
+
+      allow update: if isSignedIn()
+        && validBookingStatus(request.resource.data.status)
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.ownerId == resource.data.ownerId
+        && (
+          // Student can cancel own pending/accepted/waiting_checkin booking
+          (
+            resource.data.studentId == uid()
+            && request.resource.data.status in ["cancelled", "waiting_checkin", "active"]
+          )
+          ||
+          // Owner can accept/reject/complete booking they own
+          (
+            resource.data.ownerId == uid()
+            && request.resource.data.status in ["accepted", "rejected", "completed"]
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // COMPLAINTS
+    match /complaints/{complaintId} {
+      allow read: if isComplaintParticipant(resource.data);
+
+      allow create: if isSignedIn()
+        && isStudent()
+        && request.resource.data.studentId == uid()
+        && request.resource.data.status == "new"
+        && validComplaintStatus(request.resource.data.status);
+
+      allow update: if isSignedIn()
+        && isComplaintParticipant(resource.data)
+        && (
+           // Owner can update status/response
+           (resource.data.ownerId == uid() && request.resource.data.status in ["process", "done", "rejected"])
+           ||
+           // Student can update (e.g. add image ID later if needed, but repository currently updates whole doc)
+           (resource.data.studentId == uid() && request.resource.data.status == resource.data.status)
+        );
+
+      allow delete: if false;
+    }
+
+    // CHATS
+    match /chats/{chatId} {
+      allow read: if isSignedIn()
+        && (resource.data.studentId == uid() || resource.data.ownerId == uid());
+
+      allow create: if isSignedIn()
+        && (
+          request.resource.data.studentId == uid()
+          || request.resource.data.ownerId == uid()
+        );
+
+      allow update: if isSignedIn()
+        && (resource.data.studentId == uid() || resource.data.ownerId == uid())
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.ownerId == resource.data.ownerId;
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isChatParticipant(chatId);
+
+        allow create: if isChatParticipant(chatId)
+          && request.resource.data.senderId == uid()
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0;
+
+        allow update: if isChatParticipant(chatId);
+        allow delete: if false;
+      }
+    }
+
+    // TRANSACTIONS
+    match /transactions/{transactionId} {
+      allow read: if isSignedIn()
+        && (resource.data.ownerId == uid() || resource.data.studentId == uid());
+
+      allow create: if isSignedIn()
+        && (
+          request.resource.data.ownerId == uid()
+          || request.resource.data.studentId == uid()
+        )
+        && validTransactionStatus(request.resource.data.status);
+
+      allow update: if isSignedIn()
+        && (resource.data.ownerId == uid() || resource.data.studentId == uid())
+        && validTransactionStatus(request.resource.data.status);
+
+      allow delete: if false;
+    }
+
+    // WITHDRAWALS
+    match /withdrawals/{withdrawalId} {
+      allow read: if isSignedIn()
+        && resource.data.ownerId == uid();
+
+      allow create: if isSignedIn()
+        && isOwner()
+        && request.resource.data.ownerId == uid()
+        && request.resource.data.status == "pending"
+        && request.resource.data.amount > 0;
+
+      allow update: if isSignedIn()
+        && resource.data.ownerId == uid()
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.status in ["pending", "processing", "success", "failed"];
+
+      allow delete: if false;
+    }
+
+    // FAVORITES
+    match /favorites/{favoriteId} {
+      allow read: if isSignedIn()
+        && resource.data.userId == uid();
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == uid();
+
+      allow update: if false;
+
+      allow delete: if isSignedIn()
+        && resource.data.userId == uid();
+    }
+
+    // REVIEWS
+    match /reviews/{reviewId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && isStudent()
+        && request.resource.data.studentId == uid()
+        && canCreateReviewForBooking(request.resource.data.bookingId)
+        && reviewId == request.resource.data.bookingId
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // NOTIFICATIONS
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn()
+        && resource.data.recipientId == uid();
+
+      allow create: if isSignedIn()
+        && request.resource.data.senderId == uid()
+        && request.resource.data.recipientId is string
+        && validNotificationType(request.resource.data.type);
+
+      allow update: if isSignedIn()
+        && resource.data.recipientId == uid()
+        && request.resource.data.recipientId == resource.data.recipientId;
+
+      allow delete: if false;
+    }
+
+    // --- DEFAULT DENY ---
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
