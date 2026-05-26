@@ -16,7 +16,8 @@ public class DatabaseConstants {
     public static final String COLLECTION_TRANSACTIONS = "transactions";
     public static final String COLLECTION_WITHDRAWALS = "withdrawals";
     public static final String COLLECTION_REVIEWS = "reviews";
-    // public static final String COLLECTION_BOOKINGS = "bookings"; // Already exists above
+    public static final String COLLECTION_NOTIFICATIONS = "notifications";
+    public static final String COLLECTION_FCM_TOKENS = "fcmTokens";
 
     // Roles
     public static final String ROLE_STUDENT = "student";
@@ -66,6 +67,31 @@ public class DatabaseConstants {
     public static final String WITHDRAWAL_PROCESSING = "processing";
     public static final String WITHDRAWAL_SUCCESS = "success";
     public static final String WITHDRAWAL_FAILED = "failed";
+
+    // Notification Types
+    public static final String NOTIF_BOOKING_NEW = "booking_new";
+    public static final String NOTIF_BOOKING_ACCEPTED = "booking_accepted";
+    public static final String NOTIF_BOOKING_REJECTED = "booking_rejected";
+    public static final String NOTIF_CHAT_MESSAGE = "chat_message";
+    public static final String NOTIF_COMPLAINT_NEW = "complaint_new";
+    public static final String NOTIF_COMPLAINT_PROCESS = "complaint_process";
+    public static final String NOTIF_COMPLAINT_DONE = "complaint_done";
+    public static final String NOTIF_COMPLAINT_REJECTED = "complaint_rejected";
+    public static final String NOTIF_WITHDRAW_REQUESTED = "withdraw_requested";
+    public static final String NOTIF_WITHDRAW_PROCESSING = "withdraw_processing";
+    public static final String NOTIF_WITHDRAW_SUCCESS = "withdraw_success";
+    public static final String NOTIF_WITHDRAW_FAILED = "withdraw_failed";
+    public static final String NOTIF_FINANCE_AVAILABLE = "finance_available";
+
+    // Notification Target Types
+    public static final String TARGET_BOOKING = "booking";
+    public static final String TARGET_WAITING_LIST = "waiting_list";
+    public static final String TARGET_OWNER_BOOKING = "owner_booking";
+    public static final String TARGET_CHAT = "chat";
+    public static final String TARGET_COMPLAINT = "complaint";
+    public static final String TARGET_FINANCE = "finance";
+    public static final String TARGET_WITHDRAW = "withdraw";
+
     // Providers
     public static final String PROVIDER_EMAIL = "email";
     public static final String PROVIDER_GOOGLE = "google";

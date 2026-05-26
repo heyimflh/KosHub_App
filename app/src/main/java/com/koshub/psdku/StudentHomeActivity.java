@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,8 +23,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.koshub.psdku.repositories.FCMTokenRepository;
 import com.koshub.psdku.repositories.FavoriteRepository;
 import com.koshub.psdku.repositories.KosRepository;
+import com.koshub.psdku.repositories.NotificationRepository;
+import com.koshub.psdku.utils.NotificationHelper;
+import com.koshub.psdku.utils.NotificationPermissionHelper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,6 +47,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     private EditText etSearch;
     private ProgressBar progressBar;
     private KosRepository kosRepository;
+    private ListenerRegistration notificationListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,8 +87,34 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
         setupToggle();
         setupBottomNav();
         
+        // Notification & Permissions
+        NotificationHelper.createNotificationChannels(this);
+        NotificationPermissionHelper.askNotificationPermission(this);
+        FCMTokenRepository.getInstance().saveCurrentToken();
+        setupNotificationBadge();
+
         // Initial count update
         updateResultCount();
+    }
+
+    private void setupNotificationBadge() {
+        TextView tvBadge = findViewById(R.id.tvNotifBadge);
+        notificationListener = NotificationRepository.getInstance().listenUnreadCount(new NotificationRepository.CountCallback() {
+            @Override
+            public void onSuccess(int count) {
+                if (count > 0) {
+                    tvBadge.setVisibility(View.VISIBLE);
+                    tvBadge.setText(count > 9 ? "9+" : String.valueOf(count));
+                } else {
+                    tvBadge.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                Log.e("KosHubNotification", "Badge error: " + message);
+            }
+        });
     }
 
     private void initData() {
@@ -119,8 +152,10 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
         rvKosList.setAdapter(adapter);
 
         // Notification button
-        findViewById(R.id.btnNotification).setOnClickListener(v ->
-                Toast.makeText(this, "Belum ada notifikasi baru", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnNotification).setOnClickListener(v -> {
+            Intent intent = new Intent(this, NotificationActivity.class);
+            NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
+        });
     }
 
     private void setupSearch() {
@@ -280,6 +315,14 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
 
     public List<KosItem> getAllKosList() {
         return allKosList;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (notificationListener != null) {
+            notificationListener.remove();
+        }
     }
 
     @Override

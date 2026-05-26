@@ -12,6 +12,7 @@ import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.FinanceSummary;
 import com.koshub.psdku.models.Transaction;
 import com.koshub.psdku.models.Withdrawal;
+import com.koshub.psdku.repositories.NotificationRepository;
 import com.koshub.psdku.services.FirebaseService;
 import com.koshub.psdku.utils.DatabaseConstants;
 
@@ -312,7 +313,19 @@ public class FinanceRepository {
 
                 db.collection(DatabaseConstants.COLLECTION_WITHDRAWALS).document(withdrawalId)
                         .set(withdrawal)
-                        .addOnSuccessListener(aVoid -> callback.onSuccess())
+                        .addOnSuccessListener(aVoid -> {
+                            // Trigger Notification for Owner
+                            NotificationRepository.getInstance().createNotification(
+                                    ownerId,
+                                    "system",
+                                    DatabaseConstants.NOTIF_WITHDRAW_REQUESTED,
+                                    "Withdraw berhasil diajukan",
+                                    "Permintaan withdraw sebesar Rp" + amount + " sedang menunggu proses.",
+                                    DatabaseConstants.TARGET_WITHDRAW,
+                                    withdrawalId
+                            );
+                            callback.onSuccess();
+                        })
                         .addOnFailureListener(e -> callback.onError("Gagal mengirim permintaan withdraw: " + e.getMessage()));
             }
 
@@ -347,6 +360,39 @@ public class FinanceRepository {
                         "updatedAt", System.currentTimeMillis(),
                         "processedAt", DatabaseConstants.WITHDRAWAL_SUCCESS.equals(status) ? System.currentTimeMillis() : 0)
                 .addOnSuccessListener(aVoid -> {
+                    // Trigger Notification for Owner
+                    db.collection(DatabaseConstants.COLLECTION_WITHDRAWALS).document(withdrawalId).get()
+                            .addOnSuccessListener(doc -> {
+                                String ownerId = doc.getString("ownerId");
+                                Double amount = doc.getDouble("amount");
+                                String title = "Update Withdraw";
+                                String body = "Status penarikan saldo kamu telah diperbarui.";
+                                String type = DatabaseConstants.NOTIF_WITHDRAW_PROCESSING;
+
+                                if (DatabaseConstants.WITHDRAWAL_PROCESSING.equals(status)) {
+                                    title = "Withdraw sedang diproses";
+                                    body = "Withdraw sebesar Rp" + amount + " sedang diproses.";
+                                    type = DatabaseConstants.NOTIF_WITHDRAW_PROCESSING;
+                                } else if (DatabaseConstants.WITHDRAWAL_SUCCESS.equals(status)) {
+                                    title = "Withdraw berhasil";
+                                    body = "Withdraw sebesar Rp" + amount + " berhasil.";
+                                    type = DatabaseConstants.NOTIF_WITHDRAW_SUCCESS;
+                                } else if (DatabaseConstants.WITHDRAWAL_FAILED.equals(status)) {
+                                    title = "Withdraw gagal";
+                                    body = "Withdraw sebesar Rp" + amount + " gagal diproses.";
+                                    type = DatabaseConstants.NOTIF_WITHDRAW_FAILED;
+                                }
+
+                                NotificationRepository.getInstance().createNotification(
+                                        ownerId,
+                                        "system",
+                                        type,
+                                        title,
+                                        body,
+                                        DatabaseConstants.TARGET_FINANCE,
+                                        withdrawalId
+                                );
+                            });
                     if (callback != null) callback.onSuccess();
                 })
                 .addOnFailureListener(e -> {

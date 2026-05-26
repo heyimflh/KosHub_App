@@ -10,6 +10,7 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.Complaint;
+import com.koshub.psdku.repositories.NotificationRepository;
 import com.koshub.psdku.services.FirebaseService;
 import com.koshub.psdku.utils.DatabaseConstants;
 
@@ -114,6 +115,17 @@ public class ComplaintRepository {
                                 String complaintId = docRef.getId();
                                 docRef.update(DatabaseConstants.FIELD_ID, complaintId);
 
+                                // Trigger Notification for Owner
+                                NotificationRepository.getInstance().createNotification(
+                                        complaint.getOwnerId(),
+                                        uid,
+                                        DatabaseConstants.NOTIF_COMPLAINT_NEW,
+                                        "Komplain baru",
+                                        complaint.getStudentName() + " mengirim komplain untuk " + complaint.getKosName(),
+                                        DatabaseConstants.TARGET_COMPLAINT,
+                                        complaintId
+                                );
+
                                 // 5. Handle Image Upload if exists
                                 if (imageUri != null) {
                                     CloudinaryRepository.getInstance().uploadComplaintEvidence(context, imageUri, complaintId, new CloudinaryRepository.SimpleUploadCallback() {
@@ -187,7 +199,43 @@ public class ComplaintRepository {
 
         db.collection(DatabaseConstants.COLLECTION_COMPLAINTS).document(complaintId)
                 .update(updates)
-                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnSuccessListener(aVoid -> {
+                    // Trigger Notification for Student
+                    db.collection(DatabaseConstants.COLLECTION_COMPLAINTS).document(complaintId).get()
+                            .addOnSuccessListener(doc -> {
+                                String studentId = doc.getString("studentId");
+                                String ownerId = doc.getString("ownerId");
+                                String kosName = doc.getString("kosName");
+                                String title = "Update Komplain";
+                                String body = "Status komplain kamu untuk " + kosName + " telah diperbarui.";
+                                String type = DatabaseConstants.NOTIF_COMPLAINT_PROCESS;
+
+                                if (DatabaseConstants.COMPLAINT_PROCESS.equals(newStatus)) {
+                                    title = "Komplain sedang diproses";
+                                    body = "Komplain kamu untuk " + kosName + " sedang diproses.";
+                                    type = DatabaseConstants.NOTIF_COMPLAINT_PROCESS;
+                                } else if (DatabaseConstants.COMPLAINT_DONE.equals(newStatus)) {
+                                    title = "Komplain selesai";
+                                    body = "Komplain kamu untuk " + kosName + " telah selesai.";
+                                    type = DatabaseConstants.NOTIF_COMPLAINT_DONE;
+                                } else if (DatabaseConstants.COMPLAINT_REJECTED.equals(newStatus)) {
+                                    title = "Komplain ditolak";
+                                    body = "Komplain kamu untuk " + kosName + " ditolak.";
+                                    type = DatabaseConstants.NOTIF_COMPLAINT_REJECTED;
+                                }
+
+                                NotificationRepository.getInstance().createNotification(
+                                        studentId,
+                                        ownerId,
+                                        type,
+                                        title,
+                                        body,
+                                        DatabaseConstants.TARGET_COMPLAINT,
+                                        complaintId
+                                );
+                            });
+                    callback.onSuccess();
+                })
                 .addOnFailureListener(e -> callback.onError("Gagal update status: " + e.getMessage()));
     }
 

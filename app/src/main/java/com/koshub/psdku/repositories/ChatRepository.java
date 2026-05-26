@@ -13,6 +13,7 @@ import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
 import com.koshub.psdku.models.Chat;
 import com.koshub.psdku.models.Message;
+import com.koshub.psdku.repositories.NotificationRepository;
 import com.koshub.psdku.services.FirebaseService;
 import com.koshub.psdku.utils.DatabaseConstants;
 
@@ -201,7 +202,19 @@ public class ChatRepository {
                                 batch.update(chatRef, chatUpdates);
 
                                 batch.commit()
-                                        .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                        .addOnSuccessListener(aVoid -> {
+                                            // Trigger Notification
+                                            NotificationRepository.getInstance().createNotification(
+                                                    receiverId,
+                                                    senderId,
+                                                    DatabaseConstants.NOTIF_CHAT_MESSAGE,
+                                                    "Pesan baru",
+                                                    senderName + ": " + (text.length() > 60 ? text.substring(0, 60) + "..." : text),
+                                                    DatabaseConstants.TARGET_CHAT,
+                                                    chatId
+                                            );
+                                            callback.onSuccess();
+                                        })
                                         .addOnFailureListener(e -> callback.onError("Gagal mengirim pesan: " + e.getMessage()));
                             });
                 });

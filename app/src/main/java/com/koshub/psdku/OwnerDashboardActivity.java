@@ -19,6 +19,11 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.firestore.ListenerRegistration;
+import com.koshub.psdku.repositories.FCMTokenRepository;
+import com.koshub.psdku.repositories.NotificationRepository;
+import com.koshub.psdku.utils.NotificationHelper;
+import com.koshub.psdku.utils.NotificationPermissionHelper;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.koshub.psdku.models.Booking;
@@ -45,6 +50,7 @@ public class OwnerDashboardActivity extends AppCompatActivity {
     private CloudinaryRepository cloudinaryRepository;
     private StorageRepository storageRepository;
     private FirebaseAuth auth;
+    private ListenerRegistration notificationListener;
     private Uri selectedImageUri;
     private ImageView imgPreview;
 
@@ -135,6 +141,32 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         setupProperty();
         setupRevenue();
         setupBottomNav();
+
+        // Notification & Permissions
+        NotificationHelper.createNotificationChannels(this);
+        NotificationPermissionHelper.askNotificationPermission(this);
+        FCMTokenRepository.getInstance().saveCurrentToken();
+        setupNotificationBadge();
+    }
+
+    private void setupNotificationBadge() {
+        TextView tvBadge = findViewById(R.id.tvNotifBadge);
+        notificationListener = NotificationRepository.getInstance().listenUnreadCount(new NotificationRepository.CountCallback() {
+            @Override
+            public void onSuccess(int count) {
+                if (count > 0) {
+                    tvBadge.setVisibility(View.VISIBLE);
+                    tvBadge.setText(count > 9 ? "9+" : String.valueOf(count));
+                } else {
+                    tvBadge.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                android.util.Log.e("KosHubNotification", "Badge error: " + message);
+            }
+        });
     }
 
     private void initViews() {
@@ -189,8 +221,10 @@ public class OwnerDashboardActivity extends AppCompatActivity {
     }
 
     private void setupHeader() {
-        btnOwnerNotification.setOnClickListener(v ->
-                showToast("🔔 3 notifikasi baru"));
+        btnOwnerNotification.setOnClickListener(v -> {
+            Intent intent = new Intent(this, NotificationActivity.class);
+            NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
+        });
     }
 
     private void setupStats() {
@@ -531,6 +565,14 @@ public class OwnerDashboardActivity extends AppCompatActivity {
 
     private void setupBottomNav() {
         // Handled by OwnerBottomNavHelper
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (notificationListener != null) {
+            notificationListener.remove();
+        }
     }
 
     private void showToast(String message) {

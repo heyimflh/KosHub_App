@@ -10,6 +10,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.Transaction;
 import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.Room;
+import com.koshub.psdku.repositories.NotificationRepository;
 import com.koshub.psdku.services.FirebaseService;
 import com.koshub.psdku.utils.DatabaseConstants;
 
@@ -110,6 +111,18 @@ public class BookingRepository {
                                             .add(booking)
                                             .addOnSuccessListener(documentReference -> {
                                                 booking.setId(documentReference.getId());
+                                                
+                                                // Trigger Notification for Owner
+                                                NotificationRepository.getInstance().createNotification(
+                                                        booking.getOwnerId(),
+                                                        studentId,
+                                                        DatabaseConstants.NOTIF_BOOKING_NEW,
+                                                        "Ada booking baru masuk",
+                                                        booking.getStudentName() + " mengajukan booking untuk " + booking.getKosName(),
+                                                        DatabaseConstants.TARGET_OWNER_BOOKING,
+                                                        booking.getId()
+                                                );
+                                                
                                                 callback.onSuccess();
                                             })
                                             .addOnFailureListener(e -> {
@@ -224,6 +237,23 @@ public class BookingRepository {
             return null;
         }).addOnSuccessListener(aVoid -> {
             android.util.Log.d(TAG, "acceptBooking: successfully accepted " + bookingId);
+            
+            // Trigger Notification for Student
+            db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                    .addOnSuccessListener(doc -> {
+                        String studentId = doc.getString("studentId");
+                        String kosName = doc.getString("kosName");
+                        NotificationRepository.getInstance().createNotification(
+                                studentId,
+                                user.getUid(),
+                                DatabaseConstants.NOTIF_BOOKING_ACCEPTED,
+                                "Booking kamu diterima",
+                                "Booking untuk " + kosName + " telah diterima owner.",
+                                DatabaseConstants.TARGET_WAITING_LIST,
+                                bookingId
+                        );
+                    });
+
             FinanceRepository.getInstance().cancelTransactionByBooking(bookingId, null);
             if (callback != null) callback.onSuccess();
         })
@@ -277,6 +307,23 @@ public class BookingRepository {
             return null;
         }).addOnSuccessListener(aVoid -> {
             android.util.Log.d(TAG, "rejectBooking: successfully rejected " + bookingId);
+            
+            // Trigger Notification for Student
+            db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                    .addOnSuccessListener(doc -> {
+                        String studentId = doc.getString("studentId");
+                        String kosName = doc.getString("kosName");
+                        NotificationRepository.getInstance().createNotification(
+                                studentId,
+                                user.getUid(),
+                                DatabaseConstants.NOTIF_BOOKING_REJECTED,
+                                "Booking kamu ditolak",
+                                "Booking untuk " + kosName + " ditolak owner.",
+                                DatabaseConstants.TARGET_WAITING_LIST,
+                                bookingId
+                        );
+                    });
+
             FinanceRepository.getInstance().cancelTransactionByBooking(bookingId, null);
             if (callback != null) callback.onSuccess();
         })
@@ -319,6 +366,23 @@ public class BookingRepository {
         db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
                 .update("status", DatabaseConstants.BOOKING_ACTIVE, "updatedAt", System.currentTimeMillis())
                 .addOnSuccessListener(aVoid -> {
+                    // Trigger Notification for Owner
+                    db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                            .addOnSuccessListener(doc -> {
+                                String ownerId = doc.getString("ownerId");
+                                String studentId = doc.getString("studentId");
+                                String kosName = doc.getString("kosName");
+                                NotificationRepository.getInstance().createNotification(
+                                        ownerId,
+                                        studentId,
+                                        DatabaseConstants.NOTIF_FINANCE_AVAILABLE,
+                                        "Penyewa sudah mengambil kunci",
+                                        "Saldo booking " + kosName + " kini tersedia.",
+                                        DatabaseConstants.TARGET_FINANCE,
+                                        bookingId
+                                );
+                            });
+
                     FinanceRepository.getInstance().markTransactionAvailableByBooking(bookingId, null);
                     if (roomId != null && !roomId.isEmpty()) {
                         db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)

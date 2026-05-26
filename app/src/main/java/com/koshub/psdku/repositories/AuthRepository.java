@@ -13,6 +13,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.koshub.psdku.R;
+import com.koshub.psdku.repositories.FCMTokenRepository;
 import com.koshub.psdku.services.FirebaseService;
 import com.koshub.psdku.utils.DatabaseConstants;
 import com.koshub.psdku.utils.SessionManager;
@@ -212,6 +213,10 @@ public class AuthRepository {
 
     public void logout(Activity activity, AuthCallback<Void> callback) {
         Log.d(TAG, "LOGOUT_START");
+
+        // Deactivate FCM Token before signing out
+        FCMTokenRepository.getInstance().deactivateCurrentToken(null);
+
         auth.signOut();
         
         // Sign out from Google
