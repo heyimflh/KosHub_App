@@ -82,11 +82,12 @@ public class KosRepository {
     }
 
     /**
-     * Fetch all kos items from Firestore.
+     * Fetch all kos items from Firestore with basic pagination (limit).
      */
     public void getAllKos(KosListCallback callback) {
         db.collection(DatabaseConstants.COLLECTION_KOS)
                 .orderBy(DatabaseConstants.FIELD_CREATED_AT, Query.Direction.DESCENDING)
+                .limit(20) // Pro: Limit result to 20 for initial load
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Kos> list = new ArrayList<>();

@@ -48,6 +48,9 @@ public class KosMapper {
                 kos.getLongitude()
         );
         
+        item.setId(kos.getId());
+        item.setOwnerId(kos.getOwnerId());
+
         if (kos.getImageUrls() != null && !kos.getImageUrls().isEmpty()) {
             item.setImageUrl(kos.getImageUrls().get(0));
         }

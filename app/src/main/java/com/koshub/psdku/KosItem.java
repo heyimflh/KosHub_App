@@ -20,6 +20,8 @@ public class KosItem implements Serializable {
     private String sisaKamar; // null if not shown
     private double latitude;
     private double longitude;
+    private String id; // Real Firestore ID
+    private String ownerId; // Owner ID
 
     public KosItem(String name, String address, String price, int priceValue,
                    String distance, int distanceMinutes, String rating, String category,
@@ -42,6 +44,12 @@ public class KosItem implements Serializable {
         this.latitude = latitude;
         this.longitude = longitude;
     }
+
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    public String getOwnerId() { return ownerId; }
+    public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
 
     public String getName() { return name; }
     public String getAddress() { return address; }

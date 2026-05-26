@@ -119,14 +119,15 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
     private void uploadProfileImage(Uri uri) {
         showToast("Sedang mengupdate foto profil...");
         // Show local preview immediately with circle crop
-        Glide.with(this).load(uri).circleCrop().into(imgProfile);
+        if (imgProfile != null) Glide.with(this).load(uri).circleCrop().into(imgProfile);
 
         cloudinaryRepository.uploadProfileImage(this, uri, new CloudinaryRepository.SimpleUploadCallback() {
             @Override
             public void onSuccess(String downloadUrl) {
                 showToast("Foto profil diperbarui");
+                String optimizedUrl = cloudinaryRepository.getOptimizedUrl(downloadUrl, 200, 200, true);
                 Glide.with(OwnerProfileSettingsActivity.this)
-                        .load(downloadUrl)
+                        .load(optimizedUrl)
                         .placeholder(R.drawable.bg_avatar_circle)
                         .circleCrop()
                         .into(imgProfile);

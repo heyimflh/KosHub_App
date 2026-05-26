@@ -175,4 +175,24 @@ public class CloudinaryRepository {
                     public void onReschedule(String requestId, ErrorInfo error) {}
                 }).dispatch();
     }
+
+    /**
+     * Helper to get optimized image URL with transformations.
+     * Example: resize to width, auto quality, auto format (webp).
+     */
+    public String getOptimizedUrl(String originalUrl, int width, int height, boolean isCircle) {
+        if (originalUrl == null || !originalUrl.contains("cloudinary.com")) return originalUrl;
+
+        String transformation = "w_" + width + ",h_" + height + ",c_fill,g_auto,f_auto,q_auto";
+        if (isCircle) {
+            transformation += ",r_max";
+        }
+
+        // Cloudinary URL structure: .../upload/[transformations]/v123456/[public_id]
+        if (originalUrl.contains("/upload/")) {
+            return originalUrl.replace("/upload/", "/upload/" + transformation + "/");
+        }
+        
+        return originalUrl;
+    }
 }

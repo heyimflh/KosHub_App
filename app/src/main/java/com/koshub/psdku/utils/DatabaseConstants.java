@@ -16,6 +16,7 @@ public class DatabaseConstants {
     public static final String COLLECTION_TRANSACTIONS = "transactions";
     public static final String COLLECTION_WITHDRAWALS = "withdrawals";
     public static final String COLLECTION_REVIEWS = "reviews";
+    // public static final String COLLECTION_BOOKINGS = "bookings"; // Already exists above
 
     // Roles
     public static final String ROLE_STUDENT = "student";
@@ -36,9 +37,16 @@ public class DatabaseConstants {
     public static final String BOOKING_PENDING = "pending";
     public static final String BOOKING_ACCEPTED = "accepted";
     public static final String BOOKING_REJECTED = "rejected";
+    public static final String BOOKING_WAITING_CHECKIN = "waiting_checkin";
     public static final String BOOKING_ACTIVE = "active";
     public static final String BOOKING_COMPLETED = "completed";
     public static final String BOOKING_CANCELLED = "cancelled";
+
+    // Payment Status
+    public static final String PAYMENT_UNPAID = "unpaid";
+    public static final String PAYMENT_PENDING = "pending";
+    public static final String PAYMENT_PAID = "paid";
+    public static final String PAYMENT_REFUNDED = "refunded";
 
     // Complaint Status
     public static final String COMPLAINT_NEW = "new";
@@ -89,4 +97,8 @@ public class DatabaseConstants {
     public static final String FIELD_KOS_ID = "kosId";
     public static final String FIELD_ROOM_NAME = "roomName";
     public static final String FIELD_STATUS = "status";
+
+    // Audit Fields
+    public static final String FIELD_UPDATED_BY = "updatedBy";
+    public static final String FIELD_STATUS_HISTORY = "statusHistory";
 }

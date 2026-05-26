@@ -21,9 +21,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
+import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.Kos;
 import com.koshub.psdku.models.OwnerKosStats;
 import com.koshub.psdku.models.Room;
+import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.KosRepository;
 import com.koshub.psdku.repositories.StorageRepository;
@@ -200,6 +202,24 @@ public class OwnerDashboardActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 showToast("Gagal memuat statistik: " + message);
+            }
+        });
+
+        // Load real booking count for "Booking Masuk"
+        BookingRepository.getInstance().getBookingsByOwner(uid, new BookingRepository.BookingListCallback() {
+            @Override
+            public void onSuccess(List<Booking> bookings) {
+                int pendingCount = 0;
+                for (Booking b : bookings) {
+                    if (DatabaseConstants.BOOKING_PENDING.equals(b.getStatus())) pendingCount++;
+                }
+                ((TextView) statBookingMasuk.findViewById(R.id.tvStatValueBooking)).setText(String.valueOf(pendingCount));
+                updateRecentBookingsUI(bookings);
+            }
+
+            @Override
+            public void onError(String message) {
+                // Keep dummy
             }
         });
 
@@ -408,13 +428,33 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         setupProperty();
     }
 
+    private void updateRecentBookingsUI(List<Booking> bookings) {
+        if (bookings.isEmpty()) {
+            bookingItem1.setVisibility(View.GONE);
+            bookingItem2.setVisibility(View.GONE);
+            return;
+        }
+
+        bookingItem1.setVisibility(View.VISIBLE);
+        Booking b1 = bookings.get(0);
+        ((TextView) bookingItem1.findViewById(R.id.tvTenantName1)).setText(b1.getStudentName());
+        ((TextView) bookingItem1.findViewById(R.id.tvBookingDetail1)).setText(b1.getKosName() + " • " + b1.getStatus().toUpperCase());
+
+        if (bookings.size() > 1) {
+            bookingItem2.setVisibility(View.VISIBLE);
+            Booking b2 = bookings.get(1);
+            ((TextView) bookingItem2.findViewById(R.id.tvTenantName2)).setText(b2.getStudentName());
+            ((TextView) bookingItem2.findViewById(R.id.tvBookingDetail2)).setText(b2.getKosName() + " • " + b2.getStatus().toUpperCase());
+        } else {
+            bookingItem2.setVisibility(View.GONE);
+        }
+    }
+
     private void setupBookings() {
-        btnSeeAllBooking.setOnClickListener(v ->
-                showToast("📋 Memuat semua booking..."));
-        bookingItem1.setOnClickListener(v ->
-                showToast("📅 Muhammad Fakhri - Menunggu Konfirmasi"));
-        bookingItem2.setOnClickListener(v ->
-                showToast("✅ Siti Nurhaliza - Booking Diterima"));
+        btnSeeAllBooking.setOnClickListener(v -> {
+            Intent intent = new Intent(this, OwnerBookingActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void setupProperty() {

@@ -285,6 +285,8 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     public void onKosClick(KosItem item, int position) {
         Intent intent = new Intent(this, PropertyDetailBookingActivity.class);
         intent.putExtra("kos_item", item);
+        intent.putExtra("kos_id", item.getId());
+        intent.putExtra("owner_id", item.getOwnerId());
         NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 

@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.koshub.psdku.repositories.CloudinaryRepository;
 
 import java.util.List;
 
@@ -80,10 +81,11 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
         }
 
         void bind(KosItem item, int position) {
-            // Image
+            // Image (Optimized via Cloudinary)
             if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+                String optimizedUrl = CloudinaryRepository.getInstance().getOptimizedUrl(item.getImageUrl(), 500, 300, false);
                 Glide.with(itemView.getContext())
-                        .load(item.getImageUrl())
+                        .load(optimizedUrl)
                         .placeholder(R.drawable.bg_map_placeholder)
                         .error(R.drawable.bg_map_placeholder)
                         .into(imgKos);

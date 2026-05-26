@@ -303,6 +303,7 @@
                         </FrameLayout>
 
                         <TextView
+                            android:id="@+id/tvStatValueBooking"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
@@ -1006,6 +1007,7 @@
                             android:layout_weight="1"
                             android:orientation="vertical">
                             <TextView
+                                android:id="@+id/tvTenantName1"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:fontFamily="sans-serif-medium"
@@ -1013,6 +1015,7 @@
                                 android:textColor="@color/owner_text_primary"
                                 android:textSize="14sp" />
                             <TextView
+                                android:id="@+id/tvBookingDetail1"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
@@ -1069,6 +1072,7 @@
                             android:layout_weight="1"
                             android:orientation="vertical">
                             <TextView
+                                android:id="@+id/tvTenantName2"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:fontFamily="sans-serif-medium"
@@ -1076,6 +1080,7 @@
                                 android:textColor="@color/owner_text_primary"
                                 android:textSize="14sp" />
                             <TextView
+                                android:id="@+id/tvBookingDetail2"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"

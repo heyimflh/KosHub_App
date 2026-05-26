@@ -15,11 +15,12 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+import com.koshub.psdku.models.Booking;
+import com.koshub.psdku.repositories.BookingRepository;
 import com.mapbox.geojson.Point;
 import com.mapbox.maps.CameraOptions;
 import com.mapbox.maps.MapView;
@@ -62,8 +63,8 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         }
 
         currentItem = (KosItem) intent.getSerializableExtra("kos_item");
+        
         if (currentItem == null) {
-            // Safety fallback if intent failed
             Toast.makeText(this, "Detail kos tidak tersedia", Toast.LENGTH_SHORT).show();
             finish();
             return;
@@ -94,7 +95,6 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         
         amenityChipGroup = findViewById(R.id.amenityChipGroup);
         reviewContainer = findViewById(R.id.reviewContainer);
-        // MapView is now handled programmatically in setupMap()
     }
 
     private void setupListeners() {
@@ -115,25 +115,63 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
             showCustomToast("📤 Link kos disalin!")
         );
 
-        btnBookingBottom.setOnClickListener(v -> {
-            btnBookingBottom.setEnabled(false);
-            btnBookingBottom.setAlpha(0.7f);
-            String originalText = btnBookingBottom.getText().toString();
-            btnBookingBottom.setText("...");
+        btnBookingBottom.setOnClickListener(v -> showBookingConfirmationDialog());
+        btnWaitlistBottom.setOnClickListener(v -> showBookingConfirmationDialog());
+    }
 
-            handler.postDelayed(() -> {
-                btnBookingBottom.setText(originalText);
+    private void showBookingConfirmationDialog() {
+        if (currentItem == null) return;
+        
+        String message = "Kos: " + currentItem.getName() + "\n" +
+                "Harga: " + currentItem.getPrice() + "\n" +
+                "Durasi: 1 Bulan\n\n" +
+                "Lanjutkan booking?";
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Konfirmasi Booking")
+                .setMessage(message)
+                .setPositiveButton("Booking Sekarang", (dialog, which) -> handleBooking())
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    private void handleBooking() {
+        String kosId = currentItem.getId();
+        String ownerId = currentItem.getOwnerId();
+
+        if (kosId == null || kosId.isEmpty() || ownerId == null || ownerId.isEmpty()) {
+            showCustomToast("Data kos tidak lengkap (Missing ID). Silakan muat ulang.");
+            return;
+        }
+
+        btnBookingBottom.setEnabled(false);
+        btnBookingBottom.setAlpha(0.7f);
+
+        Booking booking = new Booking();
+        booking.setKosId(kosId);
+        booking.setKosName(currentItem.getName());
+        booking.setKosAddress(currentItem.getAddress());
+        booking.setOwnerId(ownerId);
+        booking.setTotalPrice(currentItem.getPriceValue());
+        booking.setDurationMonth(1);
+
+        BookingRepository.getInstance().createBooking(booking, new BookingRepository.SimpleCallback() {
+            @Override
+            public void onSuccess() {
                 btnBookingBottom.setEnabled(true);
                 btnBookingBottom.setAlpha(1.0f);
-                showCustomToast("📩 Permintaan booking dikirim! Pemilik akan menghubungi Anda.");
-            }, 1500);
-        });
+                showCustomToast("📩 Booking berhasil dikirim! Menunggu konfirmasi.");
+                Intent intent = new Intent(PropertyDetailBookingActivity.this, WaitingListQueueActivity.class);
+                startActivity(intent);
+                finish();
+            }
 
-        btnWaitlistBottom.setOnClickListener(v -> {
-            btnWaitlistBottom.setText("✅ Terdaftar di Waiting List");
-            btnWaitlistBottom.setEnabled(false);
-            btnWaitlistBottom.setAlpha(0.7f);
-            showCustomToast("📋 Anda masuk antrean! Kami kabari jika kamar tersedia.");
+            @Override
+            public void onError(String message) {
+                btnBookingBottom.setEnabled(true);
+                btnBookingBottom.setAlpha(1.0f);
+                showCustomToast(message);
+            }
         });
     }
 
@@ -213,7 +251,6 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
             chip.setChipStrokeWidth(1f);
             chip.setChipStrokeColorResource(R.color.md_outline_variant);
             
-            // Set Lucide-style icons based on facility name
             int iconRes = getIconForFacility(facility);
             if (iconRes != 0) {
                 chip.setChipIconResource(iconRes);
@@ -276,7 +313,6 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
             mapView.getMapboxMap().loadStyle(Style.STANDARD, style -> {
                 runOnUiThread(() -> {
                     try {
-                        // Set initial camera position (use currentItem location if available)
                         double lat = currentItem != null ? currentItem.getLatitude() : -7.6298;
                         double lng = currentItem != null ? currentItem.getLongitude() : 111.5231;
                         
@@ -301,7 +337,6 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         container.removeAllViews();
         View fallbackView = LayoutInflater.from(this).inflate(R.layout.layout_map_fallback, container, false);
         
-        // Adjust text for detail view
         TextView tvSub = fallbackView.findViewById(R.id.tvMapFallbackSub);
         if (tvSub != null) {
             tvSub.setText("Lokasi kos tidak dapat ditampilkan saat ini.");

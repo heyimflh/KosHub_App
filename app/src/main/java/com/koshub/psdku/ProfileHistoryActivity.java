@@ -15,7 +15,10 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.List;
 import com.bumptech.glide.Glide;
+import com.koshub.psdku.models.Booking;
+import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.StorageRepository;
 import com.koshub.psdku.repositories.AuthRepository;
@@ -160,11 +163,25 @@ public class ProfileHistoryActivity extends AppCompatActivity {
     }
 
     private void setupQuickStats() {
-        statBooking.setOnClickListener(v ->
-                showToast("📅 Kamu memiliki 3 riwayat booking"));
+        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (uid != null) {
+            BookingRepository.getInstance().getBookingsByStudent(uid, new BookingRepository.BookingListCallback() {
+                @Override
+                public void onSuccess(List<Booking> bookings) {
+                    TextView tvBookingValue = findViewById(R.id.tvStatBookingValue);
+                    if (tvBookingValue != null) tvBookingValue.setText(String.valueOf(bookings.size()));
+                    updateRentalHistoryUI(bookings);
+                }
+
+                @Override
+                public void onError(String message) {
+                    showToast("Gagal memuat statistik booking");
+                }
+            });
+        }
 
         statFavorite.setOnClickListener(v ->
-                showToast("❤️ 7 kos tersimpan di wishlist"));
+                showToast("❤️ Fitur Wishlist segera hadir"));
 
         statReview.setOnClickListener(v ->
                 showToast("⭐ 2 review telah kamu berikan"));
@@ -205,7 +222,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
             btnSeeAllHistory.setOnClickListener(v ->
                     showToast("📜 Memuat semua riwayat pemesanan..."));
 
-            btnAmbilKunci.setOnClickListener(v -> showAmbilKunciDialog());
+            // btnAmbilKunci is now handled in updateRentalHistoryUI
             btnLaporkanKomplain.setOnClickListener(v -> {
                 NavigationTransitionHelper.navigateDetail(this, TenantComplaintFormActivity.class);
             });
@@ -268,8 +285,9 @@ public class ProfileHistoryActivity extends AppCompatActivity {
             @Override
             public void onSuccess(String downloadUrl) {
                 showToast("Foto profil diperbarui");
+                String optimizedUrl = cloudinaryRepository.getOptimizedUrl(downloadUrl, 200, 200, true);
                 Glide.with(ProfileHistoryActivity.this)
-                        .load(downloadUrl)
+                        .load(optimizedUrl)
                         .placeholder(R.drawable.bg_avatar_circle)
                         .circleCrop()
                         .into(imgProfile);
@@ -294,7 +312,8 @@ public class ProfileHistoryActivity extends AppCompatActivity {
                         if (name != null) ((TextView)findViewById(R.id.tvProfileName)).setText(name);
                         if (email != null) ((TextView)findViewById(R.id.tvProfileEmail)).setText(email);
                         if (photo != null && !photo.isEmpty()) {
-                            Glide.with(this).load(photo).placeholder(R.drawable.bg_avatar_circle).circleCrop().into(imgProfile);
+                            String optimizedUrl = cloudinaryRepository.getOptimizedUrl(photo, 200, 200, true);
+                            Glide.with(this).load(optimizedUrl).placeholder(R.drawable.bg_avatar_circle).circleCrop().into(imgProfile);
                         } else {
                             Glide.with(this).load(R.drawable.bg_avatar_circle).circleCrop().into(imgProfile);
                         }
@@ -325,17 +344,48 @@ public class ProfileHistoryActivity extends AppCompatActivity {
         }
     }
 
-    private void showAmbilKunciDialog() {
+    private void updateRentalHistoryUI(List<Booking> bookings) {
+        if (bookings.isEmpty()) {
+            toggleEmptyState(true);
+            return;
+        }
+        
+        toggleEmptyState(false);
+        Booking latest = bookings.get(0);
+        
+        TextView tvTitle1 = findViewById(R.id.tvHistoryTitle1);
+        TextView tvSub1 = findViewById(R.id.tvHistorySub1);
+        if (tvTitle1 != null) tvTitle1.setText(latest.getKosName());
+        if (tvSub1 != null) tvSub1.setText(latest.getKosAddress());
+        
+        tvHistoryStatus1.setText(latest.getStatus().toUpperCase());
+        
+        if (DatabaseConstants.BOOKING_WAITING_CHECKIN.equals(latest.getStatus())) {
+            layoutTenantActions.setVisibility(View.VISIBLE);
+            btnAmbilKunci.setOnClickListener(v -> showAmbilKunciDialog(latest));
+        } else {
+            layoutTenantActions.setVisibility(View.GONE);
+        }
+    }
+
+    private void showAmbilKunciDialog(Booking b) {
         new androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomAlertDialog)
                 .setTitle("Konfirmasi Ambil Kunci?")
                 .setMessage("Pastikan kamu benar-benar sudah menerima kunci kos dari pemilik.")
                 .setPositiveButton("Ya, Sudah Ambil Kunci", (dialog, which) -> {
-                    tvHistoryStatus1.setText("Aktif Ngekos");
-                    tvHistoryStatus1.setBackgroundResource(R.drawable.bg_profile_status_active);
-                    tvHistoryStatus1.setTextColor(getResources().getColor(R.color.brand_green));
-                    tvCheckInDate1.setText("Mulai ngekos: 20 Mei 2026");
-                    layoutTenantActions.setVisibility(View.GONE);
-                    showToast("Status sewa berhasil diaktifkan");
+                    BookingRepository.getInstance().markKeyTaken(b.getId(), b.getRoomId(), new BookingRepository.SimpleCallback() {
+                        @Override
+                        public void onSuccess() {
+                            showToast("Status sewa berhasil diaktifkan");
+                            loadProfileData(); // Refresh all
+                            setupQuickStats();
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            showToast(message);
+                        }
+                    });
                 })
                 .setNegativeButton("Batal", null)
                 .show();
