@@ -51,18 +51,20 @@
                 android:padding="16dp">
 
                 <TextView
+                    android:id="@+id/tvComplaintKosName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Kos Putri Melati"
+                    android:text="Memuat data kos..."
                     android:textColor="@color/text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvComplaintRoomInfo"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Kamar A-12 • Aktif Ngekos"
+                    android:text="..."
                     android:textColor="@color/brand_green"
                     android:textSize="13sp" />
             </LinearLayout>
@@ -147,6 +149,14 @@
                     android:text="Tambah Foto Bukti"
                     android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
+
+                <ImageView
+                    android:id="@+id/imgComplaintPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:layout_marginTop="12dp"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <Button

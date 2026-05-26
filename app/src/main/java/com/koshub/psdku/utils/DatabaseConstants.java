@@ -95,8 +95,21 @@ public class DatabaseConstants {
     public static final String FIELD_AVAILABLE_ROOMS = "availableRooms";
     public static final String FIELD_IS_PREMIUM = "isPremium";
     public static final String FIELD_KOS_ID = "kosId";
+    public static final String FIELD_KOS_NAME = "kosName";
     public static final String FIELD_ROOM_NAME = "roomName";
     public static final String FIELD_STATUS = "status";
+
+    // Complaint Fields
+    public static final String FIELD_STUDENT_ID = "studentId";
+    public static final String FIELD_STUDENT_NAME = "studentName";
+    public static final String FIELD_STUDENT_EMAIL = "studentEmail";
+    public static final String FIELD_BOOKING_ID = "bookingId";
+    public static final String FIELD_ROOM_ID = "roomId";
+    public static final String FIELD_TITLE = "title";
+    public static final String FIELD_IMAGE_URL = "imageUrl";
+    public static final String FIELD_EVIDENCE_IMAGE_URLS = "evidenceImageUrls";
+    public static final String FIELD_OWNER_RESPONSE = "ownerResponse";
+    public static final String FIELD_RESOLVED_AT = "resolvedAt";
 
     // Audit Fields
     public static final String FIELD_UPDATED_BY = "updatedBy";

@@ -1,19 +1,37 @@
 package com.koshub.psdku.repositories;
 
+import android.content.Context;
+import android.net.Uri;
+import android.util.Log;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.Complaint;
+import com.koshub.psdku.services.FirebaseService;
+import com.koshub.psdku.utils.DatabaseConstants;
+
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Repository for Complaint data.
- * Initially returns dummy data.
+ * Handles Firestore logic for tenant complaints.
  */
 public class ComplaintRepository {
+    private static final String TAG = "KosHubComplaint";
     private static ComplaintRepository instance;
-    private List<Complaint> dummyComplaints;
+    private final FirebaseFirestore db;
+    private final FirebaseAuth auth;
 
     private ComplaintRepository() {
-        initDummyData();
+        this.db = FirebaseService.getFirestore();
+        this.auth = FirebaseService.getAuth();
     }
 
     public static synchronized ComplaintRepository getInstance() {
@@ -28,25 +46,160 @@ public class ComplaintRepository {
         void onError(String message);
     }
 
-    private void initDummyData() {
-        dummyComplaints = new ArrayList<>();
-        dummyComplaints.add(new Complaint("1", "Muhammad Fakhri", "Kos Melati Indah", "A-12", "Fasilitas", "AC kamar tidak dingin", "20 Mei 2026", "Baru"));
-        dummyComplaints.add(new Complaint("2", "Sinta Aulia", "Kos Melati Indah", "A-05", "Internet", "WiFi sering mati", "19 Mei 2026", "Diproses"));
-        dummyComplaints.add(new Complaint("3", "Raka Pratama", "Kos Mawar Residence", "B-04", "Pembayaran", "Pembayaran belum terverifikasi", "18 Mei 2026", "Selesai"));
+    public interface SimpleCallback {
+        void onSuccess();
+        void onError(String message);
     }
 
-    public void getAllComplaints(ComplaintCallback<List<Complaint>> callback) {
-        // TODO: Replace with Firebase query
-        if (callback != null) {
-            callback.onSuccess(new ArrayList<>(dummyComplaints));
-        }
+    public interface ComplaintListCallback {
+        void onSuccess(List<Complaint> complaints);
+        void onError(String message);
     }
 
-    public void createComplaint(Complaint complaint, ComplaintCallback<Boolean> callback) {
-        // TODO: Implement Firebase Create
-        dummyComplaints.add(complaint);
-        if (callback != null) {
-            callback.onSuccess(true);
+    /**
+     * Create a new complaint from an active booking.
+     */
+    public void createComplaintFromBooking(Context context, String bookingId, String title, String description, Uri imageUri, SimpleCallback callback) {
+        String uid = auth.getUid();
+        if (uid == null) {
+            callback.onError("User not authenticated");
+            return;
         }
+
+        // 1. Fetch Booking Details
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        callback.onError("Booking tidak ditemukan");
+                        return;
+                    }
+
+                    Booking booking = documentSnapshot.toObject(Booking.class);
+                    if (booking == null) {
+                        callback.onError("Gagal memproses data booking");
+                        return;
+                    }
+
+                    // 2. Validate Student Ownership & Active Status
+                    if (!uid.equals(booking.getStudentId())) {
+                        callback.onError("Akses ditolak. Ini bukan booking kamu.");
+                        return;
+                    }
+
+                    if (!DatabaseConstants.BOOKING_ACTIVE.equals(booking.getStatus())) {
+                        callback.onError("Komplain hanya bisa dibuat setelah sewa aktif.");
+                        return;
+                    }
+
+                    // 3. Create Complaint Object
+                    Complaint complaint = new Complaint();
+                    complaint.setStudentId(uid);
+                    complaint.setStudentName(booking.getStudentName());
+                    complaint.setStudentEmail(booking.getStudentEmail());
+                    complaint.setOwnerId(booking.getOwnerId());
+                    complaint.setKosId(booking.getKosId());
+                    complaint.setKosName(booking.getKosName());
+                    complaint.setBookingId(bookingId);
+                    complaint.setRoomId(booking.getRoomId());
+                    complaint.setRoomName(booking.getRoomName());
+                    complaint.setTitle(title);
+                    complaint.setDescription(description);
+                    complaint.setStatus(DatabaseConstants.COMPLAINT_NEW);
+                    complaint.setCreatedAt(System.currentTimeMillis());
+                    complaint.setUpdatedAt(System.currentTimeMillis());
+
+                    // 4. Save to Firestore
+                    db.collection(DatabaseConstants.COLLECTION_COMPLAINTS).add(complaint)
+                            .addOnSuccessListener(docRef -> {
+                                String complaintId = docRef.getId();
+                                docRef.update(DatabaseConstants.FIELD_ID, complaintId);
+
+                                // 5. Handle Image Upload if exists
+                                if (imageUri != null) {
+                                    CloudinaryRepository.getInstance().uploadComplaintEvidence(context, imageUri, complaintId, new CloudinaryRepository.SimpleUploadCallback() {
+                                        @Override
+                                        public void onSuccess(String imageUrl) {
+                                            callback.onSuccess();
+                                        }
+
+                                        @Override
+                                        public void onError(String message) {
+                                            // Complaint still created, but image failed
+                                            Log.e(TAG, "Image upload failed: " + message);
+                                            callback.onSuccess(); 
+                                        }
+                                    });
+                                } else {
+                                    callback.onSuccess();
+                                }
+                            })
+                            .addOnFailureListener(e -> callback.onError("Gagal menyimpan komplain: " + e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError("Gagal mengambil data booking: " + e.getMessage()));
+    }
+
+    public void getComplaintsByStudent(String studentId, ComplaintListCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_COMPLAINTS)
+                .whereEqualTo(DatabaseConstants.FIELD_STUDENT_ID, studentId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Complaint> list = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        Complaint c = doc.toObject(Complaint.class);
+                        c.setId(doc.getId());
+                        list.add(c);
+                    }
+                    // Sort manual to avoid index requirement
+                    Collections.sort(list, (c1, c2) -> Long.compare(c2.getCreatedAt(), c1.getCreatedAt()));
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> callback.onError("Gagal memuat komplain: " + e.getMessage()));
+    }
+
+    public void getComplaintsByOwner(String ownerId, ComplaintListCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_COMPLAINTS)
+                .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, ownerId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Complaint> list = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        Complaint c = doc.toObject(Complaint.class);
+                        c.setId(doc.getId());
+                        list.add(c);
+                    }
+                    Collections.sort(list, (c1, c2) -> Long.compare(c2.getCreatedAt(), c1.getCreatedAt()));
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> callback.onError("Gagal memuat komplain: " + e.getMessage()));
+    }
+
+    public void updateComplaintStatus(String complaintId, String newStatus, String ownerResponse, SimpleCallback callback) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put(DatabaseConstants.FIELD_STATUS, newStatus);
+        updates.put(DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis());
+        if (ownerResponse != null) {
+            updates.put(DatabaseConstants.FIELD_OWNER_RESPONSE, ownerResponse);
+        }
+
+        if (DatabaseConstants.COMPLAINT_DONE.equals(newStatus) || DatabaseConstants.COMPLAINT_REJECTED.equals(newStatus)) {
+            updates.put(DatabaseConstants.FIELD_RESOLVED_AT, System.currentTimeMillis());
+        }
+
+        db.collection(DatabaseConstants.COLLECTION_COMPLAINTS).document(complaintId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnFailureListener(e -> callback.onError("Gagal update status: " + e.getMessage()));
+    }
+
+    public void markComplaintProcess(String complaintId, SimpleCallback callback) {
+        updateComplaintStatus(complaintId, DatabaseConstants.COMPLAINT_PROCESS, null, callback);
+    }
+
+    public void markComplaintDone(String complaintId, String ownerResponse, SimpleCallback callback) {
+        updateComplaintStatus(complaintId, DatabaseConstants.COMPLAINT_DONE, ownerResponse, callback);
+    }
+
+    public void rejectComplaint(String complaintId, String ownerResponse, SimpleCallback callback) {
+        updateComplaintStatus(complaintId, DatabaseConstants.COMPLAINT_REJECTED, ownerResponse, callback);
     }
 }

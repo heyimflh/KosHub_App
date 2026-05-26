@@ -362,7 +362,18 @@ public class ProfileHistoryActivity extends AppCompatActivity {
         
         if (DatabaseConstants.BOOKING_WAITING_CHECKIN.equals(latest.getStatus())) {
             layoutTenantActions.setVisibility(View.VISIBLE);
+            btnAmbilKunci.setVisibility(View.VISIBLE);
+            btnLaporkanKomplain.setVisibility(View.GONE);
             btnAmbilKunci.setOnClickListener(v -> showAmbilKunciDialog(latest));
+        } else if (DatabaseConstants.BOOKING_ACTIVE.equals(latest.getStatus())) {
+            layoutTenantActions.setVisibility(View.VISIBLE);
+            btnAmbilKunci.setVisibility(View.GONE);
+            btnLaporkanKomplain.setVisibility(View.VISIBLE);
+            btnLaporkanKomplain.setOnClickListener(v -> {
+                Intent intent = new Intent(this, TenantComplaintFormActivity.class);
+                intent.putExtra("bookingId", latest.getId());
+                NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
+            });
         } else {
             layoutTenantActions.setVisibility(View.GONE);
         }

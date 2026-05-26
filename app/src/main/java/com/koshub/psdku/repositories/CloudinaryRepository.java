@@ -176,6 +176,47 @@ public class CloudinaryRepository {
                 }).dispatch();
     }
 
+    public void uploadComplaintEvidence(Context context, Uri imageUri, String complaintId, SimpleUploadCallback callback) {
+        initMediaManager(context);
+        String uid = auth.getUid();
+        if (uid == null) {
+            callback.onError("User not authenticated");
+            return;
+        }
+
+        String folder = CloudinaryConfig.BASE_FOLDER + "/complaints/" + uid + "/" + complaintId;
+        MediaManager.get().upload(imageUri)
+                .unsigned(CloudinaryConfig.UPLOAD_PRESET)
+                .option("folder", folder)
+                .callback(new UploadCallback() {
+                    @Override
+                    public void onStart(String requestId) { Log.d(TAG, "Complaint evidence upload start"); }
+
+                    @Override
+                    public void onProgress(String requestId, long bytes, long totalBytes) {}
+
+                    @Override
+                    public void onSuccess(String requestId, Map resultData) {
+                        String secureUrl = (String) resultData.get("secure_url");
+                        db.collection(DatabaseConstants.COLLECTION_COMPLAINTS).document(complaintId)
+                                .update(DatabaseConstants.FIELD_IMAGE_URL, secureUrl,
+                                        DatabaseConstants.FIELD_EVIDENCE_IMAGE_URLS, FieldValue.arrayUnion(secureUrl),
+                                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
+                                .addOnSuccessListener(aVoid -> callback.onSuccess(secureUrl))
+                                .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
+                    }
+
+                    @Override
+                    public void onError(String requestId, ErrorInfo error) {
+                        Log.e(TAG, "Upload error: " + error.getDescription());
+                        callback.onError(error.getDescription());
+                    }
+
+                    @Override
+                    public void onReschedule(String requestId, ErrorInfo error) {}
+                }).dispatch();
+    }
+
     /**
      * Helper to get optimized image URL with transformations.
      * Example: resize to width, auto quality, auto format (webp).
