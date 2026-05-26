@@ -56,6 +56,7 @@
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/tvStepWaitingListTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-medium"
@@ -74,6 +75,7 @@
         </LinearLayout>
 
         <ImageView
+            android:id="@+id/ivStepWaitingListIcon"
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:contentDescription="Done"
@@ -115,6 +117,7 @@
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/tvStepAvailabilityTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif-medium"
@@ -134,6 +137,7 @@
         </LinearLayout>
 
         <ImageView
+            android:id="@+id/ivStepAvailabilityIcon"
             android:layout_width="18dp"
             android:layout_height="18dp"
             android:contentDescription="Active"
@@ -175,6 +179,7 @@
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/tvStepOwnerConfirmTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif"
@@ -191,6 +196,14 @@
                 android:textColor="@color/md_outline"
                 android:textSize="12sp" />
         </LinearLayout>
+
+        <ImageView
+            android:id="@+id/ivStepOwnerConfirmIcon"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="Pending"
+            android:visibility="gone"
+            android:src="@drawable/ic_waiting_check_circle" />
     </LinearLayout>
 
     <!-- Step 4: Pembayaran (PENDING) -->
@@ -228,6 +241,7 @@
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/tvStepPaymentTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif"
@@ -244,6 +258,14 @@
                 android:textColor="@color/md_outline"
                 android:textSize="12sp" />
         </LinearLayout>
+
+        <ImageView
+            android:id="@+id/ivStepPaymentIcon"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="Pending"
+            android:visibility="gone"
+            android:src="@drawable/ic_waiting_check_circle" />
     </LinearLayout>
 
     <!-- Step 5: Selesai (PENDING) -->
@@ -268,6 +290,7 @@
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/tvStepCompletedTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="sans-serif"
@@ -284,6 +307,14 @@
                 android:textColor="@color/md_outline"
                 android:textSize="12sp" />
         </LinearLayout>
+
+        <ImageView
+            android:id="@+id/ivStepCompletedIcon"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="Pending"
+            android:visibility="gone"
+            android:src="@drawable/ic_waiting_check_circle" />
     </LinearLayout>
 
 </LinearLayout>

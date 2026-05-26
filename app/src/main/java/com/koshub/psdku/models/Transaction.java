@@ -10,24 +10,18 @@ public class Transaction implements Serializable {
     private String ownerId;
     private String studentId;
     private String bookingId;
+    private String kosId;
+    private String kosName;
     private double amount;
     private String type; // "booking_payment"
-    private String status; // "pending", "available", "withdrawn"
+    private String status; // "pending", "available", "withdrawn", "cancelled"
     private long createdAt;
+    private long updatedAt;
+    private long availableAt;
+    private String withdrawalId;
 
     public Transaction() {
         // Required for Firebase
-    }
-
-    public Transaction(String id, String ownerId, String studentId, String bookingId, double amount, String type, String status) {
-        this.id = id;
-        this.ownerId = ownerId;
-        this.studentId = studentId;
-        this.bookingId = bookingId;
-        this.amount = amount;
-        this.type = type;
-        this.status = status;
-        this.createdAt = System.currentTimeMillis();
     }
 
     public String getId() { return id; }
@@ -42,6 +36,12 @@ public class Transaction implements Serializable {
     public String getBookingId() { return bookingId; }
     public void setBookingId(String bookingId) { this.bookingId = bookingId; }
 
+    public String getKosId() { return kosId; }
+    public void setKosId(String kosId) { this.kosId = kosId; }
+
+    public String getKosName() { return kosName; }
+    public void setKosName(String kosName) { this.kosName = kosName; }
+
     public double getAmount() { return amount; }
     public void setAmount(double amount) { this.amount = amount; }
 
@@ -53,4 +53,13 @@ public class Transaction implements Serializable {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public long getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
+
+    public long getAvailableAt() { return availableAt; }
+    public void setAvailableAt(long availableAt) { this.availableAt = availableAt; }
+
+    public String getWithdrawalId() { return withdrawalId; }
+    public void setWithdrawalId(String withdrawalId) { this.withdrawalId = withdrawalId; }
 }

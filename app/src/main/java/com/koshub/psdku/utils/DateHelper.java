@@ -14,6 +14,10 @@ public class DateHelper {
         return formatDate(date, DEFAULT_FORMAT);
     }
 
+    public static String formatDate(long timestamp) {
+        return formatDate(new Date(timestamp), DEFAULT_FORMAT);
+    }
+
     public static String formatDate(Date date, String pattern) {
         SimpleDateFormat sdf = new SimpleDateFormat(pattern, new Locale("id", "ID"));
         return sdf.format(date);

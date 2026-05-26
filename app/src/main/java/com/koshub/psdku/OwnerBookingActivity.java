@@ -85,7 +85,8 @@ public class OwnerBookingActivity extends AppCompatActivity {
         LayoutInflater inflater = LayoutInflater.from(this);
 
         for (Booking item : realBookings) {
-            boolean matches = filterStatus.equals("all") || item.getStatus().equals(filterStatus);
+            String status = item.getStatus() != null ? item.getStatus() : "";
+            boolean matches = filterStatus.equals("all") || status.equals(filterStatus);
 
             if (matches) {
                 View itemView = inflater.inflate(R.layout.item_owner_booking, bookingListContainer, false);
@@ -99,11 +100,15 @@ public class OwnerBookingActivity extends AppCompatActivity {
                 View btnReject = itemView.findViewById(R.id.btnReject);
 
                 tvName.setText(item.getStudentName() != null ? item.getStudentName() : "Mahasiswa");
-                tvStatus.setText(item.getStatus().toUpperCase());
-                tvKosRoom.setText(item.getKosName() + " • " + (item.getRoomName() != null ? item.getRoomName() : "Antrean"));
+                tvStatus.setText(status.toUpperCase());
+                
+                String kosName = item.getKosName() != null ? item.getKosName() : "Kos";
+                String roomName = item.getRoomName() != null ? item.getRoomName() : "Antrean";
+                tvKosRoom.setText(kosName + " • " + roomName);
+                
                 tvPrice.setText("Rp " + item.getTotalPrice());
 
-                if (DatabaseConstants.BOOKING_PENDING.equals(item.getStatus())) {
+                if (DatabaseConstants.BOOKING_PENDING.equals(status)) {
                     btnAccept.setVisibility(View.VISIBLE);
                     btnReject.setVisibility(View.VISIBLE);
                     btnAccept.setOnClickListener(v -> handleAccept(item));
@@ -132,31 +137,58 @@ public class OwnerBookingActivity extends AppCompatActivity {
     }
 
     private void handleAccept(Booking b) {
+        if (b == null || b.getId() == null) {
+            showToast("Data booking tidak valid.");
+            return;
+        }
+
+        android.util.Log.d("KosHubBooking", "Owner accepting booking: " + b.getId());
+        
+        // Find and disable the button in the container to prevent double clicks
+        // Since we are using a dynamic list, we can just show a toast or a simple progress
+        showToast("Memproses...");
+
         BookingRepository.getInstance().acceptBooking(b.getId(), b.getRoomId(), new BookingRepository.SimpleCallback() {
             @Override
             public void onSuccess() {
-                showToast("Booking Diterima");
-                loadRealBookings();
+                if (!isFinishing() && !isDestroyed()) {
+                    showToast("Booking Diterima");
+                    loadRealBookings();
+                }
             }
 
             @Override
             public void onError(String message) {
-                showToast(message);
+                if (!isFinishing() && !isDestroyed()) {
+                    showToast(message);
+                }
             }
         });
     }
 
     private void handleReject(Booking b) {
+        if (b == null || b.getId() == null) {
+            showToast("Data booking tidak valid.");
+            return;
+        }
+
+        android.util.Log.d("KosHubBooking", "Owner rejecting booking: " + b.getId());
+        showToast("Memproses...");
+
         BookingRepository.getInstance().rejectBooking(b.getId(), b.getRoomId(), new BookingRepository.SimpleCallback() {
             @Override
             public void onSuccess() {
-                showToast("Booking Ditolak");
-                loadRealBookings();
+                if (!isFinishing() && !isDestroyed()) {
+                    showToast("Booking Ditolak");
+                    loadRealBookings();
+                }
             }
 
             @Override
             public void onError(String message) {
-                showToast(message);
+                if (!isFinishing() && !isDestroyed()) {
+                    showToast(message);
+                }
             }
         });
     }

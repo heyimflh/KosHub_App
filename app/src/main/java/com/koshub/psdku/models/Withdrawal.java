@@ -13,21 +13,13 @@ public class Withdrawal implements Serializable {
     private String accountNumber;
     private String accountHolder;
     private String status; // "pending", "processing", "success", "failed"
+    private String note;
     private long createdAt;
+    private long updatedAt;
+    private long processedAt;
 
     public Withdrawal() {
         // Required for Firebase
-    }
-
-    public Withdrawal(String id, String ownerId, double amount, String bankName, String accountNumber, String accountHolder, String status) {
-        this.id = id;
-        this.ownerId = ownerId;
-        this.amount = amount;
-        this.bankName = bankName;
-        this.accountNumber = accountNumber;
-        this.accountHolder = accountHolder;
-        this.status = status;
-        this.createdAt = System.currentTimeMillis();
     }
 
     public String getId() { return id; }
@@ -51,6 +43,15 @@ public class Withdrawal implements Serializable {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
+    public String getNote() { return note; }
+    public void setNote(String note) { this.note = note; }
+
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public long getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
+
+    public long getProcessedAt() { return processedAt; }
+    public void setProcessedAt(long processedAt) { this.processedAt = processedAt; }
 }

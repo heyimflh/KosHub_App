@@ -1,33 +1,37 @@
-# Firestore Security Rules Draft (Phase 8)
+# Firestore Rules Draft (Finance & Withdraw)
 
-Add these rules to your Firestore configuration to secure the chat functionality.
+These are draft rules for securing the finance and withdrawal collections. Do not apply these automatically via code; they should be updated in the Firebase Console.
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // ... existing rules ...
-
-    // Chat Rules
-    match /chats/{chatId} {
-      allow read: if request.auth != null && (request.auth.uid == resource.data.studentId || request.auth.uid == resource.data.ownerId);
-      allow create: if request.auth != null && (request.auth.uid == request.resource.data.studentId || request.auth.uid == request.resource.data.ownerId);
-      allow update: if request.auth != null && (request.auth.uid == resource.data.studentId || request.auth.uid == resource.data.ownerId);
+    // Transactions
+    match /transactions/{transactionId} {
+      // Owners can only read their own transactions
+      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
       
-      match /messages/{messageId} {
-        allow read: if request.auth != null && 
-          (get(/databases/$(database)/documents/chats/$(chatId)).data.studentId == request.auth.uid || 
-           get(/databases/$(database)/documents/chats/$(chatId)).data.ownerId == request.auth.uid);
-           
-        allow create: if request.auth != null && 
-          request.resource.data.senderId == request.auth.uid &&
-          (get(/databases/$(database)/documents/chats/$(chatId)).data.studentId == request.auth.uid || 
-           get(/databases/$(database)/documents/chats/$(chatId)).data.ownerId == request.auth.uid);
-           
-        allow update: if request.auth != null && 
-          (resource.data.receiverId == request.auth.uid); // For marking as read
-      }
+      // Creation should ideally be via Cloud Functions for security, 
+      // but for client-side simulation:
+      allow create: if request.auth != null; 
+      
+      // Only system or specific logic should update status
+      allow update: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
+    
+    // Withdrawals
+    match /withdrawals/{withdrawalId} {
+      // Owners can only read their own withdrawals
+      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      
+      // Owners can create withdrawals for themselves
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      
+      // Owners should NOT be able to change status to 'success' themselves
+      allow update: if request.auth != null && 
+                    resource.data.ownerId == request.auth.uid && 
+                    !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'amount']);
     }
   }
 }

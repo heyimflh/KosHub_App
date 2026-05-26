@@ -59,6 +59,7 @@ public class DatabaseConstants {
     public static final String TRANSACTION_PENDING = "pending";
     public static final String TRANSACTION_AVAILABLE = "available";
     public static final String TRANSACTION_WITHDRAWN = "withdrawn";
+    public static final String TRANSACTION_CANCELLED = "cancelled";
 
     // Withdrawal
     public static final String WITHDRAWAL_PENDING = "pending";

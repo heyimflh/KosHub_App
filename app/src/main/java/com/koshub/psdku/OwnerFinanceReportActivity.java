@@ -1,7 +1,7 @@
 package com.koshub.psdku;
 
-import android.content.Intent;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -10,32 +10,25 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.koshub.psdku.models.FinanceSummary;
+import com.koshub.psdku.models.Withdrawal;
+import com.koshub.psdku.repositories.FinanceRepository;
+import com.koshub.psdku.utils.CurrencyHelper;
+import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.DateHelper;
+
+import java.util.List;
+
 /**
  * OwnerFinanceReportActivity - Laporan Keuangan Pemilik Kos
- *
- * Menampilkan ringkasan keuangan, target pendapatan, transaksi terbaru,
- * status pembayaran, insight, dan fitur export laporan.
  */
 public class OwnerFinanceReportActivity extends AppCompatActivity {
 
-    // Filter Chips
-    private TextView chipToday, chipWeek, chipMonth, chipYear;
-
-    // Summary Cards
-    private LinearLayout cardPaymentIn, cardPaymentPending, cardExpense, cardNetIncome, btnTarikSaldo;
-
-    // Target Progress
+    private TextView tvTotalIncomeHeader, tvWalletAvailable, tvWalletPending;
+    private LinearLayout withdrawalHistoryContainer;
+    private View btnBackFinance, btnTarikSaldo;
     private ProgressBar progressTarget;
-
-    // Transactions
-    private LinearLayout sectionTransactions;
-    private TextView btnSeeAllTransactions;
-    private LinearLayout transItem1, transItem2, transItem3;
-
-    // Export
-    private LinearLayout btnExportReport;
-    private View btnFinanceExportHeader, btnBackFinance;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,125 +36,155 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
         setContentView(R.layout.activity_owner_finance_report);
 
         initViews();
-        setupFilterChips();
-        setupSummaryCards();
-        setupTarget();
-        setupTransactions();
-        setupExport();
+        setupListeners();
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.NONE);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadFinanceData();
+    }
+
     private void initViews() {
-        chipToday = findViewById(R.id.chipToday);
-        chipWeek = findViewById(R.id.chipWeek);
-        chipMonth = findViewById(R.id.chipMonth);
-        chipYear = findViewById(R.id.chipYear);
-
-        cardPaymentIn = findViewById(R.id.cardPaymentIn);
-        cardPaymentPending = findViewById(R.id.cardPaymentPending);
-        cardExpense = findViewById(R.id.cardExpense);
-        cardNetIncome = findViewById(R.id.cardNetIncome);
-        btnTarikSaldo = findViewById(R.id.btnTarikSaldo);
-
-        progressTarget = findViewById(R.id.progressTarget);
-
-        sectionTransactions = findViewById(R.id.sectionTransactions);
-        btnSeeAllTransactions = findViewById(R.id.btnSeeAllTransactions);
-        transItem1 = findViewById(R.id.transItem1);
-        transItem2 = findViewById(R.id.transItem2);
-        transItem3 = findViewById(R.id.transItem3);
-
-        btnExportReport = findViewById(R.id.btnExportReport);
-        btnFinanceExportHeader = findViewById(R.id.btnFinanceExportHeader);
+        tvTotalIncomeHeader = findViewById(R.id.tvTotalIncomeHeader);
+        tvWalletAvailable = findViewById(R.id.tvWalletAvailable);
+        tvWalletPending = findViewById(R.id.tvWalletPending);
+        withdrawalHistoryContainer = findViewById(R.id.withdrawalHistoryContainer);
         btnBackFinance = findViewById(R.id.btnBackFinance);
+        btnTarikSaldo = findViewById(R.id.btnTarikSaldo);
+        progressTarget = findViewById(R.id.progressTarget);
     }
 
-    private void setupFilterChips() {
-        chipToday.setOnClickListener(v -> {
-            resetChips();
-            chipToday.setBackgroundResource(R.drawable.bg_finance_chip_active);
-            chipToday.setTextColor(getResources().getColor(R.color.finance_chip_active_text));
-            showToast("📅 Filter: Hari Ini");
-        });
-        chipWeek.setOnClickListener(v -> {
-            resetChips();
-            chipWeek.setBackgroundResource(R.drawable.bg_finance_chip_active);
-            chipWeek.setTextColor(getResources().getColor(R.color.finance_chip_active_text));
-            showToast("📅 Filter: Minggu Ini");
-        });
-        chipMonth.setOnClickListener(v -> {
-            resetChips();
-            chipMonth.setBackgroundResource(R.drawable.bg_finance_chip_active);
-            chipMonth.setTextColor(getResources().getColor(R.color.finance_chip_active_text));
-            showToast("📅 Filter: Bulan Ini");
-        });
-        chipYear.setOnClickListener(v -> {
-            resetChips();
-            chipYear.setBackgroundResource(R.drawable.bg_finance_chip_active);
-            chipYear.setTextColor(getResources().getColor(R.color.finance_chip_active_text));
-            showToast("📅 Filter: Tahun Ini");
-        });
-    }
-
-    private void resetChips() {
-        int inactiveColor = getResources().getColor(R.color.finance_chip_inactive_text);
-        chipToday.setBackgroundResource(R.drawable.bg_finance_chip_inactive);
-        chipToday.setTextColor(inactiveColor);
-        chipWeek.setBackgroundResource(R.drawable.bg_finance_chip_inactive);
-        chipWeek.setTextColor(inactiveColor);
-        chipMonth.setBackgroundResource(R.drawable.bg_finance_chip_inactive);
-        chipMonth.setTextColor(inactiveColor);
-        chipYear.setBackgroundResource(R.drawable.bg_finance_chip_inactive);
-        chipYear.setTextColor(inactiveColor);
-    }
-
-    private void setupSummaryCards() {
-        cardPaymentIn.setOnClickListener(v ->
-                showToast("💰 Pembayaran masuk: Rp 10.750.000"));
-        cardPaymentPending.setOnClickListener(v ->
-                showToast("⏳ Pembayaran pending: Rp 1.750.000"));
-        cardExpense.setOnClickListener(v ->
-                showToast("📤 Total pengeluaran: Rp 2.300.000"));
-        cardNetIncome.setOnClickListener(v ->
-                showToast("✅ Saldo bersih: Rp 10.200.000"));
+    private void setupListeners() {
+        if (btnBackFinance != null) {
+            btnBackFinance.setOnClickListener(v -> NavigationTransitionHelper.finishWithBackTransition(this));
+        }
         btnTarikSaldo.setOnClickListener(v -> {
             NavigationTransitionHelper.navigateDetail(this, OwnerWithdrawActivity.class);
         });
     }
 
-    private void setupTarget() {
-        progressTarget.setProgress(83);
+    private void loadFinanceData() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        FinanceRepository.getInstance().getFinanceSummary(uid, new FinanceRepository.FinanceSummaryCallback() {
+            @Override
+            public void onSuccess(FinanceSummary summary) {
+                updateUI(summary);
+            }
+
+            @Override
+            public void onError(String message) {
+                showToast("Gagal memuat ringkasan: " + message);
+            }
+        });
+
+        FinanceRepository.getInstance().getWithdrawalsByOwner(uid, new FinanceRepository.WithdrawalListCallback() {
+            @Override
+            public void onSuccess(List<Withdrawal> withdrawals) {
+                renderWithdrawals(withdrawals);
+            }
+
+            @Override
+            public void onError(String message) {
+                showToast("Gagal memuat riwayat: " + message);
+            }
+        });
     }
 
-    private void setupTransactions() {
-        btnSeeAllTransactions.setOnClickListener(v ->
-                showToast("📄 Memuat semua transaksi..."));
-        transItem1.setOnClickListener(v ->
-                showToast("✅ Sewa Kamar A-12 - Muhammad Fakhri - Berhasil"));
-        transItem2.setOnClickListener(v ->
-                showToast("⏳ Sewa Kamar B-04 - Raka Pratama - Pending"));
-        transItem3.setOnClickListener(v ->
-                showToast("📤 Perbaikan AC K02 - Maintenance - Keluar"));
+    private void updateUI(FinanceSummary summary) {
+        tvTotalIncomeHeader.setText(CurrencyHelper.formatRupiah(summary.getTotalIncome()));
+        tvWalletAvailable.setText(CurrencyHelper.formatRupiah(summary.getAvailableBalance()));
+        tvWalletPending.setText(CurrencyHelper.formatRupiah(summary.getPendingBalance()));
+        
+        // Progress Target (Simulasi target 50jt)
+        double target = 50000000;
+        int progress = (int) ((summary.getTotalIncome() / target) * 100);
+        if (progress > 100) progress = 100;
+        progressTarget.setProgress(progress);
     }
 
-    private void setupExport() {
-        btnExportReport.setOnClickListener(v ->
-                showToast("📥 Fitur export laporan akan tersedia."));
-        btnFinanceExportHeader.setOnClickListener(v ->
-                showToast("📥 Download laporan keuangan..."));
-        if (btnBackFinance != null) {
-            btnBackFinance.setOnClickListener(v -> NavigationTransitionHelper.finishWithBackTransition(this));
+    private void renderWithdrawals(List<Withdrawal> withdrawals) {
+        withdrawalHistoryContainer.removeAllViews();
+        LayoutInflater inflater = LayoutInflater.from(this);
+
+        if (withdrawals.isEmpty()) {
+            TextView emptyText = new TextView(this);
+            emptyText.setText("Belum ada riwayat penarikan.");
+            emptyText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+            emptyText.setPadding(0, 20, 0, 20);
+            withdrawalHistoryContainer.addView(emptyText);
+            return;
         }
+
+        // Limit to 5 for the overview
+        int count = Math.min(withdrawals.size(), 5);
+        for (int i = 0; i < count; i++) {
+            Withdrawal w = withdrawals.get(i);
+            View itemView = inflater.inflate(R.layout.item_withdrawal_history, withdrawalHistoryContainer, false);
+
+            TextView tvAmount = itemView.findViewById(R.id.tvWithdrawAmount);
+            TextView tvDate = itemView.findViewById(R.id.tvWithdrawDate);
+            TextView tvStatus = itemView.findViewById(R.id.tvWithdrawStatus);
+
+            tvAmount.setText(CurrencyHelper.formatRupiah(w.getAmount()));
+            tvDate.setText(DateHelper.formatDate(w.getCreatedAt()) + " • " + w.getBankName());
+            tvStatus.setText(formatStatus(w.getStatus()));
+            
+            // Set status background and text color based on status
+            setStatusStyle(tvStatus, w.getStatus());
+
+            withdrawalHistoryContainer.addView(itemView);
+
+            // Add divider if not last
+            if (i < count - 1) {
+                View divider = new View(this);
+                divider.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
+                divider.setBackgroundColor(getResources().getColor(R.color.finance_divider));
+                withdrawalHistoryContainer.addView(divider);
+            }
+        }
+    }
+
+    private String formatStatus(String status) {
+        if (status == null) return "Pending";
+        switch (status) {
+            case DatabaseConstants.WITHDRAWAL_SUCCESS: return "Berhasil";
+            case DatabaseConstants.WITHDRAWAL_FAILED: return "Gagal";
+            case DatabaseConstants.WITHDRAWAL_PROCESSING: return "Diproses";
+            default: return "Menunggu";
+        }
+    }
+
+    private void setStatusStyle(TextView tv, String status) {
+        if (status == null) status = DatabaseConstants.WITHDRAWAL_PENDING;
+        
+        switch (status) {
+            case DatabaseConstants.WITHDRAWAL_SUCCESS:
+                tv.setBackgroundResource(R.drawable.bg_finance_status_success);
+                tv.setTextColor(getResources().getColor(R.color.finance_income_green));
+                break;
+            case DatabaseConstants.WITHDRAWAL_FAILED:
+                tv.setBackgroundResource(R.drawable.bg_finance_status_expense);
+                tv.setTextColor(getResources().getColor(R.color.finance_expense_red));
+                break;
+            case DatabaseConstants.WITHDRAWAL_PROCESSING:
+            case DatabaseConstants.WITHDRAWAL_PENDING:
+            default:
+                tv.setBackgroundResource(R.drawable.bg_finance_status_pending);
+                tv.setTextColor(getResources().getColor(R.color.finance_pending_orange));
+                break;
+        }
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onBackPressed() {
         NavigationTransitionHelper.finishWithBackTransition(this);
-    }
-
-
-
-    private void showToast(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }

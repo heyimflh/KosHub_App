@@ -144,6 +144,7 @@
 
             <!-- Section: Needs Action -->
             <TextView
+                android:id="@+id/sectionNeedsAction"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="20dp"
@@ -158,6 +159,7 @@
 
             <!-- Section: Active Queue -->
             <TextView
+                android:id="@+id/sectionActiveQueue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="20dp"
@@ -174,6 +176,7 @@
 
             <!-- Section: Next Steps -->
             <TextView
+                android:id="@+id/sectionNextSteps"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="20dp"
@@ -191,6 +194,44 @@
 
         </LinearLayout>
     </ScrollView>
+
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/layoutEmptyState"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:alpha="0.6"
+            android:src="@drawable/ic_waiting_queue"
+            app:tint="@color/md_outline" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="Belum Ada Booking"
+            android:textColor="@color/md_on_surface"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="Cari kos favoritmu dan mulai booking untuk melihat antrean di sini."
+            android:textColor="@color/md_on_surface_variant"
+            android:textSize="14sp" />
+    </LinearLayout>
 
     <!-- Bottom Navigation -->
     <include

@@ -64,11 +64,12 @@
                         android:textSize="12sp" />
 
                     <TextView
+                        android:id="@+id/tvAvailableBalance"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:fontFamily="sans-serif-medium"
-                        android:text="Rp 5.000.000"
+                        android:text="Rp 0"
                         android:textColor="@color/brand_green"
                         android:textSize="24sp"
                         android:textStyle="bold" />

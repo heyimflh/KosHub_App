@@ -357,6 +357,7 @@
                         </FrameLayout>
 
                         <TextView
+                            android:id="@+id/tvStatValuePendapatan"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
@@ -449,11 +450,12 @@
                                 android:textSize="11sp" />
 
                             <TextView
+                                android:id="@+id/tvSaldoTersedia"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif-black"
-                                android:text="Rp 5.000.000"
+                                android:text="Rp 0"
                                 android:textColor="@color/brand_green"
                                 android:textSize="18sp" />
 
@@ -490,11 +492,12 @@
                                 android:textSize="11sp" />
 
                             <TextView
+                                android:id="@+id/tvSaldoPending"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif-black"
-                                android:text="Rp 1.750.000"
+                                android:text="Rp 0"
                                 android:textColor="@color/status_pending_text"
                                 android:textSize="18sp" />
 

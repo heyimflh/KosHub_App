@@ -4,15 +4,23 @@ import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.koshub.psdku.models.FinanceSummary;
+import com.koshub.psdku.repositories.FinanceRepository;
+import com.koshub.psdku.utils.CurrencyHelper;
+
 public class OwnerWithdrawActivity extends AppCompatActivity {
 
     private ImageView btnBack;
+    private TextView tvAvailableBalance;
     private EditText etNominal, etBank, etNoRek, etNamaRek, etNote;
     private Button btnSubmit;
+    private double availableBalance = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,11 +29,13 @@ public class OwnerWithdrawActivity extends AppCompatActivity {
 
         initViews();
         setupListeners();
+        loadBalance();
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.NONE);
     }
 
     private void initViews() {
         btnBack = findViewById(R.id.btnBack);
+        tvAvailableBalance = findViewById(R.id.tvAvailableBalance);
         etNominal = findViewById(R.id.etNominal);
         etBank = findViewById(R.id.etBank);
         etNoRek = findViewById(R.id.etNoRek);
@@ -39,8 +49,50 @@ public class OwnerWithdrawActivity extends AppCompatActivity {
 
         btnSubmit.setOnClickListener(v -> {
             if (validateForm()) {
-                showToast("Permintaan tarik saldo berhasil diajukan");
-                NavigationTransitionHelper.finishWithBackTransition(this);
+                handleWithdraw();
+            }
+        });
+    }
+
+    private void loadBalance() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        FinanceRepository.getInstance().getFinanceSummary(uid, new FinanceRepository.FinanceSummaryCallback() {
+            @Override
+            public void onSuccess(FinanceSummary summary) {
+                availableBalance = summary.getAvailableBalance();
+                tvAvailableBalance.setText(CurrencyHelper.formatRupiah(availableBalance));
+            }
+
+            @Override
+            public void onError(String message) {
+                showToast("Gagal memuat saldo: " + message);
+            }
+        });
+    }
+
+    private void handleWithdraw() {
+        double amount = Double.parseDouble(etNominal.getText().toString());
+        String bankName = etBank.getText().toString();
+        String accountNo = etNoRek.getText().toString();
+        String accountHolder = etNamaRek.getText().toString();
+        
+        btnSubmit.setEnabled(false);
+        btnSubmit.setText("Memproses...");
+
+        FinanceRepository.getInstance().requestWithdraw(bankName, accountNo, accountHolder, amount, new FinanceRepository.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                showToast("Permintaan withdraw berhasil dikirim.");
+                NavigationTransitionHelper.finishWithBackTransition(OwnerWithdrawActivity.this);
+            }
+
+            @Override
+            public void onError(String message) {
+                btnSubmit.setEnabled(true);
+                btnSubmit.setText("Ajukan Penarikan");
+                showToast(message);
             }
         });
     }
@@ -52,10 +104,27 @@ public class OwnerWithdrawActivity extends AppCompatActivity {
     }
 
     private boolean validateForm() {
-        if (etNominal.getText().toString().isEmpty()) {
+        String nominalStr = etNominal.getText().toString();
+        if (nominalStr.isEmpty()) {
             showToast("Nominal wajib diisi");
             return false;
         }
+
+        try {
+            double amount = Double.parseDouble(nominalStr);
+            if (amount <= 0) {
+                showToast("Nominal tidak valid");
+                return false;
+            }
+            if (amount > availableBalance) {
+                showToast("Saldo tersedia tidak mencukupi");
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            showToast("Nominal harus berupa angka");
+            return false;
+        }
+
         if (etBank.getText().toString().isEmpty()) {
             showToast("Nama Bank wajib diisi");
             return false;

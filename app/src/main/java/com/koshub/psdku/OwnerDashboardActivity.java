@@ -22,13 +22,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.koshub.psdku.models.Booking;
+import com.koshub.psdku.models.FinanceSummary;
 import com.koshub.psdku.models.Kos;
 import com.koshub.psdku.models.OwnerKosStats;
 import com.koshub.psdku.models.Room;
 import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
+import com.koshub.psdku.repositories.FinanceRepository;
 import com.koshub.psdku.repositories.KosRepository;
 import com.koshub.psdku.repositories.StorageRepository;
+import com.koshub.psdku.utils.CurrencyHelper;
 import com.koshub.psdku.utils.DatabaseConstants;
 
 import java.util.ArrayList;
@@ -63,6 +66,7 @@ public class OwnerDashboardActivity extends AppCompatActivity {
 
     // Header
     private View btnOwnerNotification;
+    private TextView tvStatValuePendapatan, tvSaldoTersedia, tvSaldoPending;
 
     // Stats
     private LinearLayout statTotalKos;
@@ -142,6 +146,9 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         statKamarTerisi = findViewById(R.id.statKamarTerisi);
         statBookingMasuk = findViewById(R.id.statBookingMasuk);
         statPendapatan = findViewById(R.id.statPendapatan);
+        tvStatValuePendapatan = findViewById(R.id.tvStatValuePendapatan);
+        tvSaldoTersedia = findViewById(R.id.tvSaldoTersedia);
+        tvSaldoPending = findViewById(R.id.tvSaldoPending);
 
         // Finance & Complaint Detail
         cardSaldoOwner = findViewById(R.id.cardSaldoOwner);
@@ -223,6 +230,27 @@ public class OwnerDashboardActivity extends AppCompatActivity {
             }
         });
 
+        // Load finance summary
+        FinanceRepository.getInstance().getFinanceSummary(uid, new FinanceRepository.FinanceSummaryCallback() {
+            @Override
+            public void onSuccess(FinanceSummary summary) {
+                if (tvStatValuePendapatan != null) {
+                    tvStatValuePendapatan.setText(CurrencyHelper.formatRupiah(summary.getTotalIncome()));
+                }
+                if (tvSaldoTersedia != null) {
+                    tvSaldoTersedia.setText(CurrencyHelper.formatRupiah(summary.getAvailableBalance()));
+                }
+                if (tvSaldoPending != null) {
+                    tvSaldoPending.setText(CurrencyHelper.formatRupiah(summary.getPendingBalance()));
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                // Keep dummy or zero
+            }
+        });
+
         statTotalKos.setOnClickListener(v -> {
             Intent intent = new Intent(this, OwnerManagementActivity.class);
             startActivity(intent);
@@ -242,8 +270,9 @@ public class OwnerDashboardActivity extends AppCompatActivity {
             NavigationTransitionHelper.navigateDetail(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);
         });
 
-        btnTarikSaldo.setOnClickListener(v ->
-                showToast("🏧 Membuka fitur tarik saldo..."));
+        btnTarikSaldo.setOnClickListener(v -> {
+            NavigationTransitionHelper.navigateDetail(OwnerDashboardActivity.this, OwnerWithdrawActivity.class);
+        });
 
         cardSaldoTersedia.setOnClickListener(v -> {
             NavigationTransitionHelper.navigateDetail(OwnerDashboardActivity.this, OwnerFinanceReportActivity.class);

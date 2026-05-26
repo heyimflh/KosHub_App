@@ -140,7 +140,31 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     }
 
     private void handleBooking() {
-        // ... existing code ...
+        if (currentItem == null) return;
+
+        Booking booking = new Booking();
+        booking.setKosId(currentItem.getId());
+        booking.setOwnerId(currentItem.getOwnerId());
+        booking.setKosName(currentItem.getName());
+        booking.setKosAddress(currentItem.getAddress());
+        booking.setTotalPrice(currentItem.getPriceValue());
+        booking.setDurationMonth(1); // Default for simulation
+        booking.setCheckInDate(System.currentTimeMillis() + (7L * 24 * 60 * 60 * 1000)); // Default 1 week from now
+
+        BookingRepository.getInstance().createBooking(booking, new BookingRepository.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                showCustomToast("Booking berhasil dikirim! Menunggu konfirmasi owner.");
+                // Redirect to Waiting List
+                Intent intent = new Intent(PropertyDetailBookingActivity.this, WaitingListQueueActivity.class);
+                NavigationTransitionHelper.navigateMainWithIntent(PropertyDetailBookingActivity.this, intent);
+            }
+
+            @Override
+            public void onError(String message) {
+                showCustomToast(message);
+            }
+        });
     }
 
     private void openChatWithOwner() {

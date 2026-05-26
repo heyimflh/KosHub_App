@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -38,6 +39,15 @@ public class WaitingListQueueActivity extends AppCompatActivity {
     private LinearLayout cardAvailableStatus;
     private TextView tvAvailableStatus, tvAvailablePropertyName, tvAvailablePropertyAddress;
     private TextView btnPayAvailable;
+    private TextView tvQueuePosition, tvEstimatedAvailability, tvQueueMicrocopy;
+    
+    // Timeline steps and content
+    private View stepWaitingList, stepAvailability, stepOwnerConfirm, stepPayment, stepCompleted;
+    private TextView tvStepWaitingListTitle, tvStepAvailabilityTitle, tvStepOwnerConfirmTitle, tvStepPaymentTitle, tvStepCompletedTitle;
+    private ImageView ivStepWaitingListIcon, ivStepAvailabilityIcon, ivStepOwnerConfirmIcon, ivStepPaymentIcon, ivStepCompletedIcon;
+
+    private View layoutEmptyState;
+    private View sectionNeedsAction, sectionActiveQueue, sectionTimeline, sectionNextSteps;
 
     private View btnPrimaryAction;
     private TextView btnSecondaryAction;
@@ -71,6 +81,35 @@ public class WaitingListQueueActivity extends AppCompatActivity {
         tvAvailablePropertyName = findViewById(R.id.tvAvailablePropertyName);
         tvAvailablePropertyAddress = findViewById(R.id.tvAvailablePropertyAddress);
         btnPayAvailable = findViewById(R.id.btnPayAvailable);
+
+        tvQueuePosition = findViewById(R.id.tvQueuePosition);
+        tvEstimatedAvailability = findViewById(R.id.tvEstimatedAvailability);
+        tvQueueMicrocopy = findViewById(R.id.tvQueueMicrocopy);
+
+        stepWaitingList = findViewById(R.id.stepWaitingList);
+        stepAvailability = findViewById(R.id.stepAvailability);
+        stepOwnerConfirm = findViewById(R.id.stepOwnerConfirm);
+        stepPayment = findViewById(R.id.stepPayment);
+        stepCompleted = findViewById(R.id.stepCompleted);
+
+        tvStepWaitingListTitle = findViewById(R.id.tvStepWaitingListTitle);
+        tvStepAvailabilityTitle = findViewById(R.id.tvStepAvailabilityTitle);
+        tvStepOwnerConfirmTitle = findViewById(R.id.tvStepOwnerConfirmTitle);
+        tvStepPaymentTitle = findViewById(R.id.tvStepPaymentTitle);
+        tvStepCompletedTitle = findViewById(R.id.tvStepCompletedTitle);
+
+        ivStepWaitingListIcon = findViewById(R.id.ivStepWaitingListIcon);
+        ivStepAvailabilityIcon = findViewById(R.id.ivStepAvailabilityIcon);
+        ivStepOwnerConfirmIcon = findViewById(R.id.ivStepOwnerConfirmIcon);
+        ivStepPaymentIcon = findViewById(R.id.ivStepPaymentIcon);
+        ivStepCompletedIcon = findViewById(R.id.ivStepCompletedIcon);
+
+        layoutEmptyState = findViewById(R.id.layoutEmptyState);
+        
+        sectionNeedsAction = findViewById(R.id.sectionNeedsAction);
+        sectionActiveQueue = findViewById(R.id.sectionActiveQueue);
+        sectionTimeline = findViewById(R.id.queueTimelineContainer);
+        sectionNextSteps = findViewById(R.id.sectionNextSteps);
 
         btnPrimaryAction = findViewById(R.id.btnPrimaryAction);
         btnSecondaryAction = findViewById(R.id.btnSecondaryAction);
@@ -136,10 +175,13 @@ public class WaitingListQueueActivity extends AppCompatActivity {
             @Override
             public void onSuccess(List<Booking> bookings) {
                 if (bookings.isEmpty()) {
+                    if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.VISIBLE);
                     cardQueueStatus.setVisibility(View.GONE);
                     cardAvailableStatus.setVisibility(View.GONE);
-                    showCustomToast("Belum ada booking aktif.");
+                    hideAllSections();
                 } else {
+                    if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
+                    showAllSections();
                     Booking b = bookings.get(0); // Show most recent
                     updateUIWithBooking(b);
                 }
@@ -147,10 +189,23 @@ public class WaitingListQueueActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
-                // User friendly message already mapped in Repository
                 showCustomToast(message);
             }
         });
+    }
+
+    private void hideAllSections() {
+        if (sectionNeedsAction != null) sectionNeedsAction.setVisibility(View.GONE);
+        if (sectionActiveQueue != null) sectionActiveQueue.setVisibility(View.GONE);
+        if (sectionTimeline != null) sectionTimeline.setVisibility(View.GONE);
+        if (sectionNextSteps != null) sectionNextSteps.setVisibility(View.GONE);
+    }
+
+    private void showAllSections() {
+        if (sectionNeedsAction != null) sectionNeedsAction.setVisibility(View.VISIBLE);
+        if (sectionActiveQueue != null) sectionActiveQueue.setVisibility(View.VISIBLE);
+        if (sectionTimeline != null) sectionTimeline.setVisibility(View.VISIBLE);
+        if (sectionNextSteps != null) sectionNextSteps.setVisibility(View.VISIBLE);
     }
 
     private void updateUIWithBooking(Booking b) {
@@ -159,7 +214,11 @@ public class WaitingListQueueActivity extends AppCompatActivity {
         // Populate standard fields
         tvPropertyName.setText(b.getKosName());
         tvPropertyAddress.setText(b.getKosAddress());
-        tvQueueStatus.setText("Status: " + status.toUpperCase());
+        
+        // Remove dummy text
+        if (tvQueuePosition != null) tvQueuePosition.setText("#1");
+        if (tvQueueMicrocopy != null) tvQueueMicrocopy.setVisibility(View.GONE);
+        if (tvEstimatedAvailability != null) tvEstimatedAvailability.setText("Menunggu Konfirmasi");
 
         if (DatabaseConstants.BOOKING_ACCEPTED.equals(status)) {
             cardQueueStatus.setVisibility(View.GONE);
@@ -174,26 +233,114 @@ public class WaitingListQueueActivity extends AppCompatActivity {
             
             btnSecondaryAction.setText("Batalkan Booking");
             btnSecondaryAction.setOnClickListener(v -> showCancelDialog(b));
+            updateTimeline(status);
         } else if (DatabaseConstants.BOOKING_WAITING_CHECKIN.equals(status)) {
             cardQueueStatus.setVisibility(View.GONE);
             cardAvailableStatus.setVisibility(View.VISIBLE);
+            tvAvailablePropertyName.setText(b.getKosName());
+            tvAvailablePropertyAddress.setText(b.getKosAddress());
             tvAvailableStatus.setText("SIAP AMBIL KUNCI");
+            btnPayAvailable.setVisibility(View.VISIBLE);
             btnPayAvailable.setText("Sudah Bayar");
             btnPayAvailable.setEnabled(false);
             
             btnSecondaryAction.setText("Sudah Ambil Kunci");
             btnSecondaryAction.setOnClickListener(v -> handleKeyTaken(b));
+            updateTimeline(status);
         } else if (DatabaseConstants.BOOKING_PENDING.equals(status)) {
             cardQueueStatus.setVisibility(View.VISIBLE);
             cardAvailableStatus.setVisibility(View.GONE);
             tvQueueStatus.setText("MENUNGGU KONFIRMASI");
             btnSecondaryAction.setText("Batalkan Antrean");
             btnSecondaryAction.setOnClickListener(v -> showCancelDialog(b));
-        } else {
-            // Rejected, Cancelled, Active, etc.
+            updateTimeline(status);
+        } else if (DatabaseConstants.BOOKING_ACTIVE.equals(status)) {
             cardQueueStatus.setVisibility(View.VISIBLE);
             cardAvailableStatus.setVisibility(View.GONE);
+            tvQueueStatus.setText("SEWA AKTIF");
+            tvEstimatedAvailability.setText("Kamar Ditempati");
+            btnSecondaryAction.setVisibility(View.VISIBLE);
+            btnSecondaryAction.setText("Hubungi Pemilik");
+            btnSecondaryAction.setOnClickListener(v -> openChatFromBooking(b));
+            updateTimeline(status);
+        } else {
+            // Rejected, Cancelled, etc.
+            cardQueueStatus.setVisibility(View.VISIBLE);
+            cardAvailableStatus.setVisibility(View.GONE);
+            tvQueueStatus.setText("STATUS: " + status.toUpperCase());
             btnSecondaryAction.setVisibility(View.GONE);
+            updateTimeline(status);
+        }
+    }
+
+    private void updateTimeline(String status) {
+        if (stepWaitingList == null) return;
+
+        // Step 1: Waiting List always done if booking exists
+        setStepDone(stepWaitingList, tvStepWaitingListTitle, ivStepWaitingListIcon);
+
+        if (DatabaseConstants.BOOKING_PENDING.equals(status)) {
+            setStepActive(stepAvailability, tvStepAvailabilityTitle, ivStepAvailabilityIcon);
+            setStepPending(stepOwnerConfirm, tvStepOwnerConfirmTitle, ivStepOwnerConfirmIcon);
+            setStepPending(stepPayment, tvStepPaymentTitle, ivStepPaymentIcon);
+            setStepPending(stepCompleted, tvStepCompletedTitle, ivStepCompletedIcon);
+        } else if (DatabaseConstants.BOOKING_ACCEPTED.equals(status)) {
+            setStepDone(stepAvailability, tvStepAvailabilityTitle, ivStepAvailabilityIcon);
+            setStepDone(stepOwnerConfirm, tvStepOwnerConfirmTitle, ivStepOwnerConfirmIcon);
+            setStepActive(stepPayment, tvStepPaymentTitle, ivStepPaymentIcon);
+            setStepPending(stepCompleted, tvStepCompletedTitle, ivStepCompletedIcon);
+        } else if (DatabaseConstants.BOOKING_WAITING_CHECKIN.equals(status)) {
+            setStepDone(stepAvailability, tvStepAvailabilityTitle, ivStepAvailabilityIcon);
+            setStepDone(stepOwnerConfirm, tvStepOwnerConfirmTitle, ivStepOwnerConfirmIcon);
+            setStepDone(stepPayment, tvStepPaymentTitle, ivStepPaymentIcon);
+            setStepActive(stepCompleted, tvStepCompletedTitle, ivStepCompletedIcon);
+        } else if (DatabaseConstants.BOOKING_ACTIVE.equals(status)) {
+            setStepDone(stepAvailability, tvStepAvailabilityTitle, ivStepAvailabilityIcon);
+            setStepDone(stepOwnerConfirm, tvStepOwnerConfirmTitle, ivStepOwnerConfirmIcon);
+            setStepDone(stepPayment, tvStepPaymentTitle, ivStepPaymentIcon);
+            setStepDone(stepCompleted, tvStepCompletedTitle, ivStepCompletedIcon);
+        } else {
+            // Cancelled or Rejected - maybe hide timeline or show all pending
+            setStepPending(stepAvailability, tvStepAvailabilityTitle, ivStepAvailabilityIcon);
+            setStepPending(stepOwnerConfirm, tvStepOwnerConfirmTitle, ivStepOwnerConfirmIcon);
+            setStepPending(stepPayment, tvStepPaymentTitle, ivStepPaymentIcon);
+            setStepPending(stepCompleted, tvStepCompletedTitle, ivStepCompletedIcon);
+        }
+    }
+
+    private void setStepDone(View step, TextView title, ImageView icon) {
+        if (step == null) return;
+        step.setAlpha(1.0f);
+        if (icon != null) {
+            icon.setImageResource(R.drawable.ic_waiting_check_circle);
+            icon.setVisibility(View.VISIBLE);
+        }
+        if (title != null) {
+            title.setTextColor(ContextCompat.getColor(this, R.color.md_on_surface));
+            title.setTypeface(null, android.graphics.Typeface.NORMAL);
+        }
+    }
+
+    private void setStepActive(View step, TextView title, ImageView icon) {
+        if (step == null) return;
+        step.setAlpha(1.0f);
+        if (icon != null) {
+            icon.setImageResource(R.drawable.ic_waiting_schedule);
+            icon.setVisibility(View.VISIBLE);
+        }
+        if (title != null) {
+            title.setTextColor(ContextCompat.getColor(this, R.color.md_primary));
+            title.setTypeface(null, android.graphics.Typeface.BOLD);
+        }
+    }
+
+    private void setStepPending(View step, TextView title, ImageView icon) {
+        if (step == null) return;
+        step.setAlpha(0.5f);
+        if (icon != null) icon.setVisibility(View.GONE);
+        if (title != null) {
+            title.setTextColor(ContextCompat.getColor(this, R.color.md_outline));
+            title.setTypeface(null, android.graphics.Typeface.NORMAL);
         }
     }
 
