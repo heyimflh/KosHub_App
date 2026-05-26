@@ -114,4 +114,23 @@ public class DatabaseConstants {
     // Audit Fields
     public static final String FIELD_UPDATED_BY = "updatedBy";
     public static final String FIELD_STATUS_HISTORY = "statusHistory";
+
+    // Chat Fields
+    public static final String FIELD_OWNER_NAME = "ownerName";
+    public static final String FIELD_LAST_MESSAGE = "lastMessage";
+    public static final String FIELD_LAST_MESSAGE_AT = "lastMessageAt";
+    public static final String FIELD_LAST_SENDER_ID = "lastSenderId";
+    public static final String FIELD_STUDENT_UNREAD_COUNT = "studentUnreadCount";
+    public static final String FIELD_OWNER_UNREAD_COUNT = "ownerUnreadCount";
+    
+    // Message Fields
+    public static final String FIELD_SENDER_ID = "senderId";
+    public static final String FIELD_SENDER_NAME = "senderName";
+    public static final String FIELD_RECEIVER_ID = "receiverId";
+    public static final String FIELD_TEXT = "text";
+    public static final String FIELD_TYPE = "type";
+    public static final String FIELD_IS_READ = "isRead";
+
+    // Message Types
+    public static final String MESSAGE_TYPE_TEXT = "text";
 }

@@ -150,24 +150,16 @@
     </LinearLayout>
 
     <!-- Chat Area -->
-    <ScrollView
-        android:id="@+id/scrollChat"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMessages"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/cardContext"
         android:layout_above="@id/bottomArea"
-        android:overScrollMode="never">
-
-        <LinearLayout
-            android:id="@+id/messageContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="8dp"
-            android:paddingBottom="16dp">
-            <!-- Programmatic messages -->
-        </LinearLayout>
-    </ScrollView>
+        android:overScrollMode="never"
+        android:paddingHorizontal="8dp"
+        android:paddingBottom="16dp"
+        android:clipToPadding="false" />
 
     <!-- Bottom Area (Quick Actions + Input) -->
     <LinearLayout

@@ -1,5 +1,6 @@
 package com.koshub.psdku;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,6 +16,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.NavigationTransitionHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,9 +113,22 @@ public class OwnerBookingActivity extends AppCompatActivity {
                     btnReject.setVisibility(View.GONE);
                 }
 
+                itemView.setOnClickListener(v -> openChatFromBooking(item));
+
                 bookingListContainer.addView(itemView);
             }
         }
+    }
+
+    private void openChatFromBooking(Booking b) {
+        Intent intent = new Intent(this, OwnerChatRoomActivity.class);
+        intent.putExtra("BOOKING_ID", b.getId());
+        intent.putExtra("USER_NAME", b.getStudentName());
+        intent.putExtra("KOS_NAME", b.getKosName());
+        intent.putExtra("STATUS", b.getStatus());
+        intent.putExtra("INITIAL", b.getStudentName() != null && !b.getStudentName().isEmpty() ? 
+                b.getStudentName().substring(0, 1).toUpperCase() : "M");
+        NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 
     private void handleAccept(Booking b) {

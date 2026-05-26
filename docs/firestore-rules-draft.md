@@ -1,38 +1,33 @@
-# Firestore Security Rules Draft - Phase 4
+# Firestore Security Rules Draft (Phase 8)
 
-These rules should be applied in the Firebase Console to secure the KosHub database.
+Add these rules to your Firestore configuration to secure the chat functionality.
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Allow users to read and write their own profile
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Anyone logged in can read kos, but only owners can manage them
-    match /kos/{kosId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
-    }
-    
-    // Anyone logged in can read rooms, but only owners can manage them
-    match /rooms/{roomId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
-    }
-    
-    // Future placeholders
-    match /bookings/{bookingId} {
-      allow read, write: if request.auth != null;
-    }
-    
+    // ... existing rules ...
+
+    // Chat Rules
     match /chats/{chatId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null && (request.auth.uid == resource.data.studentId || request.auth.uid == resource.data.ownerId);
+      allow create: if request.auth != null && (request.auth.uid == request.resource.data.studentId || request.auth.uid == request.resource.data.ownerId);
+      allow update: if request.auth != null && (request.auth.uid == resource.data.studentId || request.auth.uid == resource.data.ownerId);
+      
+      match /messages/{messageId} {
+        allow read: if request.auth != null && 
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.studentId == request.auth.uid || 
+           get(/databases/$(database)/documents/chats/$(chatId)).data.ownerId == request.auth.uid);
+           
+        allow create: if request.auth != null && 
+          request.resource.data.senderId == request.auth.uid &&
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.studentId == request.auth.uid || 
+           get(/databases/$(database)/documents/chats/$(chatId)).data.ownerId == request.auth.uid);
+           
+        allow update: if request.auth != null && 
+          (resource.data.receiverId == request.auth.uid); // For marking as read
+      }
     }
   }
 }

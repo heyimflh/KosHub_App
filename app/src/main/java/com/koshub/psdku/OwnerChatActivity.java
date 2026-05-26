@@ -4,18 +4,33 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.koshub.psdku.adapters.ChatListAdapter;
+import com.koshub.psdku.models.Chat;
+import com.koshub.psdku.repositories.ChatRepository;
+import com.koshub.psdku.utils.DatabaseConstants;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * OwnerChatActivity - Halaman Inbox / Daftar Chat untuk Owner
  */
-public class OwnerChatActivity extends AppCompatActivity {
+public class OwnerChatActivity extends AppCompatActivity implements ChatListAdapter.OnChatClickListener {
 
-    private LinearLayout itemChat1, itemChat2, itemChat3, itemChat4, itemChat5;
+    private RecyclerView rvChatList;
+    private ChatListAdapter adapter;
+    private List<Chat> chats = new ArrayList<>();
+    private ListenerRegistration chatListener;
+
     private TextView tabSemua, tabBelumDibaca, tabBooking, tabAktif, tabKomplain;
     private TextView tvHeaderUnreadBadge;
     private EditText etSearchChat;
@@ -26,18 +41,14 @@ public class OwnerChatActivity extends AppCompatActivity {
         setContentView(R.layout.activity_owner_chat);
 
         initViews();
-        setupChatList();
         setupFilters();
+        setupRecyclerView();
+        listenToChats();
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.CHAT);
     }
 
     private void initViews() {
-        itemChat1 = findViewById(R.id.itemChat1);
-        itemChat2 = findViewById(R.id.itemChat2);
-        itemChat3 = findViewById(R.id.itemChat3);
-        itemChat4 = findViewById(R.id.itemChat4);
-        itemChat5 = findViewById(R.id.itemChat5);
-
+        rvChatList = findViewById(R.id.rvChatList);
         tabSemua = findViewById(R.id.tabSemua);
         tabBelumDibaca = findViewById(R.id.tabBelumDibaca);
         tabBooking = findViewById(R.id.tabBooking);
@@ -45,103 +56,88 @@ public class OwnerChatActivity extends AppCompatActivity {
         tabKomplain = findViewById(R.id.tabKomplain);
 
         tvHeaderUnreadBadge = findViewById(R.id.tvHeaderUnreadBadge);
-        if (tvHeaderUnreadBadge != null) {
-            tvHeaderUnreadBadge.setText(getString(R.string.owner_chat_unread_count, 5));
-        }
-
         etSearchChat = findViewById(R.id.etSearchChat);
     }
 
-    private void setupChatList() {
-        // Dummy data initialization for each item via include
-        setupChatItem(itemChat1, "M", "Muhammad Fakhri", "10.24", "Kos Melati Indah • A-12", "Apakah kunci bisa diambil sore ini?", "2", "Siap Ambil Kunci");
-        setupChatItem(itemChat2, "S", "Sinta Aulia", "09.10", "Kos Melati Indah • A-05", "WiFi kamar saya sering mati.", "1", "Komplain Baru");
-        setupChatItem(itemChat3, "R", "Raka Pratama", "Kemarin", "Kos Mawar Residence • B-04", "Terima kasih Pak.", "0", "Aktif Ngekos");
-        setupChatItem(itemChat4, "N", "Nabila Putri", "Senin", "Kos Mawar Residence • B-07", "Saya ingin survei kos.", "0", "Booking Menunggu");
-        setupChatItem(itemChat5, "D", "Dimas Saputra", "Minggu", "Kos Anggrek • C-02", "Baik, terima kasih.", "0", "Selesai");
-
-        itemChat1.setOnClickListener(v -> openChatRoom("fakhri", "Muhammad Fakhri", "Mahasiswa UNS", "Kos Melati Indah", "A-12", "Siap Ambil Kunci", "M"));
-        itemChat2.setOnClickListener(v -> openChatRoom("sinta", "Sinta Aulia", "Mahasiswa Aktif", "Kos Melati Indah", "A-05", "Komplain Baru", "S"));
-        itemChat3.setOnClickListener(v -> openChatRoom("raka", "Raka Pratama", "Mahasiswa Baru", "Kos Mawar Residence", "B-04", "Aktif Ngekos", "R"));
-        itemChat4.setOnClickListener(v -> openChatRoom("nabila", "Nabila Putri", "Mahasiswa", "Kos Mawar Residence", "B-07", "Booking Menunggu", "N"));
-        itemChat5.setOnClickListener(v -> openChatRoom("dimas", "Dimas Saputra", "Mahasiswa", "Kos Anggrek", "C-02", "Selesai", "D"));
+    private void setupRecyclerView() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        adapter = new ChatListAdapter(chats, uid, DatabaseConstants.ROLE_OWNER, this);
+        rvChatList.setLayoutManager(new LinearLayoutManager(this));
+        rvChatList.setAdapter(adapter);
     }
 
-    private void setupChatItem(View itemView, String initial, String name, String time, String kos, String message, String unread, String status) {
-        TextView tvAvatar = itemView.findViewById(R.id.tvAvatarInitial);
-        TextView tvName = itemView.findViewById(R.id.tvUserName);
-        TextView tvTime = itemView.findViewById(R.id.tvChatTime);
-        TextView tvKos = itemView.findViewById(R.id.tvKosKamar);
-        TextView tvMsg = itemView.findViewById(R.id.tvLastMessage);
-        TextView tvBadge = itemView.findViewById(R.id.tvUnreadBadge);
-        TextView tvStatus = itemView.findViewById(R.id.tvBookingStatus);
+    private void listenToChats() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
 
-        tvAvatar.setText(initial);
-        tvName.setText(name);
-        tvTime.setText(time);
-        tvKos.setText(kos);
-        tvMsg.setText(message);
+        chatListener = ChatRepository.getInstance().listenChatsByRole(uid, DatabaseConstants.ROLE_OWNER, new ChatRepository.ChatListListener() {
+            @Override
+            public void onChatsUpdated(List<Chat> updatedChats) {
+                chats.clear();
+                chats.addAll(updatedChats);
+                adapter.notifyDataSetChanged();
+                updateUnreadBadge();
+            }
 
-        if (unread.equals("0")) {
-            tvBadge.setVisibility(View.GONE);
-        } else {
-            tvBadge.setVisibility(View.VISIBLE);
-            tvBadge.setText(unread);
+            @Override
+            public void onError(String message) {
+                Toast.makeText(OwnerChatActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void updateUnreadBadge() {
+        int totalUnread = 0;
+        for (Chat c : chats) {
+            totalUnread += c.getOwnerUnreadCount();
         }
-
-        tvStatus.setText(status);
-        
-        // Soft Styling Status Badges
-        if (status.equals("Komplain Baru")) {
-            tvStatus.setBackgroundResource(R.drawable.bg_badge_rejected);
-            tvStatus.setTextColor(getResources().getColor(R.color.status_rejected_text));
-        } else if (status.equals("Selesai")) {
-            tvStatus.setBackgroundResource(R.drawable.bg_status_completed_bg);
-            tvStatus.setTextColor(getResources().getColor(R.color.status_completed_text));
-        } else if (status.equals("Aktif Ngekos")) {
-            tvStatus.setBackgroundResource(R.drawable.bg_badge_accepted);
-            tvStatus.setTextColor(getResources().getColor(R.color.status_accepted_text));
-        } else if (status.equals("Siap Ambil Kunci")) {
-            tvStatus.setBackgroundResource(R.drawable.bg_status_info_bg);
-            tvStatus.setTextColor(getResources().getColor(R.color.status_info_text));
-        } else if (status.equals("Booking Menunggu")) {
-            tvStatus.setBackgroundResource(R.drawable.bg_badge_pending);
-            tvStatus.setTextColor(getResources().getColor(R.color.status_pending_text));
+        if (tvHeaderUnreadBadge != null) {
+            if (totalUnread > 0) {
+                tvHeaderUnreadBadge.setVisibility(View.VISIBLE);
+                tvHeaderUnreadBadge.setText(totalUnread + " pesan belum dibaca");
+            } else {
+                tvHeaderUnreadBadge.setVisibility(View.GONE);
+            }
         }
+    }
+
+    @Override
+    public void onChatClick(Chat chat) {
+        Intent intent = new Intent(this, OwnerChatRoomActivity.class);
+        intent.putExtra("CHAT_ID", chat.getId());
+        intent.putExtra("USER_NAME", chat.getStudentName());
+        intent.putExtra("KOS_NAME", chat.getKosName());
+        // For Owner, the opponent is Student
+        intent.putExtra("INITIAL", chat.getStudentName() != null && !chat.getStudentName().isEmpty() ? 
+                chat.getStudentName().substring(0, 1).toUpperCase() : "?");
+        NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 
     private void setupFilters() {
-        tabSemua.setOnClickListener(v -> selectTab(tabSemua, getString(R.string.owner_chat_tab_semua)));
-        tabBelumDibaca.setOnClickListener(v -> selectTab(tabBelumDibaca, getString(R.string.owner_chat_tab_unread)));
-        tabBooking.setOnClickListener(v -> selectTab(tabBooking, getString(R.string.owner_chat_tab_booking)));
-        tabAktif.setOnClickListener(v -> selectTab(tabAktif, getString(R.string.owner_chat_tab_aktif)));
-        tabKomplain.setOnClickListener(v -> selectTab(tabKomplain, getString(R.string.owner_chat_tab_komplain)));
+        tabSemua.setOnClickListener(v -> selectTab(tabSemua, "Semua"));
+        tabBelumDibaca.setOnClickListener(v -> selectTab(tabBelumDibaca, "Belum Dibaca"));
+        tabBooking.setOnClickListener(v -> selectTab(tabBooking, "Booking"));
+        tabAktif.setOnClickListener(v -> selectTab(tabAktif, "Aktif"));
+        tabKomplain.setOnClickListener(v -> selectTab(tabKomplain, "Komplain"));
     }
 
     private void selectTab(TextView selectedTab, String filterName) {
-        // Reset all tabs
         TextView[] tabs = {tabSemua, tabBelumDibaca, tabBooking, tabAktif, tabKomplain};
         for (TextView tab : tabs) {
             tab.setBackgroundResource(R.drawable.bg_chip_inactive_premium);
             tab.setTextColor(getResources().getColor(R.color.text_secondary));
         }
-
-        // Set selected
         selectedTab.setBackgroundResource(R.drawable.bg_chip_active);
         selectedTab.setTextColor(getResources().getColor(R.color.white));
-
-        Toast.makeText(this, "Menampilkan chat " + filterName, Toast.LENGTH_SHORT).show();
+        
+        Toast.makeText(this, "Filter " + filterName + " segera hadir", Toast.LENGTH_SHORT).show();
     }
 
-    private void openChatRoom(String chatId, String name, String role, String kos, String kamar, String status, String initial) {
-        Intent intent = new Intent(this, OwnerChatRoomActivity.class);
-        intent.putExtra("CHAT_ID", chatId);
-        intent.putExtra("USER_NAME", name);
-        intent.putExtra("USER_ROLE", role);
-        intent.putExtra("KOS_NAME", kos);
-        intent.putExtra("KAMAR", kamar);
-        intent.putExtra("STATUS", status);
-        intent.putExtra("INITIAL", initial);
-        NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (chatListener != null) {
+            chatListener.remove();
+        }
     }
 }

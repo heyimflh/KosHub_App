@@ -365,6 +365,11 @@ public class ProfileHistoryActivity extends AppCompatActivity {
             btnAmbilKunci.setVisibility(View.VISIBLE);
             btnLaporkanKomplain.setVisibility(View.GONE);
             btnAmbilKunci.setOnClickListener(v -> showAmbilKunciDialog(latest));
+            // Add chat option for waiting checkin
+            btnAmbilKunci.setOnLongClickListener(v -> {
+                openChatFromBooking(latest);
+                return true;
+            });
         } else if (DatabaseConstants.BOOKING_ACTIVE.equals(latest.getStatus())) {
             layoutTenantActions.setVisibility(View.VISIBLE);
             btnAmbilKunci.setVisibility(View.GONE);
@@ -374,9 +379,24 @@ public class ProfileHistoryActivity extends AppCompatActivity {
                 intent.putExtra("bookingId", latest.getId());
                 NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
             });
+            // Long click to chat
+            btnLaporkanKomplain.setOnLongClickListener(v -> {
+                openChatFromBooking(latest);
+                return true;
+            });
         } else {
             layoutTenantActions.setVisibility(View.GONE);
         }
+    }
+
+    private void openChatFromBooking(Booking b) {
+        Intent intent = new Intent(this, OwnerChatRoomActivity.class);
+        intent.putExtra("BOOKING_ID", b.getId());
+        intent.putExtra("USER_NAME", "Pemilik Kos");
+        intent.putExtra("KOS_NAME", b.getKosName());
+        intent.putExtra("STATUS", b.getStatus());
+        intent.putExtra("INITIAL", "P");
+        NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 
     private void showAmbilKunciDialog(Booking b) {

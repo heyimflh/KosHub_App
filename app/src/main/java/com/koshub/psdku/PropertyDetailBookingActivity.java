@@ -35,6 +35,7 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private ImageButton btnBack;
     private ImageButton btnFavorite;
     private ImageButton btnShare;
+    private ImageButton btnChat;
     private TextView btnWaitlistBottom;
     private TextView btnBookingBottom;
     private ImageView imgHero;
@@ -80,6 +81,7 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         btnBack = findViewById(R.id.btnBack);
         btnFavorite = findViewById(R.id.btnFavorite);
         btnShare = findViewById(R.id.btnShare);
+        btnChat = findViewById(R.id.btnChat);
         btnWaitlistBottom = findViewById(R.id.btnWaitlistBottom);
         btnBookingBottom = findViewById(R.id.btnBookingBottom);
         imgHero = findViewById(R.id.imgHero);
@@ -115,6 +117,8 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
             showCustomToast("📤 Link kos disalin!")
         );
 
+        btnChat.setOnClickListener(v -> openChatWithOwner());
+
         btnBookingBottom.setOnClickListener(v -> showBookingConfirmationDialog());
         btnWaitlistBottom.setOnClickListener(v -> showBookingConfirmationDialog());
     }
@@ -136,43 +140,18 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     }
 
     private void handleBooking() {
-        String kosId = currentItem.getId();
-        String ownerId = currentItem.getOwnerId();
+        // ... existing code ...
+    }
 
-        if (kosId == null || kosId.isEmpty() || ownerId == null || ownerId.isEmpty()) {
-            showCustomToast("Data kos tidak lengkap (Missing ID). Silakan muat ulang.");
-            return;
-        }
-
-        btnBookingBottom.setEnabled(false);
-        btnBookingBottom.setAlpha(0.7f);
-
-        Booking booking = new Booking();
-        booking.setKosId(kosId);
-        booking.setKosName(currentItem.getName());
-        booking.setKosAddress(currentItem.getAddress());
-        booking.setOwnerId(ownerId);
-        booking.setTotalPrice(currentItem.getPriceValue());
-        booking.setDurationMonth(1);
-
-        BookingRepository.getInstance().createBooking(booking, new BookingRepository.SimpleCallback() {
-            @Override
-            public void onSuccess() {
-                btnBookingBottom.setEnabled(true);
-                btnBookingBottom.setAlpha(1.0f);
-                showCustomToast("📩 Booking berhasil dikirim! Menunggu konfirmasi.");
-                Intent intent = new Intent(PropertyDetailBookingActivity.this, WaitingListQueueActivity.class);
-                startActivity(intent);
-                finish();
-            }
-
-            @Override
-            public void onError(String message) {
-                btnBookingBottom.setEnabled(true);
-                btnBookingBottom.setAlpha(1.0f);
-                showCustomToast(message);
-            }
-        });
+    private void openChatWithOwner() {
+        if (currentItem == null || currentItem.getId() == null) return;
+        
+        Intent intent = new Intent(this, OwnerChatRoomActivity.class);
+        intent.putExtra("KOS_ID", currentItem.getId());
+        intent.putExtra("USER_NAME", "Pemilik Kos");
+        intent.putExtra("KOS_NAME", currentItem.getName());
+        intent.putExtra("INITIAL", "P");
+        NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 
     private void populateData() {

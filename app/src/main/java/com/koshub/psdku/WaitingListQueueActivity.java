@@ -93,8 +93,39 @@ public class WaitingListQueueActivity extends AppCompatActivity {
         btnNotification.setOnClickListener(v -> showCustomToast("Belum ada notifikasi baru"));
 
         if (btnPrimaryAction != null) {
-            btnPrimaryAction.setOnClickListener(v -> showCustomToast("Fitur Chat segera hadir!"));
+            btnPrimaryAction.setOnClickListener(v -> {
+                // Get most recent booking to chat
+                String uid = FirebaseAuth.getInstance().getUid();
+                if (uid == null) return;
+                
+                BookingRepository.getInstance().getBookingsByStudent(uid, new BookingRepository.BookingListCallback() {
+                    @Override
+                    public void onSuccess(List<Booking> bookings) {
+                        if (!bookings.isEmpty()) {
+                            Booking latest = bookings.get(0);
+                            openChatFromBooking(latest);
+                        } else {
+                            showCustomToast("Belum ada booking untuk dikonsultasikan.");
+                        }
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        showCustomToast(message);
+                    }
+                });
+            });
         }
+    }
+
+    private void openChatFromBooking(Booking b) {
+        Intent intent = new Intent(this, OwnerChatRoomActivity.class);
+        intent.putExtra("BOOKING_ID", b.getId());
+        intent.putExtra("USER_NAME", "Pemilik Kos"); // Fallback, repository will fetch real name
+        intent.putExtra("KOS_NAME", b.getKosName());
+        intent.putExtra("STATUS", b.getStatus());
+        intent.putExtra("INITIAL", "P");
+        NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 
     private void loadRealBookings() {
