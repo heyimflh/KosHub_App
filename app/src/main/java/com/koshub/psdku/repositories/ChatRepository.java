@@ -252,50 +252,6 @@ public class ChatRepository {
                 });
     }
 
-    public ListenerRegistration listenChatsForCurrentUser(ChatListListener listener) {
-        String uid = auth.getUid();
-        if (uid == null) {
-            listener.onError("User tidak login.");
-            return null;
-        }
-
-        // We need to query by role. Let's find out the role first.
-        db.collection(DatabaseConstants.COLLECTION_USERS).document(uid).get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    String role = documentSnapshot.getString(DatabaseConstants.FIELD_ROLE);
-                    String field = DatabaseConstants.ROLE_OWNER.equals(role) ? DatabaseConstants.FIELD_OWNER_ID : DatabaseConstants.FIELD_STUDENT_ID;
-
-                    Query query = db.collection(DatabaseConstants.COLLECTION_CHATS).whereEqualTo(field, uid);
-
-                    query.addSnapshotListener((value, error) -> {
-                        if (error != null) {
-                            Log.e(TAG, "Listen chats error: " + error.getMessage());
-                            if (error.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                                listener.onError("Akses ditolak. Silakan login ulang.");
-                            } else {
-                                listener.onError("Gagal memuat daftar chat.");
-                            }
-                            return;
-                        }
-
-                        if (value != null) {
-                            List<Chat> chats = new ArrayList<>();
-                            for (QueryDocumentSnapshot doc : value) {
-                                Chat c = doc.toObject(Chat.class);
-                                c.setId(doc.getId());
-                                chats.add(c);
-                            }
-                            // Sort manual by lastMessageAt descending
-                            Collections.sort(chats, (c1, c2) -> Long.compare(c2.getLastMessageAt(), c1.getLastMessageAt()));
-                            listener.onChatsUpdated(chats);
-                        }
-                    });
-                });
-        
-        return null; // Note: This implementation is tricky because of the async role fetch.
-        // Better: Caller should pass role if known, or we fetch once at start.
-    }
-    
     // Improved listenChats with role parameter
     public ListenerRegistration listenChatsByRole(String uid, String role, ChatListListener listener) {
         String field = DatabaseConstants.ROLE_OWNER.equals(role) ? DatabaseConstants.FIELD_OWNER_ID : DatabaseConstants.FIELD_STUDENT_ID;
