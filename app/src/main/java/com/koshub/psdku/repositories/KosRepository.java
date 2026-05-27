@@ -9,6 +9,7 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.koshub.psdku.BuildConfig;
 import com.koshub.psdku.KosItem;
 import com.koshub.psdku.R;
 import com.koshub.psdku.models.Kos;
@@ -109,16 +110,17 @@ public class KosRepository {
                 });
     }
 
-    /**
-     * Fetch all kos items and map to legacy KosItem.
-     */
     public void getAllKosItems(KosItemListCallback callback) {
         getAllKos(new KosListCallback() {
             @Override
             public void onSuccess(List<Kos> kosList) {
                 if (kosList.isEmpty()) {
-                    // Fallback to dummy if empty for dev
-                    callback.onSuccess(new ArrayList<>(dummyKosList));
+                    if (BuildConfig.DEBUG) {
+                        // Fallback to dummy if empty for dev
+                        callback.onSuccess(new ArrayList<>(dummyKosList));
+                    } else {
+                        callback.onSuccess(new ArrayList<>());
+                    }
                 } else {
                     callback.onSuccess(KosMapper.toKosItemList(kosList));
                 }
@@ -126,8 +128,12 @@ public class KosRepository {
 
             @Override
             public void onError(String message) {
-                // Fallback to dummy on error
-                callback.onSuccess(new ArrayList<>(dummyKosList));
+                if (BuildConfig.DEBUG) {
+                    // Fallback to dummy on error for dev
+                    callback.onSuccess(new ArrayList<>(dummyKosList));
+                } else {
+                    callback.onError(message);
+                }
             }
         });
     }

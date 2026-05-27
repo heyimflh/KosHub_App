@@ -45,6 +45,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     private KosAdapter adapter;
     private TextView tvResultCount;
     private View layoutEmptyState;
+    private View layoutErrorState;
     private List<KosItem> allKosList = new ArrayList<>();
     private List<KosItem> filteredList = new ArrayList<>();
     private EditText etSearch;
@@ -82,9 +83,9 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
             });
         }
 
+        setupViews();
         initData();
         NavigationHelper.cachedKosList = allKosList;
-        setupViews();
         setupSearch();
         setupQuickChips();
         setupToggle();
@@ -102,6 +103,8 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
 
     private void setupNotificationBadge() {
         TextView tvBadge = findViewById(R.id.tvNotifBadge);
+        if (tvBadge == null) return;
+        
         notificationListener = NotificationRepository.getInstance().listenUnreadCount(new NotificationRepository.CountCallback() {
             @Override
             public void onSuccess(int count) {
@@ -122,22 +125,39 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
 
     private void initData() {
         setLoading(true);
+        if (layoutErrorState != null) layoutErrorState.setVisibility(View.GONE);
+        
         kosRepository.getAllKosItems(new KosRepository.KosItemListCallback() {
             @Override
             public void onSuccess(List<KosItem> items) {
                 setLoading(false);
+                if (layoutErrorState != null) layoutErrorState.setVisibility(View.GONE);
+                
                 allKosList.clear();
                 allKosList.addAll(items);
                 filteredList.clear();
                 filteredList.addAll(items);
                 NavigationHelper.cachedKosList = new ArrayList<>(allKosList);
-                adapter.notifyDataSetChanged();
+                if (adapter != null) adapter.notifyDataSetChanged();
                 updateResultCount();
+                
+                if (allKosList.isEmpty()) {
+                    if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.VISIBLE);
+                } else {
+                    if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
+                }
             }
 
             @Override
             public void onError(String message) {
                 setLoading(false);
+                if (layoutErrorState != null) {
+                    layoutErrorState.setVisibility(View.VISIBLE);
+                    View btnRetry = layoutErrorState.findViewById(R.id.btnRetry);
+                    if (btnRetry != null) btnRetry.setOnClickListener(v -> initData());
+                }
+                if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
+
                 showToast("Gagal memuat data: " + message);
             }
         });
@@ -150,10 +170,17 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
 
     private void setupViews() {
         rvKosList = findViewById(R.id.rvKosList);
+        tvResultCount = findViewById(R.id.tvResultCount);
         layoutEmptyState = findViewById(R.id.layoutEmptyStateHome);
-        rvKosList.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new KosAdapter(filteredList, this);
-        rvKosList.setAdapter(adapter);
+        layoutErrorState = findViewById(R.id.layoutErrorState);
+        etSearch = findViewById(R.id.etSearch);
+        progressBar = findViewById(R.id.progressBar);
+
+        if (rvKosList != null) {
+            rvKosList.setLayoutManager(new LinearLayoutManager(this));
+            adapter = new KosAdapter(filteredList, this);
+            rvKosList.setAdapter(adapter);
+        }
 
         // Notification button
         findViewById(R.id.btnNotification).setOnClickListener(v -> {
