@@ -25,7 +25,12 @@ import com.koshub.psdku.repositories.NotificationRepository;
 import com.koshub.psdku.utils.NotificationHelper;
 import com.koshub.psdku.utils.NotificationPermissionHelper;
 import com.bumptech.glide.Glide;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.google.firebase.auth.FirebaseAuth;
+import com.koshub.psdku.adapters.RecentBookingAdapter;
+import com.koshub.psdku.adapters.RecentPropertyAdapter;
 import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.FinanceSummary;
 import com.koshub.psdku.models.Kos;
@@ -102,14 +107,12 @@ public class OwnerDashboardActivity extends AppCompatActivity {
     // Bookings
     private LinearLayout sectionBookings;
     private TextView btnSeeAllBooking;
-    private LinearLayout bookingItem1;
-    private LinearLayout bookingItem2;
+    private RecyclerView rvRecentBookings;
 
     // Property
     private LinearLayout sectionProperty;
     private TextView btnSeeAllProperty;
-    private LinearLayout propertyItem1;
-    private LinearLayout propertyItem2;
+    private RecyclerView rvRecentProperty;
 
     // Revenue
     private LinearLayout cardRevenue;
@@ -204,14 +207,14 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         // Bookings
         sectionBookings = findViewById(R.id.sectionBookings);
         btnSeeAllBooking = findViewById(R.id.btnSeeAllBooking);
-        bookingItem1 = findViewById(R.id.bookingItem1);
-        bookingItem2 = findViewById(R.id.bookingItem2);
+        rvRecentBookings = findViewById(R.id.rvRecentBookings);
+        rvRecentBookings.setLayoutManager(new LinearLayoutManager(this));
 
         // Property
         sectionProperty = findViewById(R.id.sectionProperty);
         btnSeeAllProperty = findViewById(R.id.btnSeeAllProperty);
-        propertyItem1 = findViewById(R.id.propertyItem1);
-        propertyItem2 = findViewById(R.id.propertyItem2);
+        rvRecentProperty = findViewById(R.id.rvRecentProperty);
+        rvRecentProperty.setLayoutManager(new LinearLayoutManager(this));
 
         // Revenue
         cardRevenue = findViewById(R.id.cardRevenue);
@@ -502,24 +505,13 @@ public class OwnerDashboardActivity extends AppCompatActivity {
 
     private void updateRecentBookingsUI(List<Booking> bookings) {
         if (bookings.isEmpty()) {
-            bookingItem1.setVisibility(View.GONE);
-            bookingItem2.setVisibility(View.GONE);
+            rvRecentBookings.setVisibility(View.GONE);
             return;
         }
 
-        bookingItem1.setVisibility(View.VISIBLE);
-        Booking b1 = bookings.get(0);
-        ((TextView) bookingItem1.findViewById(R.id.tvTenantName1)).setText(b1.getStudentName());
-        ((TextView) bookingItem1.findViewById(R.id.tvBookingDetail1)).setText(b1.getKosName() + " • " + b1.getStatus().toUpperCase());
-
-        if (bookings.size() > 1) {
-            bookingItem2.setVisibility(View.VISIBLE);
-            Booking b2 = bookings.get(1);
-            ((TextView) bookingItem2.findViewById(R.id.tvTenantName2)).setText(b2.getStudentName());
-            ((TextView) bookingItem2.findViewById(R.id.tvBookingDetail2)).setText(b2.getKosName() + " • " + b2.getStatus().toUpperCase());
-        } else {
-            bookingItem2.setVisibility(View.GONE);
-        }
+        rvRecentBookings.setVisibility(View.VISIBLE);
+        List<Booking> displayList = bookings.subList(0, Math.min(3, bookings.size()));
+        rvRecentBookings.setAdapter(new RecentBookingAdapter(displayList));
     }
 
     private void setupBookings() {
@@ -540,22 +532,11 @@ public class OwnerDashboardActivity extends AppCompatActivity {
             @Override
             public void onSuccess(List<Kos> kosList) {
                 if (kosList.isEmpty()) {
-                    propertyItem1.setVisibility(View.GONE);
-                    propertyItem2.setVisibility(View.GONE);
+                    rvRecentProperty.setVisibility(View.GONE);
                 } else {
-                    propertyItem1.setVisibility(View.VISIBLE);
-                    Kos k1 = kosList.get(0);
-                    ((TextView) propertyItem1.findViewById(R.id.tvPropertyName1)).setText(k1.getName());
-                    ((TextView) propertyItem1.findViewById(R.id.tvPropertyRooms1)).setText(k1.getAvailableRooms() + " Kamar Tersedia");
-                    
-                    if (kosList.size() > 1) {
-                        propertyItem2.setVisibility(View.VISIBLE);
-                        Kos k2 = kosList.get(1);
-                        ((TextView) propertyItem2.findViewById(R.id.tvPropertyName2)).setText(k2.getName());
-                        ((TextView) propertyItem2.findViewById(R.id.tvPropertyRooms2)).setText(k2.getAvailableRooms() + " Kamar Tersedia");
-                    } else {
-                        propertyItem2.setVisibility(View.GONE);
-                    }
+                    rvRecentProperty.setVisibility(View.VISIBLE);
+                    List<Kos> displayList = kosList.subList(0, Math.min(2, kosList.size()));
+                    rvRecentProperty.setAdapter(new RecentPropertyAdapter(displayList));
                 }
             }
 
