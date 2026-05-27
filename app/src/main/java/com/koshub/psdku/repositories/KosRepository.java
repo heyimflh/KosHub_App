@@ -12,6 +12,7 @@ import com.google.firebase.storage.StorageReference;
 import com.koshub.psdku.KosItem;
 import com.koshub.psdku.R;
 import com.koshub.psdku.models.Kos;
+import com.koshub.psdku.models.Promo;
 import com.koshub.psdku.models.Room;
 import com.koshub.psdku.services.FirebaseService;
 import com.koshub.psdku.utils.DatabaseConstants;
@@ -276,6 +277,15 @@ public class KosRepository {
                         callback.onError(e.getMessage());
                     }
                 });
+    }
+
+    public void createPromo(Promo promo, SimpleCallback callback) {
+        DocumentReference promoRef = db.collection("promos").document();
+        promo.setId(promoRef.getId());
+
+        promoRef.set(promo)
+                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
     public void getRoomsByKos(String kosId, RoomListCallback callback) {

@@ -1,5 +1,6 @@
 package com.koshub.psdku;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -7,6 +8,7 @@ import android.widget.LinearLayout;
 import android.net.Uri;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -35,6 +37,7 @@ import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.FinanceSummary;
 import com.koshub.psdku.models.Kos;
 import com.koshub.psdku.models.OwnerKosStats;
+import com.koshub.psdku.models.Promo;
 import com.koshub.psdku.models.Room;
 import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
@@ -44,8 +47,10 @@ import com.koshub.psdku.repositories.StorageRepository;
 import com.koshub.psdku.utils.CurrencyHelper;
 import com.koshub.psdku.utils.DatabaseConstants;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
@@ -352,8 +357,7 @@ public class OwnerDashboardActivity extends AppCompatActivity {
             Intent intent = new Intent(this, OwnerManagementActivity.class);
             startActivity(intent);
         });
-        actionBuatPromo.setOnClickListener(v ->
-                showToast("🏷️ Fitur Buat Promo akan hadir segera."));
+        actionBuatPromo.setOnClickListener(v -> showCreatePromoDialog());
     }
 
     private void showAddKosDialog() {
@@ -484,6 +488,102 @@ public class OwnerDashboardActivity extends AppCompatActivity {
                             @Override
                             public void onError(String message) {
                                 showToast("Gagal: " + message);
+                            }
+                        });
+                    });
+                });
+                dialog.show();
+            }
+
+            @Override
+            public void onError(String message) {
+                showToast("Gagal memuat data kos: " + message);
+            }
+        });
+    }
+
+    private void showCreatePromoDialog() {
+        String uid = auth.getUid();
+        kosRepository.getKosByOwner(uid, new KosRepository.KosListCallback() {
+            @Override
+            public void onSuccess(List<Kos> kosList) {
+                if (kosList.isEmpty()) {
+                    showToast("Harap tambah kos terlebih dahulu");
+                    return;
+                }
+
+                View dialogView = getLayoutInflater().inflate(R.layout.dialog_buat_promo, null);
+                Spinner spKos = dialogView.findViewById(R.id.spinnerKosPromo);
+                EditText etName = dialogView.findViewById(R.id.etPromoName);
+                EditText etDiscount = dialogView.findViewById(R.id.etPromoDiscount);
+                EditText etStart = dialogView.findViewById(R.id.etPromoStartDate);
+                EditText etEnd = dialogView.findViewById(R.id.etPromoEndDate);
+                EditText etDesc = dialogView.findViewById(R.id.etPromoDescription);
+
+                List<String> kosNames = new ArrayList<>();
+                for (Kos k : kosList) kosNames.add(k.getName());
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(OwnerDashboardActivity.this, android.R.layout.simple_spinner_dropdown_item, kosNames);
+                spKos.setAdapter(adapter);
+
+                Calendar startCal = Calendar.getInstance();
+                Calendar endCal = Calendar.getInstance();
+                SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy", Locale.getDefault());
+
+                etStart.setOnClickListener(v -> {
+                    new DatePickerDialog(OwnerDashboardActivity.this, (view, year, month, dayOfMonth) -> {
+                        startCal.set(year, month, dayOfMonth);
+                        etStart.setText(sdf.format(startCal.getTime()));
+                    }, startCal.get(Calendar.YEAR), startCal.get(Calendar.MONTH), startCal.get(Calendar.DAY_OF_MONTH)).show();
+                });
+
+                etEnd.setOnClickListener(v -> {
+                    new DatePickerDialog(OwnerDashboardActivity.this, (view, year, month, dayOfMonth) -> {
+                        endCal.set(year, month, dayOfMonth);
+                        etEnd.setText(sdf.format(endCal.getTime()));
+                    }, endCal.get(Calendar.YEAR), endCal.get(Calendar.MONTH), endCal.get(Calendar.DAY_OF_MONTH)).show();
+                });
+
+                AlertDialog dialog = new AlertDialog.Builder(OwnerDashboardActivity.this)
+                        .setTitle("Buat Promo")
+                        .setView(dialogView)
+                        .setPositiveButton("Simpan", null)
+                        .setNegativeButton("Batal", (d, w) -> d.dismiss())
+                        .create();
+
+                dialog.setOnShowListener(d -> {
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                        String name = etName.getText().toString().trim();
+                        String discStr = etDiscount.getText().toString().trim();
+                        String startStr = etStart.getText().toString().trim();
+                        String endStr = etEnd.getText().toString().trim();
+
+                        if (name.isEmpty() || discStr.isEmpty() || startStr.isEmpty() || endStr.isEmpty()) {
+                            showToast("Harap isi semua field wajib");
+                            return;
+                        }
+
+                        int disc = Integer.parseInt(discStr);
+                        if (disc < 1 || disc > 99) {
+                            showToast("Diskon harus antara 1-99%");
+                            return;
+                        }
+
+                        Kos selectedKos = kosList.get(spKos.getSelectedItemPosition());
+                        Promo promo = new Promo("", selectedKos.getId(), uid, name, disc,
+                                startCal.getTimeInMillis(), endCal.getTimeInMillis(),
+                                etDesc.getText().toString().trim(), true);
+
+                        kosRepository.createPromo(promo, new KosRepository.SimpleCallback() {
+                            @Override
+                            public void onSuccess() {
+                                showToast("Promo berhasil dibuat!");
+                                dialog.dismiss();
+                                refreshData();
+                            }
+
+                            @Override
+                            public void onError(String message) {
+                                showToast("Gagal membuat promo: " + message);
                             }
                         });
                     });
