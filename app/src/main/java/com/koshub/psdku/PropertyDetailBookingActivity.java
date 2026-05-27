@@ -21,8 +21,10 @@ import com.bumptech.glide.Glide;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.koshub.psdku.models.Booking;
+import com.koshub.psdku.models.Chat;
 import com.koshub.psdku.models.Review;
 import com.koshub.psdku.repositories.BookingRepository;
+import com.koshub.psdku.repositories.ChatRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.FavoriteRepository;
 import com.koshub.psdku.repositories.ReviewRepository;
@@ -205,13 +207,32 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
 
     private void openChatWithOwner() {
         if (currentItem == null || currentItem.getId() == null) return;
-        
-        Intent intent = new Intent(this, OwnerChatRoomActivity.class);
-        intent.putExtra("KOS_ID", currentItem.getId());
-        intent.putExtra("USER_NAME", "Pemilik Kos");
-        intent.putExtra("KOS_NAME", currentItem.getName());
-        intent.putExtra("INITIAL", "P");
-        NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
+
+        // Disable button during process
+        btnChat.setEnabled(false);
+        btnChat.setAlpha(0.5f);
+
+        ChatRepository.getInstance().getOrCreateChatFromKos(currentItem.getId(), new ChatRepository.ChatCallback() {
+            @Override
+            public void onSuccess(Chat chat) {
+                btnChat.setEnabled(true);
+                btnChat.setAlpha(1.0f);
+
+                Intent intent = new Intent(PropertyDetailBookingActivity.this, OwnerChatRoomActivity.class);
+                intent.putExtra("CHAT_ID", chat.getId());
+                intent.putExtra("KOS_NAME", currentItem.getName());
+                intent.putExtra("USER_NAME", "Pemilik Kos");
+                intent.putExtra("INITIAL", "P");
+                NavigationTransitionHelper.navigateDetailWithIntent(PropertyDetailBookingActivity.this, intent);
+            }
+
+            @Override
+            public void onError(String message) {
+                btnChat.setEnabled(true);
+                btnChat.setAlpha(1.0f);
+                showCustomToast(message);
+            }
+        });
     }
 
     private void populateData() {
