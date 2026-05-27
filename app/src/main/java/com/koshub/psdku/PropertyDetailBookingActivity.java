@@ -17,11 +17,13 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.Review;
 import com.koshub.psdku.repositories.BookingRepository;
+import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.FavoriteRepository;
 import com.koshub.psdku.repositories.ReviewRepository;
 import com.mapbox.geojson.Point;
@@ -216,7 +218,17 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         if (currentItem == null) return;
 
         // Basic Info
-        imgHero.setImageResource(currentItem.getImageRes());
+        if (currentItem.getImageUrl() != null && !currentItem.getImageUrl().isEmpty()) {
+            String optimizedUrl = CloudinaryRepository.getInstance().getOptimizedUrl(currentItem.getImageUrl(), 800, 500, false);
+            Glide.with(this)
+                    .load(optimizedUrl)
+                    .placeholder(currentItem.getImageRes() != 0 ? currentItem.getImageRes() : R.drawable.bg_map_placeholder)
+                    .error(currentItem.getImageRes() != 0 ? currentItem.getImageRes() : R.drawable.bg_map_placeholder)
+                    .into(imgHero);
+        } else {
+            imgHero.setImageResource(currentItem.getImageRes());
+        }
+
         tvDetailTitle.setText(currentItem.getName());
         tvDetailLocation.setText(currentItem.getAddress());
         tvDetailBadgeCategory.setText(currentItem.getCategory());
