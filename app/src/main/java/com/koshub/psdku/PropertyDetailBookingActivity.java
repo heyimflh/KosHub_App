@@ -407,26 +407,6 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         return 0;
     }
 
-    private void populateReviews(String kosName) {
-        reviewContainer.removeAllViews();
-        List<com.koshub.psdku.models.Review> reviews = getDummyReviews(kosName);
-        for (com.koshub.psdku.models.Review r : reviews) {
-            View reviewView = LayoutInflater.from(this).inflate(R.layout.item_review_dynamic, reviewContainer, false);
-            
-            TextView tvAvatar = reviewView.findViewById(R.id.tvReviewAvatar);
-            TextView tvName = reviewView.findViewById(R.id.tvReviewName);
-            TextView tvSub = reviewView.findViewById(R.id.tvReviewSub);
-            TextView tvText = reviewView.findViewById(R.id.tvReviewText);
-            
-            tvAvatar.setText(r.getStudentName().substring(0, 1));
-            tvName.setText(r.getStudentName());
-            tvSub.setText("Mahasiswa • Real Review");
-            tvText.setText(r.getComment());
-            
-            reviewContainer.addView(reviewView);
-        }
-    }
-
     private void setupMap() {
         FrameLayout mapContainer = findViewById(R.id.mapContainer);
         if (mapContainer == null) return;
@@ -473,46 +453,6 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         }
         
         container.addView(fallbackView);
-    }
-
-    private List<com.koshub.psdku.models.Review> getDummyReviews(String kosName) {
-        List<com.koshub.psdku.models.Review> list = new ArrayList<>();
-        if (kosName == null) kosName = "Kos";
-        int hash = kosName.hashCode();
-        
-        List<String> facilities = currentItem.getFacilities();
-        String distance = currentItem.getDistance() != null ? currentItem.getDistance() : "dekat";
-
-        if (hash % 3 == 0) {
-            String f1 = (facilities != null && !facilities.isEmpty()) ? facilities.get(0) : "fasilitas";
-            list.add(createDummyReview("Rina Amanda", "Tempatnya tenang banget, cocok buat yang butuh fokus belajar. Fasilitas " + f1 + " oke banget."));
-            list.add(createDummyReview("Fajar Kurniawan", "Suka sama lokasinya yang cuma " + distance + " ke kampus. Gak pernah telat lagi masuk kelas."));
-        } else if (hash % 3 == 1) {
-            StringBuilder facilitiesStr = new StringBuilder();
-            if (facilities != null && !facilities.isEmpty()) {
-                int limit = Math.min(2, facilities.size());
-                for (int i = 0; i < limit; i++) {
-                    facilitiesStr.append(facilities.get(i));
-                    if (i < limit - 1) facilitiesStr.append(" & ");
-                }
-            } else {
-                facilitiesStr.append("lengkap");
-            }
-            list.add(createDummyReview("Siti Zulaikha", "Penjaga kosnya ramah pol! Kamar mandi dalam juga bersih dan air lancar. Sangat recommended!"));
-            list.add(createDummyReview("Dedi Pratama", "Harga segini dapet fasilitas " + facilitiesStr.toString() + " mah worth it banget."));
-        } else {
-            list.add(createDummyReview("Agus Setiawan", "Lingkungan kosnya aman, parkiran luas. Gak nyesel milih kos " + kosName + " ini."));
-            list.add(createDummyReview("Maya Putri", "Wifinya kenceng, pas banget buat ngerjain tugas akhir. Kamar juga gak pengap."));
-        }
-        return list;
-    }
-
-    private com.koshub.psdku.models.Review createDummyReview(String name, String text) {
-        com.koshub.psdku.models.Review r = new com.koshub.psdku.models.Review();
-        r.setStudentName(name);
-        r.setComment(text);
-        r.setCreatedAt(System.currentTimeMillis());
-        return r;
     }
 
     private void showCustomToast(String message) {
