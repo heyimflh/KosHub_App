@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.slider.RangeSlider;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.koshub.psdku.repositories.FCMTokenRepository;
 import com.koshub.psdku.repositories.FavoriteRepository;
@@ -36,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public class StudentHomeActivity extends AppCompatActivity implements KosAdapter.OnKosClickListener {
 
@@ -292,10 +294,50 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
         View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_filter, null);
         dialog.setContentView(sheetView);
 
+        RangeSlider rangeSlider = sheetView.findViewById(R.id.rangeSliderHarga);
+        TextView tvHargaMin = sheetView.findViewById(R.id.tvHargaMin);
+        TextView tvHargaMax = sheetView.findViewById(R.id.tvHargaMax);
+
+        rangeSlider.addOnChangeListener((slider, value, fromUser) -> {
+            List<Float> values = slider.getValues();
+            tvHargaMin.setText(String.format(Locale.GERMANY, "Rp %,.0f", values.get(0)).replace(',', '.'));
+            tvHargaMax.setText(String.format(Locale.GERMANY, "Rp %,.0f", values.get(1)).replace(',', '.'));
+        });
+
+        // Setup Chips
+        int[] chipIds = {
+                R.id.chipFilterPutra, R.id.chipFilterPutri, R.id.chipFilterCampur,
+                R.id.chipFilterWifi, R.id.chipFilterAC, R.id.chipFilterKamarMandi,
+                R.id.chipFilterParkir, R.id.chipFilterLaundry
+        };
+
+        for (int id : chipIds) {
+            TextView chip = sheetView.findViewById(id);
+            if (chip != null) {
+                chip.setOnClickListener(v -> toggleChipState(chip));
+            }
+        }
+
         // Apply filter button
         sheetView.findViewById(R.id.btnApplyFilter).setOnClickListener(v -> {
+            List<Float> values = rangeSlider.getValues();
+            int minPrice = values.get(0).intValue();
+            int maxPrice = values.get(1).intValue();
+
+            String selectedCategory = "";
+            if (isChipActive(sheetView, R.id.chipFilterPutra)) selectedCategory = "Putra";
+            else if (isChipActive(sheetView, R.id.chipFilterPutri)) selectedCategory = "Putri";
+            else if (isChipActive(sheetView, R.id.chipFilterCampur)) selectedCategory = "Campur";
+
+            List<String> selectedFacilities = new ArrayList<>();
+            if (isChipActive(sheetView, R.id.chipFilterWifi)) selectedFacilities.add("WiFi");
+            if (isChipActive(sheetView, R.id.chipFilterAC)) selectedFacilities.add("AC");
+            if (isChipActive(sheetView, R.id.chipFilterKamarMandi)) selectedFacilities.add("K. Mandi Dalam");
+            if (isChipActive(sheetView, R.id.chipFilterParkir)) selectedFacilities.add("Parkir");
+            if (isChipActive(sheetView, R.id.chipFilterLaundry)) selectedFacilities.add("Laundry");
+
+            filterByAdvanced(minPrice, maxPrice, selectedCategory, selectedFacilities);
             dialog.dismiss();
-            showToast("Filter diterapkan");
         });
 
         // Reset filter button
@@ -310,6 +352,58 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
         sheetView.findViewById(R.id.btnCloseFilter).setOnClickListener(v -> dialog.dismiss());
 
         dialog.show();
+    }
+
+    private void toggleChipState(TextView chip) {
+        boolean isActive = chip.getTag() != null && (boolean) chip.getTag();
+        isActive = !isActive;
+        chip.setTag(isActive);
+
+        if (isActive) {
+            chip.setBackgroundResource(R.drawable.bg_quick_chip_active);
+            chip.setTextColor(ContextCompat.getColor(this, R.color.text_white));
+        } else {
+            chip.setBackgroundResource(R.drawable.bg_quick_chip_inactive);
+            chip.setTextColor(ContextCompat.getColor(this, R.color.home_text_secondary));
+        }
+    }
+
+    private boolean isChipActive(View parent, int resId) {
+        View chip = parent.findViewById(resId);
+        return chip != null && chip.getTag() != null && (boolean) chip.getTag();
+    }
+
+    private void filterByAdvanced(int minPrice, int maxPrice, String category, List<String> selectedFacilities) {
+        filteredList.clear();
+        for (KosItem item : allKosList) {
+            boolean matchesPrice = item.getPriceValue() >= minPrice && item.getPriceValue() <= maxPrice;
+            boolean matchesCategory = category.isEmpty() || item.getCategory().equalsIgnoreCase(category);
+            boolean matchesFacilities = true;
+            if (!selectedFacilities.isEmpty()) {
+                if (item.getFacilities() == null) {
+                    matchesFacilities = false;
+                } else {
+                    for (String facility : selectedFacilities) {
+                        if (!item.getFacilities().contains(facility)) {
+                            matchesFacilities = false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (matchesPrice && matchesCategory && matchesFacilities) {
+                filteredList.add(item);
+            }
+        }
+        adapter.notifyDataSetChanged();
+        updateResultCount();
+        
+        if (filteredList.isEmpty()) {
+            layoutEmptyState.setVisibility(View.VISIBLE);
+        } else {
+            layoutEmptyState.setVisibility(View.GONE);
+        }
     }
 
     private void updateResultCount() {

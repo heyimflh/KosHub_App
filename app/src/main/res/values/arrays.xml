@@ -5,4 +5,9 @@
         <item>Putri</item>
         <item>Campur</item>
     </string-array>
+
+    <array name="initial_price_range">
+        <item>300000</item>
+        <item>3000000</item>
+    </array>
 </resources>
