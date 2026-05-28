@@ -12,7 +12,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.koshub.psdku.models.FinanceSummary;
 import com.koshub.psdku.repositories.FinanceRepository;
+import com.koshub.psdku.services.FirebaseService;
 import com.koshub.psdku.utils.CurrencyHelper;
+import com.koshub.psdku.utils.DatabaseConstants;
 
 public class OwnerWithdrawActivity extends AppCompatActivity {
 
@@ -30,6 +32,7 @@ public class OwnerWithdrawActivity extends AppCompatActivity {
         initViews();
         setupListeners();
         loadBalance();
+        loadBankDetails();
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.NONE);
     }
 
@@ -70,6 +73,24 @@ public class OwnerWithdrawActivity extends AppCompatActivity {
                 showToast("Gagal memuat saldo: " + message);
             }
         });
+    }
+
+    private void loadBankDetails() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS).document(uid).get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        String bank = doc.getString(DatabaseConstants.FIELD_BANK_NAME);
+                        String num = doc.getString(DatabaseConstants.FIELD_BANK_ACCOUNT_NUMBER);
+                        String name = doc.getString(DatabaseConstants.FIELD_BANK_ACCOUNT_NAME);
+
+                        if (bank != null) etBank.setText(bank);
+                        if (num != null) etNoRek.setText(num);
+                        if (name != null) etNamaRek.setText(name);
+                    }
+                });
     }
 
     private void handleWithdraw() {

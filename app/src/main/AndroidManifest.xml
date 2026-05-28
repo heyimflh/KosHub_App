@@ -63,6 +63,16 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
+            android:name=".FavoriteListActivity"
+            android:label="Kos Favorit"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
+        <activity
+            android:name=".HelpFaqActivity"
+            android:label="Pusat Bantuan"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
+        <activity
             android:name=".OwnerDashboardActivity"
             android:label="Owner Dashboard"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />

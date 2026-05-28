@@ -12,12 +12,19 @@ public class User implements Serializable {
     private String email;
     private String phone;
     private String role; // "student" or "owner"
+    private String university;
+    private String nim;
+    private String docKtp;
+    private String docSku;
+    private boolean isVerified;
+    private String bankName;
+    private String bankAccountNumber;
+    private String bankAccountName;
     private String profileImageUrl;
     private String provider; // "email" or "google"
     private boolean emailVerified;
     private long createdAt;
     private long updatedAt;
-    private boolean isVerified; // Legacy backward compatibility
 
     public User() {
         // Required for Firebase
@@ -48,6 +55,30 @@ public class User implements Serializable {
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
 
+    public String getUniversity() { return university; }
+    public void setUniversity(String university) { this.university = university; }
+
+    public String getNim() { return nim; }
+    public void setNim(String nim) { this.nim = nim; }
+
+    public String getDocKtp() { return docKtp; }
+    public void setDocKtp(String docKtp) { this.docKtp = docKtp; }
+
+    public String getDocSku() { return docSku; }
+    public void setDocSku(String docSku) { this.docSku = docSku; }
+
+    public boolean isVerified() { return isVerified; }
+    public void setVerified(boolean verified) { isVerified = verified; }
+
+    public String getBankName() { return bankName; }
+    public void setBankName(String bankName) { this.bankName = bankName; }
+
+    public String getBankAccountNumber() { return bankAccountNumber; }
+    public void setBankAccountNumber(String bankAccountNumber) { this.bankAccountNumber = bankAccountNumber; }
+
+    public String getBankAccountName() { return bankAccountName; }
+    public void setBankAccountName(String bankAccountName) { this.bankAccountName = bankAccountName; }
+
     public String getProfileImageUrl() { return profileImageUrl; }
     public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
 
@@ -62,7 +93,4 @@ public class User implements Serializable {
 
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
-
-    public boolean isVerified() { return isVerified; }
-    public void setVerified(boolean verified) { isVerified = verified; }
 }

@@ -98,6 +98,48 @@ public class CloudinaryRepository {
                 }).dispatch();
     }
 
+    public void uploadLegalDoc(Context context, Uri imageUri, String docType, SimpleUploadCallback callback) {
+        initMediaManager(context);
+        String uid = auth.getUid();
+        if (uid == null) {
+            callback.onError("User not authenticated");
+            return;
+        }
+
+        String folder = CloudinaryConfig.BASE_FOLDER + "/documents/" + uid;
+        String field = docType.equals("ktp") ? DatabaseConstants.FIELD_DOC_KTP : DatabaseConstants.FIELD_DOC_SKU;
+
+        MediaManager.get().upload(imageUri)
+                .unsigned(CloudinaryConfig.UPLOAD_PRESET)
+                .option("folder", folder)
+                .callback(new UploadCallback() {
+                    @Override
+                    public void onStart(String requestId) { Log.d(TAG, "Doc upload start: " + docType); }
+
+                    @Override
+                    public void onProgress(String requestId, long bytes, long totalBytes) {}
+
+                    @Override
+                    public void onSuccess(String requestId, Map resultData) {
+                        String secureUrl = (String) resultData.get("secure_url");
+                        db.collection(DatabaseConstants.COLLECTION_USERS).document(uid)
+                                .update(field, secureUrl,
+                                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
+                                .addOnSuccessListener(aVoid -> callback.onSuccess(secureUrl))
+                                .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
+                    }
+
+                    @Override
+                    public void onError(String requestId, ErrorInfo error) {
+                        Log.e(TAG, "Upload error: " + error.getDescription());
+                        callback.onError(error.getDescription());
+                    }
+
+                    @Override
+                    public void onReschedule(String requestId, ErrorInfo error) {}
+                }).dispatch();
+    }
+
     public void uploadKosImage(Context context, Uri imageUri, String kosId, SimpleUploadCallback callback) {
         initMediaManager(context);
         String uid = auth.getUid();

@@ -54,6 +54,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
     private View menuPersonal;
     private View menuHistory;
     private View menuWishlist;
+    private View menuSecurity;
     private View menuPayment;
     private View menuDocument;
     private View menuHelp;
@@ -106,6 +107,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
         menuPersonal = findViewById(R.id.menuPersonal);
         menuHistory = findViewById(R.id.menuHistory);
         menuWishlist = findViewById(R.id.menuWishlist);
+        menuSecurity = findViewById(R.id.menuSecurity);
         menuPayment = findViewById(R.id.menuPayment);
         menuDocument = findViewById(R.id.menuDocument);
         menuHelp = findViewById(R.id.menuHelp);
@@ -181,16 +183,23 @@ public class ProfileHistoryActivity extends AppCompatActivity {
 
     private void setupMenuListeners() {
         View.OnClickListener comingSoon = v -> showToast("Fitur ini akan segera hadir");
-        menuPersonal.setOnClickListener(comingSoon);
+        menuPersonal.setOnClickListener(v -> showEditProfileBottomSheet());
         menuHistory.setOnClickListener(v -> {
             Intent intent = new Intent(this, WaitingListQueueActivity.class);
             startActivity(intent);
         });
-        menuWishlist.setOnClickListener(comingSoon);
+        menuWishlist.setOnClickListener(v -> {
+            Intent intent = new Intent(this, FavoriteListActivity.class);
+            NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
+        });
+        menuSecurity.setOnClickListener(v -> showSecurityBottomSheet());
         menuPayment.setOnClickListener(comingSoon);
         menuDocument.setOnClickListener(comingSoon);
-        menuHelp.setOnClickListener(comingSoon);
-        menuSettings.setOnClickListener(comingSoon);
+        menuHelp.setOnClickListener(v -> {
+            Intent intent = new Intent(this, HelpFaqActivity.class);
+            startActivity(intent);
+        });
+        menuSettings.setOnClickListener(v -> showSettingsBottomSheet());
     }
 
     private void setupHistorySection() {
@@ -297,6 +306,202 @@ public class ProfileHistoryActivity extends AppCompatActivity {
 
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private void showSecurityBottomSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_security, null);
+        dialog.setContentView(view);
+
+        android.widget.EditText etCurrent = view.findViewById(R.id.etCurrentPassword);
+        android.widget.EditText etNew = view.findViewById(R.id.etNewPassword);
+        android.widget.EditText etConfirm = view.findViewById(R.id.etConfirmPassword);
+        View btnChangePassword = view.findViewById(R.id.btnChangePassword);
+        View btnChangeEmail = view.findViewById(R.id.btnChangeEmail);
+        View btnCancel = view.findViewById(R.id.btnCancelSecurity);
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnChangePassword.setOnClickListener(v -> {
+            String currentPw = etCurrent.getText().toString();
+            String newPw = etNew.getText().toString();
+            String confirmPw = etConfirm.getText().toString();
+
+            if (currentPw.isEmpty() || newPw.isEmpty() || confirmPw.isEmpty()) {
+                showToast("Semua field harus diisi");
+                return;
+            }
+
+            if (newPw.length() < 8) {
+                showToast("Password baru minimal 8 karakter");
+                return;
+            }
+
+            if (!newPw.equals(confirmPw)) {
+                showToast("Konfirmasi password tidak cocok");
+                return;
+            }
+
+            com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+            if (user != null && user.getEmail() != null) {
+                com.google.firebase.auth.AuthCredential credential = com.google.firebase.auth.EmailAuthProvider.getCredential(user.getEmail(), currentPw);
+                user.reauthenticate(credential).addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        user.updatePassword(newPw).addOnCompleteListener(updateTask -> {
+                            if (updateTask.isSuccessful()) {
+                                showToast("Password berhasil diperbarui");
+                                dialog.dismiss();
+                            } else {
+                                showToast("Gagal update password: " + updateTask.getException().getMessage());
+                            }
+                        });
+                    } else {
+                        showToast("Password lama salah");
+                    }
+                });
+            }
+        });
+
+        btnChangeEmail.setOnClickListener(v -> {
+            String currentPw = etCurrent.getText().toString();
+            if (currentPw.isEmpty()) {
+                showToast("Masukkan password saat ini untuk ubah email");
+                return;
+            }
+
+            android.widget.EditText etEmail = new android.widget.EditText(this);
+            etEmail.setHint("Email Baru");
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Ubah Email")
+                    .setView(etEmail)
+                    .setPositiveButton("Simpan", (d, w) -> {
+                        String newEmail = etEmail.getText().toString().trim();
+                        if (newEmail.isEmpty()) return;
+
+                        com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+                        if (user != null && user.getEmail() != null) {
+                            com.google.firebase.auth.AuthCredential credential = com.google.firebase.auth.EmailAuthProvider.getCredential(user.getEmail(), currentPw);
+                            user.reauthenticate(credential).addOnCompleteListener(task -> {
+                                if (task.isSuccessful()) {
+                                    user.updateEmail(newEmail).addOnCompleteListener(emailTask -> {
+                                        if (emailTask.isSuccessful()) {
+                                            FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS)
+                                                    .document(user.getUid())
+                                                    .update(DatabaseConstants.FIELD_EMAIL, newEmail);
+                                            showToast("Email berhasil diperbarui");
+                                            loadProfileData();
+                                            dialog.dismiss();
+                                        } else {
+                                            showToast("Gagal update email: " + emailTask.getException().getMessage());
+                                        }
+                                    });
+                                } else {
+                                    showToast("Password lama salah");
+                                }
+                            });
+                        }
+                    })
+                    .setNegativeButton("Batal", null)
+                    .show();
+        });
+
+        dialog.show();
+    }
+
+    private void showSettingsBottomSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_settings, null);
+        dialog.setContentView(view);
+
+        androidx.appcompat.widget.SwitchCompat switchNotif = view.findViewById(R.id.switchNotif);
+        View btnCancel = view.findViewById(R.id.btnCancelSettings);
+
+        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (uid != null) {
+            FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS).document(uid).get()
+                    .addOnSuccessListener(doc -> {
+                        if (doc.exists() && doc.contains("notifEnabled")) {
+                            Boolean enabled = doc.getBoolean("notifEnabled");
+                            if (enabled != null) switchNotif.setChecked(enabled);
+                        } else {
+                            switchNotif.setChecked(true); // Default
+                        }
+                    });
+        }
+
+        switchNotif.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (uid != null) {
+                FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS).document(uid)
+                        .update("notifEnabled", isChecked)
+                        .addOnSuccessListener(aVoid -> {
+                            String msg = isChecked ? "Notifikasi diaktifkan" : "Notifikasi dimatikan";
+                            showToast(msg);
+                        });
+            }
+        });
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+    }
+
+    private void showEditProfileBottomSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_edit_profile, null);
+        dialog.setContentView(view);
+
+        android.widget.EditText etFullName = view.findViewById(R.id.etFullName);
+        android.widget.EditText etPhone = view.findViewById(R.id.etPhone);
+        android.widget.EditText etUniversity = view.findViewById(R.id.etUniversity);
+        android.widget.EditText etNim = view.findViewById(R.id.etNim);
+        View btnSave = view.findViewById(R.id.btnSaveProfile);
+        View btnCancel = view.findViewById(R.id.btnCancelEdit);
+
+        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getUid();
+        if (uid != null) {
+            FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS).document(uid).get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            etFullName.setText(documentSnapshot.getString(DatabaseConstants.FIELD_NAME));
+                            etPhone.setText(documentSnapshot.getString(DatabaseConstants.FIELD_PHONE));
+                            etUniversity.setText(documentSnapshot.getString(DatabaseConstants.FIELD_UNIVERSITY));
+                            etNim.setText(documentSnapshot.getString(DatabaseConstants.FIELD_NIM));
+                        }
+                    });
+        }
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnSave.setOnClickListener(v -> {
+            String name = etFullName.getText().toString().trim();
+            String phone = etPhone.getText().toString().trim();
+            String university = etUniversity.getText().toString().trim();
+            String nim = etNim.getText().toString().trim();
+
+            if (name.isEmpty() || phone.isEmpty() || university.isEmpty() || nim.isEmpty()) {
+                showToast("Semua field harus diisi");
+                return;
+            }
+
+            if (uid != null) {
+                java.util.Map<String, Object> updates = new java.util.HashMap<>();
+                updates.put(DatabaseConstants.FIELD_NAME, name);
+                updates.put(DatabaseConstants.FIELD_PHONE, phone);
+                updates.put(DatabaseConstants.FIELD_UNIVERSITY, university);
+                updates.put(DatabaseConstants.FIELD_NIM, nim);
+                updates.put(DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis());
+
+                FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS).document(uid)
+                        .update(updates)
+                        .addOnSuccessListener(aVoid -> {
+                            showToast("Profil berhasil diperbarui");
+                            loadProfileData();
+                            dialog.dismiss();
+                        })
+                        .addOnFailureListener(e -> showToast("Gagal memperbarui profil: " + e.getMessage()));
+            }
+        });
+
+        dialog.show();
     }
 
     public void toggleEmptyState(boolean showEmpty) {

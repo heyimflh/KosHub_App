@@ -13,6 +13,7 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
 import com.koshub.psdku.repositories.CloudinaryRepository;
@@ -36,6 +37,24 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
                     // Show local preview immediately with circle crop
                     if (imgProfile != null) Glide.with(this).load(uri).circleCrop().into(imgProfile);
                     uploadProfileImage(uri);
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<String> ktpPickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.GetContent(),
+            uri -> {
+                if (uri != null) {
+                    uploadLegalDoc(uri, "ktp");
+                }
+            }
+    );
+
+    private final ActivityResultLauncher<String> skuPickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.GetContent(),
+            uri -> {
+                if (uri != null) {
+                    uploadLegalDoc(uri, "sku");
                 }
             }
     );
@@ -80,13 +99,16 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
         }
 
         if (btnCompleteLegal != null) {
-            btnCompleteLegal.setOnClickListener(v -> showToast("📄 Silakan upload SIUP/TDP Anda."));
+            btnCompleteLegal.setOnClickListener(v -> showLegalDocBottomSheet());
         }
 
-        menuLegal.setOnClickListener(v -> showToast("📜 Membuka Dokumen Legalitas..."));
-        menuPayment.setOnClickListener(v -> showToast("💳 Membuka Metode Pencairan..."));
-        menuSecurity.setOnClickListener(v -> showToast("🔒 Membuka Keamanan & Password..."));
-        menuHelp.setOnClickListener(v -> showToast("❓ Menghubungi CS KosHub..."));
+        menuLegal.setOnClickListener(v -> showLegalDocBottomSheet());
+        menuPayment.setOnClickListener(v -> showBankAccountBottomSheet());
+        menuSecurity.setOnClickListener(v -> showSecurityBottomSheet());
+        menuHelp.setOnClickListener(v -> {
+            Intent intent = new Intent(this, HelpFaqActivity.class);
+            startActivity(intent);
+        });
 
         btnLogout.setOnClickListener(v -> {
             new androidx.appcompat.app.AlertDialog.Builder(this)
@@ -140,6 +162,23 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
         });
     }
 
+    private void uploadLegalDoc(Uri uri, String type) {
+        showToast("Sedang mengupload dokumen...");
+        cloudinaryRepository.uploadLegalDoc(this, uri, type, new CloudinaryRepository.SimpleUploadCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                showToast("Dokumen berhasil diupload");
+                // Refresh data if bottom sheet is still open? 
+                // Or just show toast. The user will see update on next open.
+            }
+
+            @Override
+            public void onError(String message) {
+                showToast("Gagal upload: " + message);
+            }
+        });
+    }
+
     private void loadProfileData() {
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid != null) {
@@ -162,6 +201,203 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
 
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private void showSecurityBottomSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_security, null);
+        dialog.setContentView(view);
+
+        android.widget.EditText etCurrent = view.findViewById(R.id.etCurrentPassword);
+        android.widget.EditText etNew = view.findViewById(R.id.etNewPassword);
+        android.widget.EditText etConfirm = view.findViewById(R.id.etConfirmPassword);
+        View btnChangePassword = view.findViewById(R.id.btnChangePassword);
+        View btnChangeEmail = view.findViewById(R.id.btnChangeEmail);
+        View btnCancel = view.findViewById(R.id.btnCancelSecurity);
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnChangePassword.setOnClickListener(v -> {
+            String currentPw = etCurrent.getText().toString();
+            String newPw = etNew.getText().toString();
+            String confirmPw = etConfirm.getText().toString();
+
+            if (currentPw.isEmpty() || newPw.isEmpty() || confirmPw.isEmpty()) {
+                showToast("Semua field harus diisi");
+                return;
+            }
+
+            if (newPw.length() < 8) {
+                showToast("Password baru minimal 8 karakter");
+                return;
+            }
+
+            if (!newPw.equals(confirmPw)) {
+                showToast("Konfirmasi password tidak cocok");
+                return;
+            }
+
+            com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+            if (user != null && user.getEmail() != null) {
+                com.google.firebase.auth.AuthCredential credential = com.google.firebase.auth.EmailAuthProvider.getCredential(user.getEmail(), currentPw);
+                user.reauthenticate(credential).addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        user.updatePassword(newPw).addOnCompleteListener(updateTask -> {
+                            if (updateTask.isSuccessful()) {
+                                showToast("Password berhasil diperbarui");
+                                dialog.dismiss();
+                            } else {
+                                showToast("Gagal update password: " + updateTask.getException().getMessage());
+                            }
+                        });
+                    } else {
+                        showToast("Password lama salah");
+                    }
+                });
+            }
+        });
+
+        btnChangeEmail.setOnClickListener(v -> {
+            String currentPw = etCurrent.getText().toString();
+            if (currentPw.isEmpty()) {
+                showToast("Masukkan password saat ini untuk ubah email");
+                return;
+            }
+
+            android.widget.EditText etEmail = new android.widget.EditText(this);
+            etEmail.setHint("Email Baru");
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Ubah Email")
+                    .setView(etEmail)
+                    .setPositiveButton("Simpan", (d, w) -> {
+                        String newEmail = etEmail.getText().toString().trim();
+                        if (newEmail.isEmpty()) return;
+
+                        com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+                        if (user != null && user.getEmail() != null) {
+                            com.google.firebase.auth.AuthCredential credential = com.google.firebase.auth.EmailAuthProvider.getCredential(user.getEmail(), currentPw);
+                            user.reauthenticate(credential).addOnCompleteListener(task -> {
+                                if (task.isSuccessful()) {
+                                    user.updateEmail(newEmail).addOnCompleteListener(emailTask -> {
+                                        if (emailTask.isSuccessful()) {
+                                            FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS)
+                                                    .document(user.getUid())
+                                                    .update(DatabaseConstants.FIELD_EMAIL, newEmail);
+                                            showToast("Email berhasil diperbarui");
+                                            loadProfileData();
+                                            dialog.dismiss();
+                                        } else {
+                                            showToast("Gagal update email: " + emailTask.getException().getMessage());
+                                        }
+                                    });
+                                } else {
+                                    showToast("Password lama salah");
+                                }
+                            });
+                        }
+                    })
+                    .setNegativeButton("Batal", null)
+                    .show();
+        });
+
+        dialog.show();
+    }
+
+    private void showLegalDocBottomSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_legal_doc, null);
+        dialog.setContentView(view);
+
+        ImageView imgPreview = view.findViewById(R.id.imgDocPreview);
+        TextView tvKtpStatus = view.findViewById(R.id.tvKtpStatus);
+        TextView tvSkuStatus = view.findViewById(R.id.tvSkuStatus);
+        View btnKtp = view.findViewById(R.id.btnUploadKTP);
+        View btnSku = view.findViewById(R.id.btnUploadSKU);
+        View btnCancel = view.findViewById(R.id.btnCancelLegal);
+
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid != null) {
+            FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS).document(uid).get()
+                    .addOnSuccessListener(doc -> {
+                        if (doc.exists()) {
+                            String ktp = doc.getString(DatabaseConstants.FIELD_DOC_KTP);
+                            String sku = doc.getString(DatabaseConstants.FIELD_DOC_SKU);
+                            Boolean isVerifiedObj = doc.getBoolean(DatabaseConstants.FIELD_IS_VERIFIED);
+                            boolean verified = isVerifiedObj != null && isVerifiedObj;
+
+                            if (ktp != null && !ktp.isEmpty()) {
+                                tvKtpStatus.setText(verified ? "Terverifikasi ✓" : "Sudah Diupload");
+                                tvKtpStatus.setTextColor(ContextCompat.getColor(this, R.color.brand_green));
+                                Glide.with(this).load(ktp).into(imgPreview);
+                            }
+                            if (sku != null && !sku.isEmpty()) {
+                                tvSkuStatus.setText(verified ? "Terverifikasi ✓" : "Sudah Diupload");
+                                tvSkuStatus.setTextColor(ContextCompat.getColor(this, R.color.brand_green));
+                                if (ktp == null) Glide.with(this).load(sku).into(imgPreview);
+                            }
+                        }
+                    });
+        }
+
+        btnKtp.setOnClickListener(v -> ktpPickerLauncher.launch("image/*"));
+        btnSku.setOnClickListener(v -> skuPickerLauncher.launch("image/*"));
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private void showBankAccountBottomSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.bottom_sheet_bank_account, null);
+        dialog.setContentView(view);
+
+        android.widget.EditText etBank = view.findViewById(R.id.etBankName);
+        android.widget.EditText etNum = view.findViewById(R.id.etAccountNumber);
+        android.widget.EditText etName = view.findViewById(R.id.etAccountName);
+        View btnSave = view.findViewById(R.id.btnSaveBankAccount);
+        View btnCancel = view.findViewById(R.id.btnCancelBank);
+
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid != null) {
+            FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS).document(uid).get()
+                    .addOnSuccessListener(doc -> {
+                        if (doc.exists()) {
+                            etBank.setText(doc.getString(DatabaseConstants.FIELD_BANK_NAME));
+                            etNum.setText(doc.getString(DatabaseConstants.FIELD_BANK_ACCOUNT_NUMBER));
+                            etName.setText(doc.getString(DatabaseConstants.FIELD_BANK_ACCOUNT_NAME));
+                        }
+                    });
+        }
+
+        btnSave.setOnClickListener(v -> {
+            String bank = etBank.getText().toString().trim();
+            String num = etNum.getText().toString().trim();
+            String name = etName.getText().toString().trim();
+
+            if (bank.isEmpty() || num.isEmpty() || name.isEmpty()) {
+                showToast("Semua data bank harus diisi");
+                return;
+            }
+
+            if (uid != null) {
+                java.util.Map<String, Object> updates = new java.util.HashMap<>();
+                updates.put(DatabaseConstants.FIELD_BANK_NAME, bank);
+                updates.put(DatabaseConstants.FIELD_BANK_ACCOUNT_NUMBER, num);
+                updates.put(DatabaseConstants.FIELD_BANK_ACCOUNT_NAME, name);
+                updates.put(DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis());
+
+                FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS).document(uid)
+                        .update(updates)
+                        .addOnSuccessListener(aVoid -> {
+                            showToast("Data rekening berhasil disimpan");
+                            dialog.dismiss();
+                        })
+                        .addOnFailureListener(e -> showToast("Gagal menyimpan data: " + e.getMessage()));
+            }
+        });
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
     }
 
     @Override

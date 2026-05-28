@@ -106,6 +106,14 @@ public class DatabaseConstants {
     public static final String FIELD_PROFILE_IMAGE_URL = "profileImageUrl";
     public static final String FIELD_PROVIDER = "provider";
     public static final String FIELD_EMAIL_VERIFIED = "emailVerified";
+    public static final String FIELD_UNIVERSITY = "university";
+    public static final String FIELD_NIM = "nim";
+    public static final String FIELD_DOC_KTP = "docKtp";
+    public static final String FIELD_DOC_SKU = "docSku";
+    public static final String FIELD_IS_VERIFIED = "isVerified";
+    public static final String FIELD_BANK_NAME = "bankName";
+    public static final String FIELD_BANK_ACCOUNT_NUMBER = "bankAccountNumber";
+    public static final String FIELD_BANK_ACCOUNT_NAME = "bankAccountName";
     public static final String FIELD_CREATED_AT = "createdAt";
     public static final String FIELD_UPDATED_AT = "updatedAt";
 
