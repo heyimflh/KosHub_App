@@ -22,6 +22,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "MAPBOX_TOKEN", "\"${project.findProperty("MAPBOX_TOKEN") ?: ""}\"")
     }
 
     buildTypes {
@@ -70,6 +72,8 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     implementation("com.mapbox.maps:android:11.10.0")
+    implementation("com.mapbox.navigationcore:android:3.10.0")
+    implementation("com.google.android.gms:play-services-location:21.0.1")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.13.0"))

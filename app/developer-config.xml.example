@@ -2,10 +2,15 @@
 <resources>
     <!--
       INSTRUCTIONS:
+      As of the new 2-layer token system, you should put your Mapbox token in
+      'gradle.properties' (see gradle.properties.example for details).
+
+      MAPBOX_TOKEN=pk.your_token_here
+
+      This file (developer-config.xml) is only for backward compatibility.
+      If you choose to use this file:
       1. Copy this file to app/src/main/res/values/developer-config.xml
-      2. Get your Mapbox Public Access Token from https://account.mapbox.com/
-      3. Paste your token (starts with pk.) below.
-      4. DO NOT commit developer-config.xml to GitHub (it is in .gitignore).
+      2. Paste your token (starts with pk.) below.
     -->
     <string name="mapbox_access_token" translatable="false">YOUR_MAPBOX_PUBLIC_TOKEN_HERE</string>
 </resources>

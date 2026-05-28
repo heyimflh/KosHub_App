@@ -15,6 +15,7 @@
 local.properties
 
 # Local configuration files
+gradle.properties
 secrets.properties
 app/src/main/res/values/developer-config.xml
 

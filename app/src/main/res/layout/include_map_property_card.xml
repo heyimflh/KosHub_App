@@ -115,18 +115,39 @@
 
     </LinearLayout>
 
-    <!-- Button -->
-    <FrameLayout
+    <!-- Buttons -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:paddingStart="@dimen/map_card_padding"
         android:paddingEnd="@dimen/map_card_padding"
         android:paddingBottom="@dimen/map_card_padding">
 
         <TextView
-            android:id="@+id/btnViewDetail"
-            android:layout_width="match_parent"
+            android:id="@+id/btnNavigate"
+            android:layout_width="0dp"
             android:layout_height="@dimen/map_card_btn_height"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_outline_button"
+            android:elevation="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:text="Navigasi"
+            android:drawableStart="@drawable/ic_map_nav"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:textColor="@color/md_primary"
+            android:textSize="@dimen/map_card_btn_text_size"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/btnViewDetail"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/map_card_btn_height"
+            android:layout_weight="1.2"
             android:background="@drawable/bg_map_card_btn_detail"
             android:elevation="2dp"
             android:fontFamily="sans-serif-medium"
@@ -137,6 +158,6 @@
             android:clickable="true"
             android:focusable="true" />
 
-    </FrameLayout>
+    </LinearLayout>
 
 </LinearLayout>

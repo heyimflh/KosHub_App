@@ -18,13 +18,25 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.net.Uri;
+import android.provider.Settings;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
+import android.location.LocationManager;
+import android.Manifest;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.mapbox.api.directions.v5.models.RouteOptions;
 import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.Point;
@@ -34,6 +46,21 @@ import com.mapbox.maps.RenderedQueryGeometry;
 import com.mapbox.maps.RenderedQueryOptions;
 import com.mapbox.maps.Style;
 import com.mapbox.maps.plugin.gestures.GesturesUtils;
+import com.mapbox.navigation.base.options.NavigationOptions;
+import com.mapbox.navigation.base.route.NavigationRoute;
+import com.mapbox.navigation.base.route.NavigationRouterCallback;
+import com.mapbox.navigation.base.route.RouterFailure;
+import com.mapbox.navigation.base.route.RouterOrigin;
+import com.mapbox.navigation.core.MapboxNavigation;
+import com.mapbox.navigation.core.lifecycle.MapboxNavigationApp;
+import com.mapbox.navigation.core.lifecycle.MapboxNavigationObserver;
+
+import com.koshub.psdku.repositories.CloudinaryRepository;
+import com.bumptech.glide.Glide;
+import com.google.android.material.slider.RangeSlider;
+import com.mapbox.maps.EdgeInsets;
+import com.mapbox.maps.plugin.animation.CameraAnimationsUtils;
+import com.mapbox.maps.CameraBoundsOptions;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -47,15 +74,19 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
     private List<KosItem> allKosList;
     private List<KosItem> currentFilteredList;
     private KosItem selectedKos;
+    private FusedLocationProviderClient fusedLocationClient;
+    private MapboxNavigation mapboxNavigation;
 
     // UI Components
     private AutoCompleteTextView etSearchLocation;
     private FrameLayout btnSearch;
     private LinearLayout routeCard;
     private ImageView imgKosCard;
-    private TextView tvKosName, tvKosAddress, tvDistance, tvPrice, btnViewDetail;
+    private TextView tvKosName, tvKosAddress, tvDistance, tvPrice, btnViewDetail, btnNavigate;
     private LinearLayout navHome, navWaitingList, navProfile;
     private FrameLayout btnNotification;
+
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
 
     private static final String KOS_SOURCE_ID = "kos-source";
     private static final String KOS_LAYER_ID = "kos-layer";
@@ -90,6 +121,29 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         setupListeners();
         setupSearchAutoComplete();
         setupMap();
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        initNavigation();
+    }
+
+    private void initNavigation() {
+        if (!MapboxNavigationApp.isSetup()) {
+            NavigationOptions navigationOptions = new NavigationOptions.Builder(this)
+                    .build();
+            MapboxNavigationApp.setup(navigationOptions);
+        }
+
+        MapboxNavigationApp.registerObserver(new MapboxNavigationObserver() {
+            @Override
+            public void onAttached(@NonNull MapboxNavigation mapboxNavigation) {
+                MapViewRouteNavigationActivity.this.mapboxNavigation = mapboxNavigation;
+            }
+
+            @Override
+            public void onDetached(@NonNull MapboxNavigation mapboxNavigation) {
+                MapViewRouteNavigationActivity.this.mapboxNavigation = null;
+            }
+        });
     }
 
     private void initViews() {
@@ -103,6 +157,7 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         tvDistance = findViewById(R.id.tvDistance);
         tvPrice = findViewById(R.id.tvPrice);
         btnViewDetail = findViewById(R.id.btnViewDetail);
+        btnNavigate = findViewById(R.id.btnNavigate);
         navHome = findViewById(R.id.navHome);
         navWaitingList = findViewById(R.id.navWaitlist);
         navProfile = findViewById(R.id.navProfile);
@@ -140,6 +195,11 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         
         routeCard.setOnClickListener(v -> navigateToPropertyDetail());
         btnViewDetail.setOnClickListener(v -> navigateToPropertyDetail());
+        btnNavigate.setOnClickListener(v -> {
+            if (selectedKos != null) {
+                startNavigation(selectedKos);
+            }
+        });
         
         NavigationHelper.setupBottomNav(this, NavigationHelper.Tab.MAP);
         btnNotification.setOnClickListener(v -> showCustomToast("🔔 Tidak ada notifikasi baru"));
@@ -295,7 +355,18 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         routeCard.setAlpha(0f);
         routeCard.animate().alpha(1f).setDuration(300).start();
 
-        imgKosCard.setImageResource(item.getImageRes());
+        // Image (Optimized via Cloudinary) - Consistent with KosAdapter
+        if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+            String optimizedUrl = CloudinaryRepository.getInstance().getOptimizedUrl(item.getImageUrl(), 300, 200, false);
+            Glide.with(this)
+                    .load(optimizedUrl)
+                    .placeholder(R.drawable.bg_map_placeholder)
+                    .error(R.drawable.bg_map_placeholder)
+                    .into(imgKosCard);
+        } else {
+            imgKosCard.setImageResource(item.getImageRes());
+        }
+
         tvKosName.setText(item.getName());
         tvKosAddress.setText(item.getAddress());
         tvDistance.setText(item.getDistance() + " ke Kampus");
@@ -326,43 +397,225 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         showCustomToast("🔍 Lokasi tidak ditemukan: " + query);
     }
 
+    private String selectedFilterCategory = ""; // Empty means all
+
     private void showFilterSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(this);
         View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_filter, null);
         dialog.setContentView(sheetView);
 
+        TextView chipPutra = sheetView.findViewById(R.id.chipFilterPutra);
+        TextView chipPutri = sheetView.findViewById(R.id.chipFilterPutri);
+        TextView chipCampur = sheetView.findViewById(R.id.chipFilterCampur);
+        RangeSlider priceSlider = sheetView.findViewById(R.id.rangeSliderHarga);
+
+        // Set initial UI state
+        updateFilterChipsUI(chipPutra, chipPutri, chipCampur);
+
+        chipPutra.setOnClickListener(v -> {
+            selectedFilterCategory = selectedFilterCategory.equals("Putra") ? "" : "Putra";
+            updateFilterChipsUI(chipPutra, chipPutri, chipCampur);
+        });
+        chipPutri.setOnClickListener(v -> {
+            selectedFilterCategory = selectedFilterCategory.equals("Putri") ? "" : "Putri";
+            updateFilterChipsUI(chipPutra, chipPutri, chipCampur);
+        });
+        chipCampur.setOnClickListener(v -> {
+            selectedFilterCategory = selectedFilterCategory.equals("Campur") ? "" : "Campur";
+            updateFilterChipsUI(chipPutra, chipPutri, chipCampur);
+        });
+
         sheetView.findViewById(R.id.btnApplyFilter).setOnClickListener(v -> {
             if (allKosList == null) return;
-            // Real filter logic: filter by category "Putri" if a checkbox is selected (dummy checkbox check)
-            // For now, let's just simulate a filter by taking half the list
-            currentFilteredList = allKosList.stream()
-                .filter(item -> item.getCategory().equals("Putri"))
-                .collect(Collectors.toList());
+
+            List<Float> prices = priceSlider.getValues();
+            float minPrice = prices.get(0);
+            float maxPrice = prices.get(1);
+
+            filterKosListForMap(selectedFilterCategory, minPrice, maxPrice);
 
             if (mapView != null) {
                 mapView.getMapboxMap().getStyle(style -> {
-                    // Remove old source before adding new one with filtered data
-                    // In Mapbox v11, we update data via Source update or re-adding
                     updateMapData(style);
+                    zoomToFitMarkers(currentFilteredList);
                 });
             }
             
             dialog.dismiss();
-            showCustomToast("✅ Filter diterapkan: Menampilkan Kos Putri");
+            showCustomToast("✅ Filter diterapkan");
         });
 
         sheetView.findViewById(R.id.btnResetFilter).setOnClickListener(v -> {
             if (allKosList == null) return;
+            selectedFilterCategory = "";
             currentFilteredList = new ArrayList<>(allKosList);
             if (mapView != null) {
-                mapView.getMapboxMap().getStyle(this::updateMapData);
+                mapView.getMapboxMap().getStyle(style -> {
+                    updateMapData(style);
+                    // Reset to campus view
+                    Point campusPoint = Point.fromLngLat(CAMPUS_LNG, CAMPUS_LAT);
+                    mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
+                            .center(campusPoint)
+                            .zoom(15.5)
+                            .build());
+                });
             }
             dialog.dismiss();
-            showCustomToast("🔄 Filter direset: Menampilkan Semua");
+            showCustomToast("🔄 Filter direset");
         });
 
         sheetView.findViewById(R.id.btnCloseFilter).setOnClickListener(v -> dialog.dismiss());
         dialog.show();
+    }
+
+    private void updateFilterChipsUI(TextView putra, TextView putri, TextView campur) {
+        putra.setBackgroundResource(selectedFilterCategory.equals("Putra") ? R.drawable.bg_quick_chip_active : R.drawable.bg_quick_chip_inactive);
+        putra.setTextColor(ContextCompat.getColor(this, selectedFilterCategory.equals("Putra") ? R.color.text_white : R.color.home_text_secondary));
+
+        putri.setBackgroundResource(selectedFilterCategory.equals("Putri") ? R.drawable.bg_quick_chip_active : R.drawable.bg_quick_chip_inactive);
+        putri.setTextColor(ContextCompat.getColor(this, selectedFilterCategory.equals("Putri") ? R.color.text_white : R.color.home_text_secondary));
+
+        campur.setBackgroundResource(selectedFilterCategory.equals("Campur") ? R.drawable.bg_quick_chip_active : R.drawable.bg_quick_chip_inactive);
+        campur.setTextColor(ContextCompat.getColor(this, selectedFilterCategory.equals("Campur") ? R.color.text_white : R.color.home_text_secondary));
+    }
+
+    private void filterKosListForMap(String category, float minPrice, float maxPrice) {
+        currentFilteredList = allKosList.stream()
+            .filter(item -> {
+                boolean matchCategory = category.isEmpty() || item.getCategory().equalsIgnoreCase(category);
+                
+                // Parse price string to long (e.g., "Rp 850.000" -> 850000)
+                long priceVal = parsePrice(item.getPrice());
+                boolean matchPrice = priceVal >= minPrice && priceVal <= maxPrice;
+                
+                return matchCategory && matchPrice;
+            })
+            .collect(Collectors.toList());
+    }
+
+    private long parsePrice(String priceStr) {
+        try {
+            if (priceStr == null) return 0;
+            String clean = priceStr.replaceAll("[^0-9]", "");
+            return clean.isEmpty() ? 0 : Long.parseLong(clean);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private void zoomToFitMarkers(List<KosItem> items) {
+        if (items == null || items.isEmpty() || mapView == null) return;
+
+        List<Point> points = items.stream()
+                .map(item -> Point.fromLngLat(item.getLongitude(), item.getLatitude()))
+                .collect(Collectors.toList());
+        
+        // Add campus to bounds to keep context
+        points.add(Point.fromLngLat(CAMPUS_LNG, CAMPUS_LAT));
+
+        CameraOptions cameraOptions = mapView.getMapboxMap().cameraForCoordinates(
+                points,
+                new EdgeInsets(200.0, 100.0, 200.0, 100.0),
+                null,
+                null
+        );
+        
+        mapView.getMapboxMap().setCamera(cameraOptions);
+    }
+
+    private void startNavigation(KosItem destination) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
+            return;
+        }
+
+        if (!isGpsEnabled()) {
+            showGpsDisabledDialog();
+            return;
+        }
+
+        showCustomToast("Menyiapkan navigasi...");
+
+        fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+            if (location != null) {
+                Point origin = Point.fromLngLat(location.getLongitude(), location.getLatitude());
+                Point dest = Point.fromLngLat(destination.getLongitude(), destination.getLatitude());
+                
+                if (mapboxNavigation != null) {
+                    requestMapboxRoute(origin, dest);
+                } else {
+                    openGoogleMapsNavigation(destination.getLatitude(), destination.getLongitude());
+                }
+            } else {
+                showCustomToast("Gagal mendapatkan lokasi. Pastikan GPS aktif.");
+                openGoogleMapsNavigation(destination.getLatitude(), destination.getLongitude());
+            }
+        });
+    }
+
+    private void requestMapboxRoute(Point origin, Point destination) {
+        RouteOptions routeOptions = RouteOptions.builder()
+                .coordinatesList(Arrays.asList(origin, destination))
+                .build();
+
+        mapboxNavigation.requestRoutes(routeOptions, new NavigationRouterCallback() {
+            @Override
+            public void onRoutesReady(@NonNull List<NavigationRoute> routes, @NonNull String routerOrigin) {
+                if (!routes.isEmpty()) {
+                    showCustomToast("Rute ditemukan. Memulai navigasi...");
+                    openGoogleMapsNavigation(destination.latitude(), destination.longitude());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull List<RouterFailure> failures, @NonNull RouteOptions routeOptions) {
+                showCustomToast("Mapbox routing gagal, membuka Google Maps...");
+                openGoogleMapsNavigation(destination.latitude(), destination.longitude());
+            }
+
+            @Override
+            public void onCanceled(@NonNull RouteOptions routeOptions, @NonNull String routerOrigin) {
+            }
+        });
+    }
+
+    private void openGoogleMapsNavigation(double lat, double lng) {
+        Uri gmmIntentUri = Uri.parse("google.navigation:q=" + lat + "," + lng + "&mode=d");
+        Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
+        mapIntent.setPackage("com.google.android.apps.maps");
+        if (mapIntent.resolveActivity(getPackageManager()) != null) {
+            startActivity(mapIntent);
+        } else {
+            showCustomToast("Google Maps tidak ditemukan.");
+        }
+    }
+
+    private boolean isGpsEnabled() {
+        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        return locationManager != null && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+    }
+
+    private void showGpsDisabledDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("GPS Tidak Aktif")
+                .setMessage("Silakan aktifkan GPS untuk menggunakan fitur navigasi.")
+                .setPositiveButton("Pengaturan", (dialog, which) -> {
+                    startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (selectedKos != null) startNavigation(selectedKos);
+            } else {
+                showCustomToast("Izin lokasi diperlukan untuk navigasi.");
+            }
+        }
     }
 
     private void navigateToPropertyDetail() {

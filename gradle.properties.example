@@ -1,0 +1,11 @@
+# Project-wide Gradle settings.
+# Copy this file to gradle.properties and fill in your tokens.
+
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+
+# Mapbox Public Access Token (starts with pk.)
+# This will be injected into BuildConfig.MAPBOX_TOKEN
+MAPBOX_TOKEN=pk.YOUR_TOKEN_HERE
+
+# Mapbox secret token for downloads
+MAPBOX_DOWNLOADS_TOKEN=YOUR_MAPBOX_SECRET_TOKEN
