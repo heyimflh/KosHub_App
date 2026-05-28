@@ -158,9 +158,16 @@ public class ChatRepository {
                 .addOnFailureListener(e -> callback.onError("Gagal memuat data booking."));
     }
 
-    public void sendMessage(String chatId, String text, SimpleCallback callback) {
+    public void sendMessage(String chatId, String text, String type, SimpleCallback callback) {
+        sendMessage(chatId, text, null, type, callback);
+    }
+
+    public void sendMessage(String chatId, String text, String imageUrl, String type, SimpleCallback callback) {
         String senderId = auth.getUid();
-        if (senderId == null || text.trim().isEmpty()) {
+        boolean isTextEmpty = text == null || text.trim().isEmpty();
+        boolean isImageEmpty = imageUrl == null || imageUrl.trim().isEmpty();
+
+        if (senderId == null || (isTextEmpty && isImageEmpty)) {
             callback.onError("Pesan tidak valid.");
             return;
         }
@@ -175,7 +182,6 @@ public class ChatRepository {
 
                     String receiverId = senderId.equals(chat.getStudentId()) ? chat.getOwnerId() : chat.getStudentId();
                     
-                    // Fetch sender name from current user profile or use field from chat
                     db.collection(DatabaseConstants.COLLECTION_USERS).document(senderId).get()
                             .addOnSuccessListener(userDoc -> {
                                 String senderName = userDoc.getString(DatabaseConstants.FIELD_NAME);
@@ -183,7 +189,7 @@ public class ChatRepository {
                                 String messageId = db.collection(DatabaseConstants.COLLECTION_CHATS).document(chatId)
                                         .collection(DatabaseConstants.COLLECTION_MESSAGES).document().getId();
 
-                                Message message = new Message(messageId, chatId, senderId, senderName, receiverId, text, DatabaseConstants.MESSAGE_TYPE_TEXT);
+                                Message message = new Message(messageId, chatId, senderId, senderName, receiverId, text, imageUrl, type);
 
                                 WriteBatch batch = db.batch();
 
@@ -194,7 +200,14 @@ public class ChatRepository {
 
                                 // 2. Update Chat Metadata
                                 Map<String, Object> chatUpdates = new HashMap<>();
-                                chatUpdates.put(DatabaseConstants.FIELD_LAST_MESSAGE, text);
+                                String lastMsgDisplay;
+                                if (DatabaseConstants.MESSAGE_TYPE_IMAGE.equals(type)) {
+                                    lastMsgDisplay = isTextEmpty ? "[Gambar]" : "[Gambar] " + text;
+                                } else {
+                                    lastMsgDisplay = text;
+                                }
+                                
+                                chatUpdates.put(DatabaseConstants.FIELD_LAST_MESSAGE, lastMsgDisplay);
                                 chatUpdates.put(DatabaseConstants.FIELD_LAST_MESSAGE_AT, message.getCreatedAt());
                                 chatUpdates.put(DatabaseConstants.FIELD_LAST_SENDER_ID, senderId);
                                 chatUpdates.put(DatabaseConstants.FIELD_UPDATED_AT, message.getCreatedAt());
@@ -216,7 +229,7 @@ public class ChatRepository {
                                                     senderId,
                                                     DatabaseConstants.NOTIF_CHAT_MESSAGE,
                                                     "Pesan baru",
-                                                    senderName + ": " + (text.length() > 60 ? text.substring(0, 60) + "..." : text),
+                                                    senderName + ": " + (lastMsgDisplay.length() > 60 ? lastMsgDisplay.substring(0, 60) + "..." : lastMsgDisplay),
                                                     DatabaseConstants.TARGET_CHAT,
                                                     chatId
                                             );

@@ -12,6 +12,7 @@ public class Message implements Serializable {
     private String senderName;
     private String receiverId;
     private String text;
+    private String imageUrl;
     private String type;
     private long createdAt;
     private boolean isRead;
@@ -27,6 +28,20 @@ public class Message implements Serializable {
         this.senderName = senderName;
         this.receiverId = receiverId;
         this.text = text;
+        this.imageUrl = null;
+        this.type = type;
+        this.createdAt = System.currentTimeMillis();
+        this.isRead = false;
+    }
+
+    public Message(String id, String chatId, String senderId, String senderName, String receiverId, String text, String imageUrl, String type) {
+        this.id = id;
+        this.chatId = chatId;
+        this.senderId = senderId;
+        this.senderName = senderName;
+        this.receiverId = receiverId;
+        this.text = text;
+        this.imageUrl = imageUrl;
         this.type = type;
         this.createdAt = System.currentTimeMillis();
         this.isRead = false;
@@ -49,6 +64,9 @@ public class Message implements Serializable {
 
     public String getText() { return text; }
     public void setText(String text) { this.text = text; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }

@@ -1,13 +1,17 @@
 package com.koshub.psdku;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -21,8 +25,10 @@ import com.koshub.psdku.adapters.MessageAdapter;
 import com.koshub.psdku.models.Chat;
 import com.koshub.psdku.models.Message;
 import com.koshub.psdku.repositories.ChatRepository;
+import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.services.FirebaseService;
 import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.NavigationTransitionHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +52,11 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
     private List<Message> messages = new ArrayList<>();
     private ListenerRegistration messageListener;
 
+    private RelativeLayout layoutImagePreview;
+    private ImageView ivPreview, btnCancelPreview;
+    private Uri selectedImageUri;
+    private ActivityResultLauncher<String> imagePickerLauncher;
+
     private String chatId, opponentName, kosName, roomNumber, status, initial;
     private String userRole = DatabaseConstants.ROLE_OWNER; // Default to owner if opened from Owner activity
 
@@ -54,11 +65,35 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_owner_chat_room);
 
+        initImagePicker();
         handleIntentData();
         initViews();
         setupRecyclerView();
         setupListeners();
         determineRoleAndListen();
+    }
+
+    private void initImagePicker() {
+        imagePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                uri -> {
+                    if (uri != null) {
+                        selectedImageUri = uri;
+                        showImagePreview(uri);
+                    }
+                }
+        );
+    }
+
+    private void showImagePreview(Uri uri) {
+        layoutImagePreview.setVisibility(View.VISIBLE);
+        ivPreview.setImageURI(uri);
+    }
+
+    private void hideImagePreview() {
+        selectedImageUri = null;
+        layoutImagePreview.setVisibility(View.GONE);
+        ivPreview.setImageURI(null);
     }
 
     private void initViews() {
@@ -82,6 +117,10 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
 
         etMessage = findViewById(R.id.etMessage);
         rvMessages = findViewById(R.id.rvMessages);
+
+        layoutImagePreview = findViewById(R.id.layoutImagePreview);
+        ivPreview = findViewById(R.id.ivPreview);
+        btnCancelPreview = findViewById(R.id.btnCancelPreview);
         
         populateHeader();
         populateContextCard();
@@ -216,7 +255,8 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
         btnSendMessage.setOnClickListener(v -> sendMessage());
         btnTemplatePesan.setOnClickListener(v -> showTemplateDialog());
         
-        btnAttach.setOnClickListener(v -> showToast("📎 Kirim gambar segera hadir di versi production."));
+        btnAttach.setOnClickListener(v -> imagePickerLauncher.launch("image/*"));
+        btnCancelPreview.setOnClickListener(v -> hideImagePreview());
         btnMoreOptions.setOnClickListener(v -> showToast("⚙️ Opsi lainnya segera hadir."));
     }
 
@@ -226,6 +266,12 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
 
     private void sendMessage() {
         String text = etMessage.getText().toString().trim();
+        
+        if (selectedImageUri != null) {
+            uploadAndSendImage(selectedImageUri, text);
+            return;
+        }
+
         if (text.isEmpty()) return;
 
         if (chatId == null) {
@@ -234,7 +280,7 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
         }
 
         btnSendMessage.setEnabled(false);
-        ChatRepository.getInstance().sendMessage(chatId, text, new ChatRepository.SimpleCallback() {
+        ChatRepository.getInstance().sendMessage(chatId, text, DatabaseConstants.MESSAGE_TYPE_TEXT, new ChatRepository.SimpleCallback() {
             @Override
             public void onSuccess() {
                 etMessage.setText("");
@@ -245,6 +291,34 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
             public void onError(String message) {
                 Toast.makeText(OwnerChatRoomActivity.this, message, Toast.LENGTH_SHORT).show();
                 btnSendMessage.setEnabled(true);
+            }
+        });
+    }
+
+    private void uploadAndSendImage(Uri imageUri, String text) {
+        hideImagePreview();
+        etMessage.setText("");
+        showToast("Mengirim gambar...");
+        
+        CloudinaryRepository.getInstance().uploadChatMessage(this, imageUri, new CloudinaryRepository.SimpleUploadCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                ChatRepository.getInstance().sendMessage(chatId, text, imageUrl, DatabaseConstants.MESSAGE_TYPE_IMAGE, new ChatRepository.SimpleCallback() {
+                    @Override
+                    public void onSuccess() {
+                        rvMessages.smoothScrollToPosition(messages.size());
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        showToast("Gagal mengirim gambar: " + message);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                showToast("Gagal mengunggah gambar: " + message);
             }
         });
     }

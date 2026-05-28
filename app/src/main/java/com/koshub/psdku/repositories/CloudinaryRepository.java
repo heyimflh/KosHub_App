@@ -217,6 +217,42 @@ public class CloudinaryRepository {
                 }).dispatch();
     }
 
+    public void uploadChatMessage(Context context, Uri imageUri, SimpleUploadCallback callback) {
+        initMediaManager(context);
+        String uid = auth.getUid();
+        if (uid == null) {
+            callback.onError("User not authenticated");
+            return;
+        }
+
+        String folder = CloudinaryConfig.BASE_FOLDER + "/chats/" + uid;
+        MediaManager.get().upload(imageUri)
+                .unsigned(CloudinaryConfig.UPLOAD_PRESET)
+                .option("folder", folder)
+                .callback(new UploadCallback() {
+                    @Override
+                    public void onStart(String requestId) { Log.d(TAG, "Chat image upload start"); }
+
+                    @Override
+                    public void onProgress(String requestId, long bytes, long totalBytes) {}
+
+                    @Override
+                    public void onSuccess(String requestId, Map resultData) {
+                        String secureUrl = (String) resultData.get("secure_url");
+                        callback.onSuccess(secureUrl);
+                    }
+
+                    @Override
+                    public void onError(String requestId, ErrorInfo error) {
+                        Log.e(TAG, "Chat upload error: " + error.getDescription());
+                        callback.onError(error.getDescription());
+                    }
+
+                    @Override
+                    public void onReschedule(String requestId, ErrorInfo error) {}
+                }).dispatch();
+    }
+
     /**
      * Helper to get optimized image URL with transformations.
      * Example: resize to width, auto quality, auto format (webp).

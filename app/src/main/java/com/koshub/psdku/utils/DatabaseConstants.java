@@ -170,4 +170,5 @@ public class DatabaseConstants {
 
     // Message Types
     public static final String MESSAGE_TYPE_TEXT = "text";
+    public static final String MESSAGE_TYPE_IMAGE = "image";
 }

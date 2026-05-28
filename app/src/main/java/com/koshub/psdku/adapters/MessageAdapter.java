@@ -4,13 +4,16 @@ import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.koshub.psdku.R;
 import com.koshub.psdku.models.Message;
+import com.koshub.psdku.utils.DatabaseConstants;
 
 import java.util.Calendar;
 import java.util.List;
@@ -67,30 +70,68 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     static class LeftViewHolder extends RecyclerView.ViewHolder {
         TextView tvMessage, tvTime;
+        ImageView ivMessage;
 
         public LeftViewHolder(@NonNull View itemView) {
             super(itemView);
             tvMessage = itemView.findViewById(R.id.tvMessageLeft);
             tvTime = itemView.findViewById(R.id.tvTimeLeft);
+            ivMessage = itemView.findViewById(R.id.ivMessageLeft);
         }
 
         public void bind(Message message) {
-            tvMessage.setText(message.getText());
+            if (DatabaseConstants.MESSAGE_TYPE_IMAGE.equals(message.getType())) {
+                ivMessage.setVisibility(View.VISIBLE);
+                Glide.with(itemView.getContext())
+                        .load(message.getImageUrl())
+                        .placeholder(R.color.background_screen)
+                        .into(ivMessage);
+                
+                if (message.getText() != null && !message.getText().trim().isEmpty()) {
+                    tvMessage.setVisibility(View.VISIBLE);
+                    tvMessage.setText(message.getText());
+                } else {
+                    tvMessage.setVisibility(View.GONE);
+                }
+            } else {
+                tvMessage.setVisibility(View.VISIBLE);
+                ivMessage.setVisibility(View.GONE);
+                tvMessage.setText(message.getText());
+            }
             tvTime.setText(formatTime(message.getCreatedAt()));
         }
     }
 
     static class RightViewHolder extends RecyclerView.ViewHolder {
         TextView tvMessage, tvTime;
+        ImageView ivMessage;
 
         public RightViewHolder(@NonNull View itemView) {
             super(itemView);
             tvMessage = itemView.findViewById(R.id.tvMessageRight);
             tvTime = itemView.findViewById(R.id.tvTimeRight);
+            ivMessage = itemView.findViewById(R.id.ivMessageRight);
         }
 
         public void bind(Message message) {
-            tvMessage.setText(message.getText());
+            if (DatabaseConstants.MESSAGE_TYPE_IMAGE.equals(message.getType())) {
+                ivMessage.setVisibility(View.VISIBLE);
+                Glide.with(itemView.getContext())
+                        .load(message.getImageUrl())
+                        .placeholder(R.color.brand_green_dark)
+                        .into(ivMessage);
+
+                if (message.getText() != null && !message.getText().trim().isEmpty()) {
+                    tvMessage.setVisibility(View.VISIBLE);
+                    tvMessage.setText(message.getText());
+                } else {
+                    tvMessage.setVisibility(View.GONE);
+                }
+            } else {
+                tvMessage.setVisibility(View.VISIBLE);
+                ivMessage.setVisibility(View.GONE);
+                tvMessage.setText(message.getText());
+            }
             tvTime.setText(formatTime(message.getCreatedAt()));
         }
     }
