@@ -23,6 +23,7 @@ public class ReviewFormActivity extends AppCompatActivity {
     private View btnSubmit;
     private TextView tvKosName;
     private String bookingId;
+    private String kosId, kosName;
     private Booking currentBooking;
 
     @Override
@@ -31,14 +32,23 @@ public class ReviewFormActivity extends AppCompatActivity {
         setContentView(R.layout.activity_review_form);
 
         bookingId = getIntent().getStringExtra("BOOKING_ID");
-        if (bookingId == null) {
-            Toast.makeText(this, "ID Booking tidak valid", Toast.LENGTH_SHORT).show();
+        kosId = getIntent().getStringExtra("KOS_ID");
+        kosName = getIntent().getStringExtra("KOS_NAME");
+
+        if (bookingId == null && kosId == null) {
+            Toast.makeText(this, "Data tidak valid", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
         initViews();
-        loadBookingData();
+        
+        if (bookingId != null) {
+            loadBookingData();
+        } else {
+            tvKosName.setText(kosName);
+            btnSubmit.setEnabled(true);
+        }
     }
 
     private void initViews() {
@@ -93,13 +103,19 @@ public class ReviewFormActivity extends AppCompatActivity {
 
         Review review = new Review();
         review.setBookingId(bookingId);
-        review.setKosId(currentBooking.getKosId());
-        review.setKosName(currentBooking.getKosName());
+        
+        if (currentBooking != null) {
+            review.setKosId(currentBooking.getKosId());
+            review.setKosName(currentBooking.getKosName());
+            review.setStudentName(currentBooking.getStudentName());
+        } else {
+            review.setKosId(kosId);
+            review.setKosName(kosName);
+            // studentName will be set in repository from Auth
+        }
+        
         review.setRating(rating);
         review.setComment(comment);
-        
-        // Student name from booking or Auth
-        review.setStudentName(currentBooking.getStudentName());
 
         btnSubmit.setEnabled(false);
         ReviewRepository.getInstance().createReview(review, new ReviewRepository.SimpleCallback() {

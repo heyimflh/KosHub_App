@@ -72,7 +72,9 @@
                         android:text="Rp 0"
                         android:textColor="@color/brand_green"
                         android:textSize="24sp"
-                        android:textStyle="bold" />
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
                 </LinearLayout>
 
                 <!-- Form -->

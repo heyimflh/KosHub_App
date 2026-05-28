@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.koshub.psdku.models.Booking;
@@ -56,6 +57,7 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private TextView tvDetailRating, tvDetailRatingCount;
     private ChipGroup amenityChipGroup;
     private LinearLayout reviewContainer;
+    private View layoutReviewPrompt;
     private MapView mapView;
 
     private KosItem currentItem;
@@ -114,6 +116,7 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         
         amenityChipGroup = findViewById(R.id.amenityChipGroup);
         reviewContainer = findViewById(R.id.reviewContainer);
+        layoutReviewPrompt = findViewById(R.id.layoutReviewPrompt);
     }
 
     private void setupListeners() {
@@ -292,6 +295,9 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         // Reviews
         loadRealReviews();
 
+        // Check if user can write review
+        checkAndShowReviewButton();
+
         // Favorite status
         checkFavoriteStatus();
 
@@ -314,6 +320,27 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
                 // Fallback or empty state
             }
         });
+    }
+
+    private void checkAndShowReviewButton() {
+        if (currentItem == null || FirebaseAuth.getInstance().getCurrentUser() == null) {
+            if (layoutReviewPrompt != null) layoutReviewPrompt.setVisibility(View.GONE);
+            return;
+        }
+
+        // Simplification: Show review prompt to any logged-in user
+        if (layoutReviewPrompt != null) {
+            layoutReviewPrompt.setVisibility(View.VISIBLE);
+            View btn = layoutReviewPrompt.findViewById(R.id.btnWriteReviewPrompt);
+            if (btn != null) {
+                btn.setOnClickListener(v -> {
+                    Intent intent = new Intent(PropertyDetailBookingActivity.this, ReviewFormActivity.class);
+                    intent.putExtra("KOS_ID", currentItem.getId());
+                    intent.putExtra("KOS_NAME", currentItem.getName());
+                    NavigationTransitionHelper.navigateDetailWithIntent(PropertyDetailBookingActivity.this, intent);
+                });
+            }
+        }
     }
 
     private void populateReviewsReal(List<com.koshub.psdku.models.Review> reviews) {

@@ -94,11 +94,26 @@ public class ReviewRepository {
         }
 
         review.setStudentId(uid);
-        review.setId(review.getBookingId());
+        
+        // Handle ID: Use bookingId if exists to prevent duplicates for same stay, 
+        // otherwise auto-generate via Firestore.
+        String docId = review.getBookingId();
+        if (docId == null || docId.isEmpty()) {
+            docId = db.collection(DatabaseConstants.COLLECTION_REVIEWS).document().getId();
+        }
+        
+        review.setId(docId);
         review.setCreatedAt(System.currentTimeMillis());
         review.setUpdatedAt(System.currentTimeMillis());
 
-        db.collection(DatabaseConstants.COLLECTION_REVIEWS).document(review.getBookingId()).set(review)
+        // Ensure studentName is set from current user if missing
+        if (review.getStudentName() == null || review.getStudentName().isEmpty()) {
+            String name = auth.getCurrentUser().getDisplayName();
+            if (name == null || name.isEmpty()) name = auth.getCurrentUser().getEmail();
+            review.setStudentName(name);
+        }
+
+        db.collection(DatabaseConstants.COLLECTION_REVIEWS).document(docId).set(review)
                 .addOnSuccessListener(aVoid -> recalculateKosRating(review.getKosId(), callback))
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "createReview error: " + e.getMessage());

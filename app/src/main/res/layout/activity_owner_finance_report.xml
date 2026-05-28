@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/finance_background">
@@ -93,7 +94,9 @@
                     android:text="@string/finance_total_income_value"
                     android:textColor="@color/finance_text_white"
                     android:textSize="28sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -182,6 +185,7 @@
                         android:id="@+id/cardWalletAvailable"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:minHeight="80dp"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_finance_card"
@@ -203,13 +207,16 @@
                             android:text="Rp 5.000.000"
                             android:textColor="@color/brand_green"
                             android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
                     </LinearLayout>
                     <!-- Saldo Pending -->
                     <LinearLayout
                         android:id="@+id/cardWalletPending"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:minHeight="80dp"
                         android:layout_marginStart="8dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_finance_card"
@@ -231,7 +238,9 @@
                             android:text="Rp 1.750.000"
                             android:textColor="@color/status_pending_text"
                             android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -285,7 +294,7 @@
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:src="@drawable/ic_withdraw"
-                        android:tint="@color/finance_text_white" />
+                        app:tint="@color/finance_text_white" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -457,6 +466,7 @@
                         android:id="@+id/cardPaymentIn"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:minHeight="100dp"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_finance_card"
@@ -476,7 +486,9 @@
                             android:text="@string/finance_payment_in_value"
                             android:textColor="@color/finance_text_primary"
                             android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -490,6 +502,7 @@
                         android:id="@+id/cardPaymentPending"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:minHeight="100dp"
                         android:layout_marginStart="8dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_finance_card"
@@ -509,7 +522,9 @@
                             android:text="@string/finance_payment_pending_value"
                             android:textColor="@color/finance_text_primary"
                             android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -530,6 +545,7 @@
                         android:id="@+id/cardExpense"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:minHeight="100dp"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_finance_card"
@@ -549,7 +565,9 @@
                             android:text="@string/finance_expense_value"
                             android:textColor="@color/finance_expense_red"
                             android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -563,6 +581,7 @@
                         android:id="@+id/cardNetIncome"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:minHeight="100dp"
                         android:layout_marginStart="8dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_finance_card"
@@ -582,7 +601,9 @@
                             android:text="@string/finance_net_income_value"
                             android:textColor="@color/finance_income_green"
                             android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"

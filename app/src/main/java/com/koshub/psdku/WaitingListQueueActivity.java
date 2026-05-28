@@ -3,10 +3,10 @@ package com.koshub.psdku;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -314,6 +314,12 @@ public class WaitingListQueueActivity extends AppCompatActivity {
     private void setStepDone(View step, TextView title, ImageView icon) {
         if (step == null) return;
         step.setAlpha(1.0f);
+
+        View dot = getDotView(step);
+        if (dot != null) {
+            dot.setBackgroundResource(R.drawable.bg_waiting_timeline_dot_done);
+        }
+
         if (icon != null) {
             icon.setImageResource(R.drawable.ic_waiting_check_circle);
             icon.setVisibility(View.VISIBLE);
@@ -327,6 +333,12 @@ public class WaitingListQueueActivity extends AppCompatActivity {
     private void setStepActive(View step, TextView title, ImageView icon) {
         if (step == null) return;
         step.setAlpha(1.0f);
+
+        View dot = getDotView(step);
+        if (dot != null) {
+            dot.setBackgroundResource(R.drawable.bg_waiting_timeline_dot_active);
+        }
+
         if (icon != null) {
             icon.setImageResource(R.drawable.ic_waiting_schedule);
             icon.setVisibility(View.VISIBLE);
@@ -340,11 +352,30 @@ public class WaitingListQueueActivity extends AppCompatActivity {
     private void setStepPending(View step, TextView title, ImageView icon) {
         if (step == null) return;
         step.setAlpha(0.5f);
+
+        View dot = getDotView(step);
+        if (dot != null) {
+            dot.setBackgroundResource(R.drawable.bg_waiting_timeline_dot_pending);
+        }
+
         if (icon != null) icon.setVisibility(View.GONE);
         if (title != null) {
             title.setTextColor(ContextCompat.getColor(this, R.color.md_outline));
             title.setTypeface(null, android.graphics.Typeface.NORMAL);
         }
+    }
+
+    private View getDotView(View step) {
+        if (step instanceof ViewGroup) {
+            ViewGroup vg = (ViewGroup) step;
+            if (vg.getChildCount() > 0 && vg.getChildAt(0) instanceof ViewGroup) {
+                ViewGroup leftCol = (ViewGroup) vg.getChildAt(0);
+                if (leftCol.getChildCount() > 0) {
+                    return leftCol.getChildAt(0);
+                }
+            }
+        }
+        return null;
     }
 
     private void handlePayment(Booking b) {

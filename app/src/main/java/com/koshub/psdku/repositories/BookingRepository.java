@@ -438,4 +438,24 @@ public class BookingRepository {
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
+
+    public void getCompletedBookingForKos(String studentId, String kosId, BookingCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS)
+                .whereEqualTo("studentId", studentId)
+                .whereEqualTo("kosId", kosId)
+                .whereEqualTo("status", DatabaseConstants.BOOKING_COMPLETED)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        com.google.firebase.firestore.QueryDocumentSnapshot doc = (com.google.firebase.firestore.QueryDocumentSnapshot) queryDocumentSnapshots.getDocuments().get(0);
+                        Booking b = doc.toObject(Booking.class);
+                        b.setId(doc.getId());
+                        callback.onSuccess(b);
+                    } else {
+                        callback.onError("No completed booking found");
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
 }

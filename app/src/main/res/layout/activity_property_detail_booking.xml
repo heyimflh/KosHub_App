@@ -70,6 +70,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="24dp" />
 
+                <!-- Review Prompt (Conditional) -->
+                <include layout="@layout/include_review_prompt" />
+
                 <!-- Reviews -->
                 <include layout="@layout/include_property_reviews" />
 
