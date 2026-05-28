@@ -169,6 +169,6 @@
     <!-- Mapbox & Safety -->
     <string name="mapbox_access_token" translatable="false">YOUR_MAPBOX_PUBLIC_TOKEN_HERE</string>
     <string name="map_fallback_title">Peta belum tersedia</string>
-    <string name="map_fallback_sub">Tambahkan Mapbox access token untuk mengaktifkan fitur peta.</string>
+    <string name="map_fallback_sub">Fitur peta tidak tersedia. Pastikan koneksi internet aktif.</string>
 </resources>
 

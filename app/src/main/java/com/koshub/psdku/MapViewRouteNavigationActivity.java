@@ -1,10 +1,6 @@
 package com.koshub.psdku;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -20,10 +16,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.net.Uri;
 import android.provider.Settings;
-import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.Manifest;
+import android.preference.PreferenceManager;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -33,38 +29,21 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.mapbox.api.directions.v5.models.RouteOptions;
-import com.mapbox.geojson.Feature;
-import com.mapbox.geojson.FeatureCollection;
-import com.mapbox.geojson.Point;
-import com.mapbox.maps.CameraOptions;
-import com.mapbox.maps.MapView;
-import com.mapbox.maps.RenderedQueryGeometry;
-import com.mapbox.maps.RenderedQueryOptions;
-import com.mapbox.maps.Style;
-import com.mapbox.maps.plugin.gestures.GesturesUtils;
-import com.mapbox.navigation.base.options.NavigationOptions;
-import com.mapbox.navigation.base.route.NavigationRoute;
-import com.mapbox.navigation.base.route.NavigationRouterCallback;
-import com.mapbox.navigation.base.route.RouterFailure;
-import com.mapbox.navigation.base.route.RouterOrigin;
-import com.mapbox.navigation.core.MapboxNavigation;
-import com.mapbox.navigation.core.lifecycle.MapboxNavigationApp;
-import com.mapbox.navigation.core.lifecycle.MapboxNavigationObserver;
-
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.bumptech.glide.Glide;
 import com.google.android.material.slider.RangeSlider;
-import com.mapbox.maps.EdgeInsets;
-import com.mapbox.maps.plugin.animation.CameraAnimationsUtils;
-import com.mapbox.maps.CameraBoundsOptions;
+
+import org.osmdroid.api.IMapController;
+import org.osmdroid.config.Configuration;
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
+import org.osmdroid.util.GeoPoint;
+import org.osmdroid.views.MapView;
+import org.osmdroid.views.overlay.Marker;
+import org.osmdroid.util.BoundingBox;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -74,8 +53,6 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
     private List<KosItem> allKosList;
     private List<KosItem> currentFilteredList;
     private KosItem selectedKos;
-    private FusedLocationProviderClient fusedLocationClient;
-    private MapboxNavigation mapboxNavigation;
 
     // UI Components
     private AutoCompleteTextView etSearchLocation;
@@ -88,13 +65,6 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
 
-    private static final String KOS_SOURCE_ID = "kos-source";
-    private static final String KOS_LAYER_ID = "kos-layer";
-    private static final String CAMPUS_SOURCE_ID = "campus-source";
-    private static final String CAMPUS_LAYER_ID = "campus-layer";
-    private static final String KOS_ICON_ID = "kos-icon";
-    private static final String CAMPUS_ICON_ID = "campus-icon";
-
     // Coordinates for UNS Kampus 6 PGSD Kebumen
     private static final double CAMPUS_LAT = -7.68307;
     private static final double CAMPUS_LNG = 109.6645;
@@ -102,6 +72,10 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // OSMDroid configuration
+        Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this));
+        
         setContentView(R.layout.activity_map_view_route_navigation);
 
         // Safely get data
@@ -121,33 +95,9 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         setupListeners();
         setupSearchAutoComplete();
         setupMap();
-
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        initNavigation();
-    }
-
-    private void initNavigation() {
-        if (!MapboxNavigationApp.isSetup()) {
-            NavigationOptions navigationOptions = new NavigationOptions.Builder(this)
-                    .build();
-            MapboxNavigationApp.setup(navigationOptions);
-        }
-
-        MapboxNavigationApp.registerObserver(new MapboxNavigationObserver() {
-            @Override
-            public void onAttached(@NonNull MapboxNavigation mapboxNavigation) {
-                MapViewRouteNavigationActivity.this.mapboxNavigation = mapboxNavigation;
-            }
-
-            @Override
-            public void onDetached(@NonNull MapboxNavigation mapboxNavigation) {
-                MapViewRouteNavigationActivity.this.mapboxNavigation = null;
-            }
-        });
     }
 
     private void initViews() {
-        // MapView is now handled programmatically in setupMap()
         etSearchLocation = findViewById(R.id.etSearchLocation);
         btnSearch = findViewById(R.id.btnSearch);
         routeCard = findViewById(R.id.routeCard);
@@ -203,8 +153,6 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         
         NavigationHelper.setupBottomNav(this, NavigationHelper.Tab.MAP);
         btnNotification.setOnClickListener(v -> showCustomToast("🔔 Tidak ada notifikasi baru"));
-
-        // Map Click Listener will be added in setupMap() after initialization
     }
 
     private void showCampusCard() {
@@ -232,68 +180,59 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         FrameLayout mapContainer = findViewById(R.id.mapContainer);
         if (mapContainer == null) return;
 
-        if (!MapboxTokenHelper.hasValidMapboxToken(this)) {
-            showMapFallback(mapContainer);
-            return;
-        }
-
         try {
             mapView = new MapView(this);
+            mapView.setTileSource(TileSourceFactory.MAPNIK);
+            mapView.setMultiTouchControls(true);
+            
+            IMapController mapController = mapView.getController();
+            mapController.setZoom(15.5);
+            GeoPoint startPoint = new GeoPoint(CAMPUS_LAT, CAMPUS_LNG);
+            mapController.setCenter(startPoint);
+
             mapContainer.addView(mapView);
-
-            mapView.getMapboxMap().loadStyle(Style.STANDARD, style -> {
-                runOnUiThread(() -> {
-                    try {
-                        addMapResources(style);
-                        addMapLayers(style);
-
-                        Point campusPoint = Point.fromLngLat(CAMPUS_LNG, CAMPUS_LAT);
-                        mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
-                                .center(campusPoint)
-                                .zoom(15.5)
-                                .build());
-                        
-                        setupMapClickListener();
-                    } catch (Exception e) {
-                        android.util.Log.e("MapboxSafety", "Error in style loaded callback", e);
-                    }
-                });
-            });
+            
+            addKosMarkers();
         } catch (Exception e) {
-            android.util.Log.e("MapboxSafety", "Failed to initialize MapView", e);
+            android.util.Log.e("OSMDroid", "Failed to initialize MapView", e);
             showMapFallback(mapContainer);
         }
     }
 
-    private void setupMapClickListener() {
+    private void addKosMarkers() {
         if (mapView == null) return;
         
-        GesturesUtils.getGestures(mapView).addOnMapClickListener(point -> {
-            RenderedQueryGeometry geometry = new RenderedQueryGeometry(mapView.getMapboxMap().pixelForCoordinate(point));
-            RenderedQueryOptions options = new RenderedQueryOptions(Arrays.asList(KOS_LAYER_ID, CAMPUS_LAYER_ID), null);
+        mapView.getOverlays().clear();
 
-            mapView.getMapboxMap().queryRenderedFeatures(geometry, options, expected -> {
-                if (expected.isValue() && !expected.getValue().isEmpty()) {
-                    Feature feature = expected.getValue().get(0).getQueriedFeature().getFeature();
-                    String layerId = expected.getValue().get(0).getLayers().get(0);
-
-                    if (KOS_LAYER_ID.equals(layerId)) {
-                        com.google.gson.JsonElement indexProp = feature.getProperty("index");
-                        if (indexProp != null && !indexProp.isJsonNull()) {
-                            int index = indexProp.getAsInt();
-                            if (allKosList != null && index >= 0 && index < allKosList.size()) {
-                                runOnUiThread(() -> updatePropertyCard(allKosList.get(index)));
-                            }
-                        }
-                    } else if (CAMPUS_LAYER_ID.equals(layerId)) {
-                        runOnUiThread(this::showCampusCard);
-                    }
-                } else {
-                    runOnUiThread(() -> routeCard.setVisibility(View.GONE));
-                }
-            });
+        // Add Campus Marker
+        Marker campusMarker = new Marker(mapView);
+        campusMarker.setPosition(new GeoPoint(CAMPUS_LAT, CAMPUS_LNG));
+        campusMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+        campusMarker.setTitle("UNS Kampus 6");
+        campusMarker.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_map_school));
+        campusMarker.setOnMarkerClickListener((marker, mv) -> {
+            showCampusCard();
             return true;
         });
+        mapView.getOverlays().add(campusMarker);
+
+        // Add Kos Markers
+        if (currentFilteredList != null) {
+            for (KosItem item : currentFilteredList) {
+                Marker marker = new Marker(mapView);
+                marker.setPosition(new GeoPoint(item.getLatitude(), item.getLongitude()));
+                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+                marker.setTitle(item.getName());
+                marker.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_map_home));
+                marker.setOnMarkerClickListener((m, mv) -> {
+                    updatePropertyCard(item);
+                    return true;
+                });
+                mapView.getOverlays().add(marker);
+            }
+        }
+        
+        mapView.invalidate();
     }
 
     private void showMapFallback(FrameLayout container) {
@@ -301,52 +240,6 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         container.removeAllViews();
         View fallbackView = LayoutInflater.from(this).inflate(R.layout.layout_map_fallback, container, false);
         container.addView(fallbackView);
-    }
-
-    private void addMapResources(Style style) {
-        // Add Icons
-        style.addImage(KOS_ICON_ID, drawableToBitmap(ContextCompat.getDrawable(this, R.drawable.ic_map_home)));
-        style.addImage(CAMPUS_ICON_ID, drawableToBitmap(ContextCompat.getDrawable(this, R.drawable.ic_map_school)));
-
-        updateMapData(style);
-
-        // Add Campus Source
-        Feature campusFeature = Feature.fromGeometry(Point.fromLngLat(CAMPUS_LNG, CAMPUS_LAT));
-        String json = "{\"type\": \"geojson\", \"data\": " + campusFeature.toJson() + "}";
-        mapView.getMapboxMap().addStyleSource(CAMPUS_SOURCE_ID, com.mapbox.bindgen.Value.fromJson(json).getValue());
-    }
-
-    private void updateMapData(Style style) {
-        List<Feature> kosFeatures = new ArrayList<>();
-        if (allKosList != null && !allKosList.isEmpty()) {
-            for (int i = 0; i < allKosList.size(); i++) {
-                KosItem item = allKosList.get(i);
-                if (currentFilteredList != null && currentFilteredList.contains(item)) {
-                    Feature feature = Feature.fromGeometry(Point.fromLngLat(item.getLongitude(), item.getLatitude()));
-                    feature.addNumberProperty("index", i);
-                    kosFeatures.add(feature);
-                }
-            }
-        }
-        
-        String geoJson = FeatureCollection.fromFeatures(kosFeatures).toJson();
-        String json = "{\"type\": \"geojson\", \"data\": " + geoJson + "}";
-        
-        // Use a safer way to update or add source
-        try {
-            style.removeStyleSource(KOS_SOURCE_ID);
-        } catch (Exception ignored) {}
-        style.addStyleSource(KOS_SOURCE_ID, com.mapbox.bindgen.Value.fromJson(json).getValue());
-    }
-
-    private void addMapLayers(Style style) {
-        // Kos Layer
-        String kosLayerJson = "{\"id\": \"" + KOS_LAYER_ID + "\", \"type\": \"symbol\", \"source\": \"" + KOS_SOURCE_ID + "\", \"layout\": {\"icon-image\": \"" + KOS_ICON_ID + "\", \"icon-size\": 1.0, \"icon-allow-overlap\": true}}";
-        mapView.getMapboxMap().addStyleLayer(com.mapbox.bindgen.Value.fromJson(kosLayerJson).getValue(), null);
-
-        // Campus Layer
-        String campusLayerJson = "{\"id\": \"" + CAMPUS_LAYER_ID + "\", \"type\": \"symbol\", \"source\": \"" + CAMPUS_SOURCE_ID + "\", \"layout\": {\"icon-image\": \"" + CAMPUS_ICON_ID + "\", \"icon-size\": 1.3, \"icon-allow-overlap\": true}}";
-        mapView.getMapboxMap().addStyleLayer(com.mapbox.bindgen.Value.fromJson(campusLayerJson).getValue(), null);
     }
 
     private void updatePropertyCard(KosItem item) {
@@ -386,10 +279,8 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
             if (item.getName().toLowerCase().contains(query.toLowerCase().trim())) {
                 updatePropertyCard(item);
                 if (mapView != null) {
-                    mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
-                            .center(Point.fromLngLat(item.getLongitude(), item.getLatitude()))
-                            .zoom(17.0)
-                            .build());
+                    mapView.getController().animateTo(new GeoPoint(item.getLatitude(), item.getLongitude()));
+                    mapView.getController().setZoom(17.0);
                 }
                 return;
             }
@@ -433,13 +324,8 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
             float maxPrice = prices.get(1);
 
             filterKosListForMap(selectedFilterCategory, minPrice, maxPrice);
-
-            if (mapView != null) {
-                mapView.getMapboxMap().getStyle(style -> {
-                    updateMapData(style);
-                    zoomToFitMarkers(currentFilteredList);
-                });
-            }
+            addKosMarkers();
+            zoomToFitMarkers(currentFilteredList);
             
             dialog.dismiss();
             showCustomToast("✅ Filter diterapkan");
@@ -449,17 +335,13 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
             if (allKosList == null) return;
             selectedFilterCategory = "";
             currentFilteredList = new ArrayList<>(allKosList);
+            
+            addKosMarkers();
             if (mapView != null) {
-                mapView.getMapboxMap().getStyle(style -> {
-                    updateMapData(style);
-                    // Reset to campus view
-                    Point campusPoint = Point.fromLngLat(CAMPUS_LNG, CAMPUS_LAT);
-                    mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
-                            .center(campusPoint)
-                            .zoom(15.5)
-                            .build());
-                });
+                mapView.getController().animateTo(new GeoPoint(CAMPUS_LAT, CAMPUS_LNG));
+                mapView.getController().setZoom(15.5);
             }
+            
             dialog.dismiss();
             showCustomToast("🔄 Filter direset");
         });
@@ -506,21 +388,26 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
     private void zoomToFitMarkers(List<KosItem> items) {
         if (items == null || items.isEmpty() || mapView == null) return;
 
-        List<Point> points = items.stream()
-                .map(item -> Point.fromLngLat(item.getLongitude(), item.getLatitude()))
-                .collect(Collectors.toList());
-        
-        // Add campus to bounds to keep context
-        points.add(Point.fromLngLat(CAMPUS_LNG, CAMPUS_LAT));
+        double minLat = Double.MAX_VALUE;
+        double maxLat = -Double.MAX_VALUE;
+        double minLng = Double.MAX_VALUE;
+        double maxLng = -Double.MAX_VALUE;
 
-        CameraOptions cameraOptions = mapView.getMapboxMap().cameraForCoordinates(
-                points,
-                new EdgeInsets(200.0, 100.0, 200.0, 100.0),
-                null,
-                null
-        );
-        
-        mapView.getMapboxMap().setCamera(cameraOptions);
+        // Include campus
+        minLat = Math.min(minLat, CAMPUS_LAT);
+        maxLat = Math.max(maxLat, CAMPUS_LAT);
+        minLng = Math.min(minLng, CAMPUS_LNG);
+        maxLng = Math.max(maxLng, CAMPUS_LNG);
+
+        for (KosItem item : items) {
+            minLat = Math.min(minLat, item.getLatitude());
+            maxLat = Math.max(maxLat, item.getLatitude());
+            minLng = Math.min(minLng, item.getLongitude());
+            maxLng = Math.max(maxLng, item.getLongitude());
+        }
+
+        BoundingBox boundingBox = new BoundingBox(maxLat, maxLng, minLat, minLng);
+        mapView.zoomToBoundingBox(boundingBox, true, 100);
     }
 
     private void startNavigation(KosItem destination) {
@@ -534,49 +421,7 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
             return;
         }
 
-        showCustomToast("Menyiapkan navigasi...");
-
-        fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
-            if (location != null) {
-                Point origin = Point.fromLngLat(location.getLongitude(), location.getLatitude());
-                Point dest = Point.fromLngLat(destination.getLongitude(), destination.getLatitude());
-                
-                if (mapboxNavigation != null) {
-                    requestMapboxRoute(origin, dest);
-                } else {
-                    openGoogleMapsNavigation(destination.getLatitude(), destination.getLongitude());
-                }
-            } else {
-                showCustomToast("Gagal mendapatkan lokasi. Pastikan GPS aktif.");
-                openGoogleMapsNavigation(destination.getLatitude(), destination.getLongitude());
-            }
-        });
-    }
-
-    private void requestMapboxRoute(Point origin, Point destination) {
-        RouteOptions routeOptions = RouteOptions.builder()
-                .coordinatesList(Arrays.asList(origin, destination))
-                .build();
-
-        mapboxNavigation.requestRoutes(routeOptions, new NavigationRouterCallback() {
-            @Override
-            public void onRoutesReady(@NonNull List<NavigationRoute> routes, @NonNull String routerOrigin) {
-                if (!routes.isEmpty()) {
-                    showCustomToast("Rute ditemukan. Memulai navigasi...");
-                    openGoogleMapsNavigation(destination.latitude(), destination.longitude());
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull List<RouterFailure> failures, @NonNull RouteOptions routeOptions) {
-                showCustomToast("Mapbox routing gagal, membuka Google Maps...");
-                openGoogleMapsNavigation(destination.latitude(), destination.longitude());
-            }
-
-            @Override
-            public void onCanceled(@NonNull RouteOptions routeOptions, @NonNull String routerOrigin) {
-            }
-        });
+        openGoogleMapsNavigation(destination.getLatitude(), destination.getLongitude());
     }
 
     private void openGoogleMapsNavigation(double lat, double lng) {
@@ -634,14 +479,16 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         NavigationTransitionHelper.finishWithBackTransition(this);
     }
 
-    private Bitmap drawableToBitmap(Drawable drawable) {
-        if (drawable == null) return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888);
-        if (drawable instanceof BitmapDrawable) return ((BitmapDrawable) drawable).getBitmap();
-        Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-        drawable.draw(canvas);
-        return bitmap;
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mapView != null) mapView.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mapView != null) mapView.onPause();
     }
 
     private void showCustomToast(String message) {

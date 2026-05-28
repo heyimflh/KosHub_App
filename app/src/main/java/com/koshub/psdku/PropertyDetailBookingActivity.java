@@ -14,26 +14,29 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.preference.PreferenceManager;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.Chat;
-import com.koshub.psdku.models.Review;
 import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.ChatRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.FavoriteRepository;
 import com.koshub.psdku.repositories.ReviewRepository;
-import com.mapbox.geojson.Point;
-import com.mapbox.maps.CameraOptions;
-import com.mapbox.maps.MapView;
-import com.mapbox.maps.Style;
 
-import java.util.ArrayList;
+import org.osmdroid.api.IMapController;
+import org.osmdroid.config.Configuration;
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
+import org.osmdroid.util.GeoPoint;
+import org.osmdroid.views.MapView;
+import org.osmdroid.views.overlay.Marker;
+
 import java.util.List;
 import java.util.Locale;
 
@@ -62,6 +65,10 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // OSMDroid configuration
+        Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this));
+        
         setContentView(R.layout.activity_property_detail_booking);
 
         Intent intent = getIntent();
@@ -409,33 +416,32 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         FrameLayout mapContainer = findViewById(R.id.mapContainer);
         if (mapContainer == null) return;
 
-        if (!MapboxTokenHelper.hasValidMapboxToken(this)) {
-            showMapFallback(mapContainer);
-            return;
-        }
-
         try {
             mapView = new MapView(this);
-            mapContainer.addView(mapView);
+            mapView.setTileSource(TileSourceFactory.MAPNIK);
+            mapView.setMultiTouchControls(true);
+            
+            double lat = currentItem != null ? currentItem.getLatitude() : -7.6298;
+            double lng = currentItem != null ? currentItem.getLongitude() : 111.5231;
+            
+            IMapController mapController = mapView.getController();
+            mapController.setZoom(15.0);
+            GeoPoint startPoint = new GeoPoint(lat, lng);
+            mapController.setCenter(startPoint);
 
-            mapView.getMapboxMap().loadStyle(Style.STANDARD, style -> {
-                runOnUiThread(() -> {
-                    try {
-                        double lat = currentItem != null ? currentItem.getLatitude() : -7.6298;
-                        double lng = currentItem != null ? currentItem.getLongitude() : 111.5231;
-                        
-                        Point location = Point.fromLngLat(lng, lat);
-                        mapView.getMapboxMap().setCamera(new CameraOptions.Builder()
-                                .center(location)
-                                .zoom(15.0)
-                                .build());
-                    } catch (Exception e) {
-                        android.util.Log.e("MapboxSafety", "Error in style loaded callback", e);
-                    }
-                });
-            });
+            // Add Marker
+            Marker marker = new Marker(mapView);
+            marker.setPosition(startPoint);
+            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+            if (currentItem != null) {
+                marker.setTitle(currentItem.getName());
+            }
+            marker.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_map_home));
+            mapView.getOverlays().add(marker);
+
+            mapContainer.addView(mapView);
         } catch (Exception e) {
-            android.util.Log.e("MapboxSafety", "Failed to initialize MapView", e);
+            android.util.Log.e("OSMDroid", "Failed to initialize MapView", e);
             showMapFallback(mapContainer);
         }
     }
@@ -487,5 +493,17 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     public void onBackPressed() {
         super.onBackPressed();
         NavigationTransitionHelper.finishWithBackTransition(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mapView != null) mapView.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mapView != null) mapView.onPause();
     }
 }

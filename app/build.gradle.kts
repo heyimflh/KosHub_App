@@ -71,8 +71,7 @@ dependencies {
 
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
-    implementation("com.mapbox.maps:android:11.10.0")
-    implementation("com.mapbox.navigationcore:android:3.10.0")
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("com.google.android.gms:play-services-location:21.0.1")
 
     // Firebase
