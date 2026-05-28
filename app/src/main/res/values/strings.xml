@@ -143,6 +143,8 @@
     <string name="detail_section_fasilitas">Fasilitas</string>
     <string name="detail_section_lokasi">Lokasi</string>
     <string name="detail_section_ulasan">Ulasan</string>
+    <string name="empty_review_title">Belum ada ulasan</string>
+    <string name="empty_review_sub">Jadilah yang pertama memberikan ulasan!</string>
     <string name="detail_section_deskripsi">Deskripsi</string>
     <string name="detail_title">Nama Kos Eksklusif</string>
     <string name="detail_location">Kec. Jebres, Surakarta</string>

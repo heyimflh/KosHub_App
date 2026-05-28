@@ -312,10 +312,8 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private void populateReviewsReal(List<com.koshub.psdku.models.Review> reviews) {
         reviewContainer.removeAllViews();
         if (reviews.isEmpty()) {
-            TextView tvEmpty = new TextView(this);
-            tvEmpty.setText("Belum ada ulasan.");
-            tvEmpty.setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8));
-            reviewContainer.addView(tvEmpty);
+            View emptyView = LayoutInflater.from(this).inflate(R.layout.layout_review_empty, reviewContainer, false);
+            reviewContainer.addView(emptyView);
             return;
         }
 

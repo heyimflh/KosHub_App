@@ -1,5 +1,6 @@
 package com.koshub.psdku;
 
+import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -50,6 +51,8 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     private List<KosItem> filteredList = new ArrayList<>();
     private EditText etSearch;
     private ProgressBar progressBar;
+    private ValueAnimator skeletonAnimator;
+    private SkeletonAdapter skeletonAdapter = new SkeletonAdapter();
     private KosRepository kosRepository;
     private ListenerRegistration notificationListener;
 
@@ -164,8 +167,38 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     }
 
     private void setLoading(boolean loading) {
-        if (progressBar != null) progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
-        if (rvKosList != null) rvKosList.setAlpha(loading ? 0.5f : 1.0f);
+        if (loading) {
+            if (rvKosList != null) {
+                rvKosList.setAdapter(skeletonAdapter);
+                rvKosList.setAlpha(1.0f);
+            }
+            if (progressBar != null) progressBar.setVisibility(View.GONE);
+            
+            // Shimmer animation
+            if (skeletonAnimator == null) {
+                skeletonAnimator = ValueAnimator.ofFloat(0.4f, 1.0f);
+                skeletonAnimator.setDuration(800);
+                skeletonAnimator.setRepeatCount(ValueAnimator.INFINITE);
+                skeletonAnimator.setRepeatMode(ValueAnimator.REVERSE);
+                skeletonAnimator.addUpdateListener(animation -> {
+                    if (rvKosList != null && rvKosList.getAdapter() instanceof SkeletonAdapter) {
+                        rvKosList.setAlpha((float) animation.getAnimatedValue());
+                    }
+                });
+            }
+            if (!skeletonAnimator.isRunning()) skeletonAnimator.start();
+            
+        } else {
+            if (rvKosList != null) {
+                rvKosList.setAdapter(adapter);
+                rvKosList.setAlpha(1.0f);
+            }
+            if (progressBar != null) progressBar.setVisibility(View.GONE);
+            
+            if (skeletonAnimator != null) {
+                skeletonAnimator.cancel();
+            }
+        }
     }
 
     private void setupViews() {
