@@ -248,6 +248,24 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private void populateData() {
         if (currentItem == null) return;
 
+        // Fetch latest data from Firestore to ensure accurate rating/stats
+        com.koshub.psdku.repositories.KosRepository.getInstance().getKosById(currentItem.getId(), new com.koshub.psdku.repositories.KosRepository.KosCallback() {
+            @Override
+            public void onSuccess(com.koshub.psdku.models.Kos kos) {
+                com.koshub.psdku.KosItem updatedItem = com.koshub.psdku.utils.KosMapper.toKosItem(kos);
+                if (updatedItem != null) {
+                    currentItem.setRatingAverage(updatedItem.getRatingAverage());
+                    currentItem.setRatingCount(updatedItem.getRatingCount());
+                    updateRatingViews();
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                updateRatingViews(); // Fallback to current
+            }
+        });
+
         // Basic Info
         if (currentItem.getImageUrl() != null && !currentItem.getImageUrl().isEmpty()) {
             String optimizedUrl = CloudinaryRepository.getInstance().getOptimizedUrl(currentItem.getImageUrl(), 800, 500, false);
@@ -275,12 +293,7 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         tvDetailPriceValue.setText(formatPrice(currentItem.getPriceValue()));
 
         // Rating
-        if (tvDetailRating != null) {
-            tvDetailRating.setText(String.format(Locale.getDefault(), "%.1f", currentItem.getRatingAverage()));
-        }
-        if (tvDetailRatingCount != null) {
-            tvDetailRatingCount.setText(String.format(Locale.getDefault(), "(%d)", currentItem.getRatingCount()));
-        }
+        updateRatingViews();
 
         // Description
         tvDetailDescription.setText(generateDescription(currentItem));
@@ -303,6 +316,21 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
 
         // Map
         setupMap();
+    }
+
+    private void updateRatingViews() {
+        if (tvDetailRating != null) {
+            double avg = currentItem.getRatingAverage();
+            tvDetailRating.setText(avg > 0
+                    ? String.format(Locale.getDefault(), "%.1f", avg)
+                    : "—");
+        }
+        if (tvDetailRatingCount != null) {
+            int count = currentItem.getRatingCount();
+            tvDetailRatingCount.setText(count > 0
+                    ? String.format(Locale.getDefault(), "(%d Ulasan)", count)
+                    : "(Belum ada ulasan)");
+        }
     }
 
     private void loadRealReviews() {

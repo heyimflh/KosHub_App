@@ -17,6 +17,7 @@ import com.bumptech.glide.Glide;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 
 import java.util.List;
+import java.util.Locale;
 
 public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
 
@@ -109,7 +110,12 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
 
             // Content
             tvKosName.setText(item.getName());
-            tvRating.setText(item.getRating());
+            double avg = item.getRatingAverage();
+            if (avg > 0) {
+                tvRating.setText(String.format(Locale.getDefault(), "%.1f", avg));
+            } else {
+                tvRating.setText("—");
+            }
             tvAddress.setText(item.getAddress());
             tvPrice.setText(item.getPrice());
             tvDistance.setText(item.getDistance());

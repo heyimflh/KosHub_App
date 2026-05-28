@@ -156,8 +156,8 @@
     <string name="detail_sisa_kamar">Tersisa 2 kamar</string>
     <string name="detail_btn_waitlist">Waitlist</string>
     <string name="detail_btn_booking">Booking Sekarang</string>
-    <string name="detail_rating">4.8</string>
-    <string name="detail_rating_count">(120 Ulasan)</string>
+    <string name="detail_rating">—</string>
+    <string name="detail_rating_count">(Belum ada ulasan)</string>
     <string name="detail_description">Kos nyaman dengan fasilitas lengkap, dekat dengan kampus dan pusat perbelanjaan.</string>
     <string name="detail_route_title">Rute Tercepat</string>
     <string name="detail_route_distance">1.2 km</string>

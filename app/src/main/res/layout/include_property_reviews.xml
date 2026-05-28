@@ -35,7 +35,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:fontFamily="sans-serif-medium"
-            android:text="@string/detail_rating"
+            android:text="—"
             android:textColor="@color/md_on_surface"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -45,7 +45,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:text="@string/detail_rating_count"
+            android:text="(Belum ada ulasan)"
             android:textColor="@color/md_on_surface_variant"
             android:textSize="14sp" />
     </LinearLayout>

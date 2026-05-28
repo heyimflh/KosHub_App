@@ -23,7 +23,12 @@ public class KosMapper {
         int distanceMinutes = kos.getDistanceMinutes();
 
         // Map rating
-        String ratingText = kos.getRatingText() != null ? kos.getRatingText() : String.valueOf(kos.getRating());
+        String ratingText;
+        if (kos.getRatingAverage() > 0) {
+            ratingText = String.format(java.util.Locale.getDefault(), "%.1f", kos.getRatingAverage());
+        } else {
+            ratingText = "—";
+        }
 
         // Map category (ensure proper casing)
         String category = kos.getCategory();

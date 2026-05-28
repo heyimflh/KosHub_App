@@ -1,72 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/layoutReviewPrompt"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="16dp"
-    android:layout_marginBottom="16dp"
+    android:layout_marginBottom="12dp"
     android:visibility="gone"
     app:cardBackgroundColor="@color/md_surface_container_low"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="3dp"
-    app:strokeColor="@color/brand_green"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/md_outline_variant"
     app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="16dp">
-
-        <ImageView
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_star_filled"
-            android:contentDescription="Icon Ulasan"
-            app:tint="@color/brand_green" />
+        android:orientation="vertical"
+        android:padding="20dp">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-medium"
-                android:text="Bagaimana pengalamanmu?"
-                android:textColor="@color/md_on_surface"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_avatar_circle"
+                android:backgroundTint="@color/brand_green_light"
+                android:padding="10dp">
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_star_filled"
+                    app:tint="@color/brand_green" />
+            </FrameLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Bantu orang lain dengan ulasanmu"
-                android:textColor="@color/md_on_surface_variant"
-                android:textSize="12sp" />
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="Bagaimana pengalamanmu?"
+                    android:textColor="@color/md_on_surface"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="Bantu penghuni lain dengan ulasanmu"
+                    android:textColor="@color/md_on_surface_variant"
+                    android:textSize="12sp" />
+            </LinearLayout>
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnWriteReviewPrompt"
             style="@style/Widget.MaterialComponents.Button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:text="Tulis Review"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="16dp"
+            android:text="Tulis Ulasan Sekarang"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            android:textSize="13sp"
+            android:textSize="14sp"
             android:textStyle="bold"
             app:backgroundTint="@color/brand_green"
-            app:cornerRadius="12dp"
-            app:paddingStart="16dp"
-            app:paddingEnd="16dp" />
+            app:cornerRadius="14dp"
+            app:elevation="0dp"
+            app:icon="@drawable/ic_profile_review"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"
+            app:iconTint="@color/white" />
 
     </LinearLayout>
 
