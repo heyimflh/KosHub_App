@@ -1,26 +1,36 @@
 package com.koshub.psdku;
 
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
+import com.koshub.psdku.models.FinanceSummary;
+import com.koshub.psdku.models.OwnerKosStats;
+import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
+import com.koshub.psdku.repositories.FinanceRepository;
+import com.koshub.psdku.repositories.KosRepository;
 import com.koshub.psdku.repositories.StorageRepository;
+import com.koshub.psdku.utils.CurrencyHelper;
 import com.koshub.psdku.utils.DatabaseConstants;
 import com.koshub.psdku.services.FirebaseService;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
+
+import java.util.Locale;
 
 /**
  * OwnerProfileSettingsActivity - Halaman Profil & Pengaturan Pemilik Kos (Improved)
@@ -29,6 +39,8 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
 
     private CloudinaryRepository cloudinaryRepository;
     private ImageView imgProfile;
+    private TextView tvOwnerName, tvOwnerEmail, tvOwnerProfileCompletion, tvOwnerKosCount, tvOwnerHunian, tvOwnerBookingCount, tvOwnerRevenue;
+    private ProgressBar progressOwnerCompletion;
 
     private final ActivityResultLauncher<String> profilePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
@@ -80,6 +92,14 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
         btnEditProfile = findViewById(R.id.btnEditProfileOwner);
         btnCompleteLegal = findViewById(R.id.btnCompleteLegal);
         imgProfile = findViewById(R.id.imgOwnerAvatar);
+        tvOwnerName = findViewById(R.id.tvOwnerName);
+        tvOwnerEmail = findViewById(R.id.tvOwnerEmail);
+        tvOwnerProfileCompletion = findViewById(R.id.tvOwnerProfileCompletion);
+        tvOwnerKosCount = findViewById(R.id.tvOwnerKosCount);
+        tvOwnerHunian = findViewById(R.id.tvOwnerHunian);
+        tvOwnerBookingCount = findViewById(R.id.tvOwnerBookingCount);
+        tvOwnerRevenue = findViewById(R.id.tvOwnerRevenue);
+        progressOwnerCompletion = findViewById(R.id.progressOwnerCompletion);
         
         menuLegal = findViewById(R.id.menuOwnerLegal);
         menuPayment = findViewById(R.id.menuOwnerPayment);
@@ -153,6 +173,7 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
                         .placeholder(R.drawable.bg_avatar_circle)
                         .circleCrop()
                         .into(imgProfile);
+                loadProfileData(); // Reload to update completion %
             }
 
             @Override
@@ -168,8 +189,7 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
             @Override
             public void onSuccess(String imageUrl) {
                 showToast("Dokumen berhasil diupload");
-                // Refresh data if bottom sheet is still open? 
-                // Or just show toast. The user will see update on next open.
+                loadProfileData(); // Reload to update completion %
             }
 
             @Override
@@ -184,19 +204,90 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
         if (uid != null) {
             FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_USERS).document(uid).get()
                     .addOnSuccessListener(documentSnapshot -> {
-                        String name = documentSnapshot.getString(DatabaseConstants.FIELD_NAME);
-                        String email = documentSnapshot.getString(DatabaseConstants.FIELD_EMAIL);
-                        String photo = documentSnapshot.getString(DatabaseConstants.FIELD_PROFILE_IMAGE_URL);
+                        if (documentSnapshot.exists()) {
+                            String name = documentSnapshot.getString(DatabaseConstants.FIELD_NAME);
+                            String email = documentSnapshot.getString(DatabaseConstants.FIELD_EMAIL);
+                            String photo = documentSnapshot.getString(DatabaseConstants.FIELD_PROFILE_IMAGE_URL);
 
-                        if (name != null) ((TextView)findViewById(R.id.tvOwnerName)).setText(name);
-                        if (email != null) ((TextView)findViewById(R.id.tvOwnerEmail)).setText(email);
-                        if (photo != null && !photo.isEmpty()) {
-                            Glide.with(this).load(photo).placeholder(R.drawable.bg_avatar_circle).circleCrop().into(imgProfile);
-                        } else {
-                            Glide.with(this).load(R.drawable.bg_avatar_circle).circleCrop().into(imgProfile);
+                            if (name != null) tvOwnerName.setText(name);
+                            if (email != null) tvOwnerEmail.setText(email);
+                            if (photo != null && !photo.isEmpty()) {
+                                Glide.with(this).load(photo).placeholder(R.drawable.bg_avatar_circle).circleCrop().into(imgProfile);
+                            } else {
+                                Glide.with(this).load(R.drawable.bg_avatar_circle).circleCrop().into(imgProfile);
+                            }
+
+                            calculateProfileCompletion(documentSnapshot);
+                            loadOwnerStats(uid);
                         }
                     });
         }
+    }
+
+    private void calculateProfileCompletion(DocumentSnapshot doc) {
+        int totalFields = 8;
+        int filledFields = 0;
+
+        if (doc.getString(DatabaseConstants.FIELD_NAME) != null && !doc.getString(DatabaseConstants.FIELD_NAME).isEmpty()) filledFields++;
+        if (doc.getString(DatabaseConstants.FIELD_EMAIL) != null && !doc.getString(DatabaseConstants.FIELD_EMAIL).isEmpty()) filledFields++;
+        if (doc.getString(DatabaseConstants.FIELD_PROFILE_IMAGE_URL) != null && !doc.getString(DatabaseConstants.FIELD_PROFILE_IMAGE_URL).isEmpty()) filledFields++;
+        if (doc.getString(DatabaseConstants.FIELD_BANK_NAME) != null && !doc.getString(DatabaseConstants.FIELD_BANK_NAME).isEmpty()) filledFields++;
+        if (doc.getString(DatabaseConstants.FIELD_BANK_ACCOUNT_NUMBER) != null && !doc.getString(DatabaseConstants.FIELD_BANK_ACCOUNT_NUMBER).isEmpty()) filledFields++;
+        if (doc.getString(DatabaseConstants.FIELD_BANK_ACCOUNT_NAME) != null && !doc.getString(DatabaseConstants.FIELD_BANK_ACCOUNT_NAME).isEmpty()) filledFields++;
+        if (doc.getString(DatabaseConstants.FIELD_DOC_KTP) != null && !doc.getString(DatabaseConstants.FIELD_DOC_KTP).isEmpty()) filledFields++;
+        if (doc.getString(DatabaseConstants.FIELD_DOC_SKU) != null && !doc.getString(DatabaseConstants.FIELD_DOC_SKU).isEmpty()) filledFields++;
+
+        int percentage = (filledFields * 100) / totalFields;
+        if (tvOwnerProfileCompletion != null) tvOwnerProfileCompletion.setText(String.format(Locale.getDefault(), "%d%%", percentage));
+        if (progressOwnerCompletion != null) progressOwnerCompletion.setProgress(percentage);
+    }
+
+    private void loadOwnerStats(String ownerId) {
+        // 1. Kos Stats (Total Kos & Occupancy)
+        KosRepository.getInstance().calculateOwnerKosStats(ownerId, new KosRepository.StatsCallback() {
+            @Override
+            public void onSuccess(OwnerKosStats stats) {
+                if (tvOwnerKosCount != null) tvOwnerKosCount.setText(String.valueOf(stats.getTotalKos()));
+                if (tvOwnerHunian != null) tvOwnerHunian.setText(String.format(Locale.getDefault(), "%.0f%%", stats.getOccupancyRate()));
+            }
+
+            @Override
+            public void onError(String message) {}
+        });
+
+        // 2. Booking Count (Active Bookings)
+        BookingRepository.getInstance().getBookingsByOwner(ownerId, new BookingRepository.BookingListCallback() {
+            @Override
+            public void onSuccess(java.util.List<com.koshub.psdku.models.Booking> bookings) {
+                int activeCount = 0;
+                for (com.koshub.psdku.models.Booking b : bookings) {
+                    String status = b.getStatus();
+                    if (status != null && (status.equals(DatabaseConstants.BOOKING_PENDING) || 
+                        status.equals(DatabaseConstants.BOOKING_ACCEPTED) || 
+                        status.equals(DatabaseConstants.BOOKING_WAITING_CHECKIN) || 
+                        status.equals(DatabaseConstants.BOOKING_ACTIVE))) {
+                        activeCount++;
+                    }
+                }
+                if (tvOwnerBookingCount != null) tvOwnerBookingCount.setText(String.valueOf(activeCount));
+            }
+
+            @Override
+            public void onError(String message) {}
+        });
+
+        // 3. Finance Summary (Revenue)
+        FinanceRepository.getInstance().getFinanceSummary(ownerId, new FinanceRepository.FinanceSummaryCallback() {
+            @Override
+            public void onSuccess(FinanceSummary summary) {
+                if (tvOwnerRevenue != null) {
+                    tvOwnerRevenue.setText(CurrencyHelper.formatRupiah(summary.getTotalIncome()));
+                }
+            }
+
+            @Override
+            public void onError(String message) {}
+        });
     }
 
     private void showToast(String message) {
@@ -390,6 +481,7 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
                         .update(updates)
                         .addOnSuccessListener(aVoid -> {
                             showToast("Data rekening berhasil disimpan");
+                            loadProfileData(); // Update completion %
                             dialog.dismiss();
                         })
                         .addOnFailureListener(e -> showToast("Gagal menyimpan data: " + e.getMessage()));

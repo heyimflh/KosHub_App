@@ -9,7 +9,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,9 +19,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
+import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.Kos;
 import com.koshub.psdku.models.OwnerKosStats;
 import com.koshub.psdku.models.Room;
+import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.KosRepository;
 import com.koshub.psdku.utils.DatabaseConstants;
@@ -35,10 +36,14 @@ public class OwnerManagementActivity extends AppCompatActivity {
 
     private KosRepository kosRepository;
     private CloudinaryRepository cloudinaryRepository;
+    private BookingRepository bookingRepository;
     private FirebaseAuth auth;
     private List<Kos> ownerKosList;
     private Uri selectedImageUri;
     private ImageView imgPreview;
+
+    private int pendingBookingsCount = 0;
+    private int maintenanceRoomsCount = 0;
 
     private final ActivityResultLauncher<String> imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
@@ -57,6 +62,7 @@ public class OwnerManagementActivity extends AppCompatActivity {
 
         kosRepository = KosRepository.getInstance();
         cloudinaryRepository = CloudinaryRepository.getInstance();
+        bookingRepository = BookingRepository.getInstance();
         auth = FirebaseAuth.getInstance();
 
         if (auth.getCurrentUser() == null) {
@@ -113,6 +119,28 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 showToast("Gagal memuat statistik: " + message);
             }
         });
+
+        // 3. Load Pending Bookings
+        bookingRepository.getBookingsByOwner(uid, new BookingRepository.BookingListCallback() {
+            @Override
+            public void onSuccess(List<Booking> bookings) {
+                int pending = 0;
+                for (Booking b : bookings) {
+                    if ("pending".equalsIgnoreCase(b.getStatus())) {
+                        pending++;
+                    }
+                }
+                pendingBookingsCount = pending;
+                TextView tvStatBookingMenunggu = findViewById(R.id.tvStatBookingMenunggu);
+                if (tvStatBookingMenunggu != null) tvStatBookingMenunggu.setText(String.valueOf(pending));
+                updateAlertsUI();
+            }
+
+            @Override
+            public void onError(String message) {
+                showToast("Gagal memuat booking: " + message);
+            }
+        });
     }
 
     private void updateKosUI(List<Kos> kosList) {
@@ -131,14 +159,42 @@ public class OwnerManagementActivity extends AppCompatActivity {
         TextView tvTotalKamar = findViewById(R.id.tvTotalKamar);
         TextView tvKamarTerisi = findViewById(R.id.tvKamarTerisi);
         TextView tvKamarKosong = findViewById(R.id.tvKamarKosong);
+        TextView tvStatMaintenance = findViewById(R.id.tvStatMaintenance);
 
         if (tvTotalKamar != null) tvTotalKamar.setText(String.valueOf(stats.getTotalRooms()));
         if (tvKamarTerisi != null) tvKamarTerisi.setText(String.valueOf(stats.getOccupiedRooms()));
         if (tvKamarKosong != null) tvKamarKosong.setText(String.valueOf(stats.getAvailableRooms()));
+        if (tvStatMaintenance != null) tvStatMaintenance.setText(String.valueOf(stats.getMaintenanceRooms()));
         
+        this.maintenanceRoomsCount = stats.getMaintenanceRooms();
+        updateAlertsUI();
+
         // Additional secondary stats
         TextView tvStatPenyewa = findViewById(R.id.tvStatPenyewa);
         if (tvStatPenyewa != null) tvStatPenyewa.setText(stats.getOccupiedRooms() + " Aktif");
+    }
+
+    private void updateAlertsUI() {
+        View layoutAlert = findViewById(R.id.layoutPerluPerhatian);
+        TextView tvAlertContent = findViewById(R.id.tvPerluPerhatianContent);
+        
+        if (layoutAlert == null || tvAlertContent == null) return;
+
+        StringBuilder alerts = new StringBuilder();
+        if (pendingBookingsCount > 0) {
+            alerts.append("• ").append(pendingBookingsCount).append(" booking menunggu konfirmasi\n");
+        }
+        if (maintenanceRoomsCount > 0) {
+            alerts.append("• ").append(maintenanceRoomsCount).append(" kamar dalam pemeliharaan (maintenance)");
+        }
+
+        String content = alerts.toString().trim();
+        if (content.isEmpty()) {
+            layoutAlert.setVisibility(View.GONE);
+        } else {
+            layoutAlert.setVisibility(View.VISIBLE);
+            tvAlertContent.setText(content);
+        }
     }
 
     private void setupPropertySelector() {

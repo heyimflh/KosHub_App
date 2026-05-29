@@ -17,9 +17,9 @@
     <string name="mgmt_summary_penyewa">Penyewa Aktif</string>
     <string name="mgmt_summary_penyewa_value">15</string>
     <string name="mgmt_summary_booking">Booking Menunggu</string>
-    <string name="mgmt_summary_booking_value">3</string>
+    <string name="mgmt_summary_booking_value">0</string>
     <string name="mgmt_summary_maintenance">Maintenance</string>
-    <string name="mgmt_summary_maintenance_value">2</string>
+    <string name="mgmt_summary_maintenance_value">0</string>
     <string name="mgmt_actions_title">Aksi Cepat</string>
     <string name="mgmt_action_tambah_kamar">Tambah Kamar</string>
     <string name="mgmt_action_kelola_kamar">Kelola Kamar</string>
