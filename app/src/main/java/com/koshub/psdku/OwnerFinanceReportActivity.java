@@ -11,6 +11,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.koshub.psdku.models.FinanceSummary;
 import com.koshub.psdku.models.Withdrawal;
 import com.koshub.psdku.repositories.FinanceRepository;
@@ -19,6 +20,7 @@ import com.koshub.psdku.utils.DatabaseConstants;
 import com.koshub.psdku.utils.DateHelper;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * OwnerFinanceReportActivity - Laporan Keuangan Pemilik Kos
@@ -26,9 +28,13 @@ import java.util.List;
 public class OwnerFinanceReportActivity extends AppCompatActivity {
 
     private TextView tvTotalIncomeHeader, tvWalletAvailable, tvWalletPending;
-    private LinearLayout withdrawalHistoryContainer;
+    private TextView tvTargetAchieved, tvTargetLabelValue;
+    private TextView tvPaymentInValue, tvPaymentPendingValue, tvExpenseValue, tvNetIncomeValue;
+    private TextView tvStatusLunasCount, tvStatusPendingCount, tvStatusLateCount, tvStatusCancelledCount;
+    private LinearLayout withdrawalHistoryContainer, tvDummyTransactionContainer;
     private View btnBackFinance, btnTarikSaldo;
     private ProgressBar progressTarget;
+    private double ownerTarget = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,10 +56,25 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
         tvTotalIncomeHeader = findViewById(R.id.tvTotalIncomeHeader);
         tvWalletAvailable = findViewById(R.id.tvWalletAvailable);
         tvWalletPending = findViewById(R.id.tvWalletPending);
+        tvTargetAchieved = findViewById(R.id.tvTargetAchieved);
+        tvTargetLabelValue = findViewById(R.id.tvTargetLabelValue);
+        tvPaymentInValue = findViewById(R.id.tvPaymentInValue);
+        tvPaymentPendingValue = findViewById(R.id.tvPaymentPendingValue);
+        tvExpenseValue = findViewById(R.id.tvExpenseValue);
+        tvNetIncomeValue = findViewById(R.id.tvNetIncomeValue);
+        tvStatusLunasCount = findViewById(R.id.tvStatusLunasCount);
+        tvStatusPendingCount = findViewById(R.id.tvStatusPendingCount);
+        tvStatusLateCount = findViewById(R.id.tvStatusLateCount);
+        tvStatusCancelledCount = findViewById(R.id.tvStatusCancelledCount);
         withdrawalHistoryContainer = findViewById(R.id.withdrawalHistoryContainer);
+        tvDummyTransactionContainer = findViewById(R.id.tvDummyTransactionContainer);
         btnBackFinance = findViewById(R.id.btnBackFinance);
         btnTarikSaldo = findViewById(R.id.btnTarikSaldo);
         progressTarget = findViewById(R.id.progressTarget);
+
+        if (tvDummyTransactionContainer != null) {
+            tvDummyTransactionContainer.setVisibility(View.GONE);
+        }
     }
 
     private void setupListeners() {
@@ -68,6 +89,17 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
     private void loadFinanceData() {
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null) return;
+
+        // Fetch owner target from Firestore
+        FirebaseFirestore.getInstance().collection(DatabaseConstants.COLLECTION_USERS)
+                .document(uid)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists() && doc.contains(DatabaseConstants.FIELD_TARGET_BULANAN)) {
+                        Double val = doc.getDouble(DatabaseConstants.FIELD_TARGET_BULANAN);
+                        if (val != null) ownerTarget = val;
+                    }
+                });
 
         FinanceRepository.getInstance().getFinanceSummary(uid, new FinanceRepository.FinanceSummaryCallback() {
             @Override
@@ -95,15 +127,38 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
     }
 
     private void updateUI(FinanceSummary summary) {
-        tvTotalIncomeHeader.setText(CurrencyHelper.formatRupiah(summary.getTotalIncome()));
+        double totalRevenue = summary.getTotalIncome() + summary.getPendingBalance();
+        tvTotalIncomeHeader.setText(CurrencyHelper.formatRupiah(totalRevenue));
         tvWalletAvailable.setText(CurrencyHelper.formatRupiah(summary.getAvailableBalance()));
         tvWalletPending.setText(CurrencyHelper.formatRupiah(summary.getPendingBalance()));
-        
-        // Progress Target (Simulasi target 50jt)
-        double target = 50000000;
-        int progress = (int) ((summary.getTotalIncome() / target) * 100);
+
+        // Update Stats Cards
+        if (tvPaymentInValue != null) tvPaymentInValue.setText(CurrencyHelper.formatRupiah(summary.getTotalIncome()));
+        if (tvPaymentPendingValue != null) tvPaymentPendingValue.setText(CurrencyHelper.formatRupiah(summary.getPendingBalance()));
+        if (tvExpenseValue != null) tvExpenseValue.setText(CurrencyHelper.formatRupiah(summary.getTotalWithdrawn()));
+        if (tvNetIncomeValue != null) tvNetIncomeValue.setText(CurrencyHelper.formatRupiah(summary.getTotalIncome() + summary.getPendingBalance() - summary.getTotalWithdrawn()));
+
+        // Update Payment Status Counts
+        if (tvStatusLunasCount != null) tvStatusLunasCount.setText(String.valueOf(summary.getLunasCount()));
+        if (tvStatusPendingCount != null) tvStatusPendingCount.setText(String.valueOf(summary.getPendingCount()));
+        if (tvStatusLateCount != null) tvStatusLateCount.setText(String.valueOf(summary.getLateCount()));
+        if (tvStatusCancelledCount != null) tvStatusCancelledCount.setText(String.valueOf(summary.getCancelledCount()));
+
+        // Progress Target (Fallback to total income if target not set)
+        double target = ownerTarget > 0 ? ownerTarget : summary.getTotalIncome();
+        if (target <= 0) target = 1; // Avoid division by zero
+
+        double percentage = (totalRevenue / target) * 100;
+        int progress = (int) percentage;
         if (progress > 100) progress = 100;
+
         progressTarget.setProgress(progress);
+        if (tvTargetLabelValue != null) {
+            tvTargetLabelValue.setText(CurrencyHelper.formatRupiah(target));
+        }
+        if (tvTargetAchieved != null) {
+            tvTargetAchieved.setText(String.format(Locale.getDefault(), "Tercapai: %.0f%%", percentage));
+        }
     }
 
     private void renderWithdrawals(List<Withdrawal> withdrawals) {

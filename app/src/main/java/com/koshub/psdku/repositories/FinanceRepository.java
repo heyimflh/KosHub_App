@@ -241,15 +241,32 @@ public class FinanceRepository {
         int transactionCount = transSnapshot.size();
         int withdrawalCount = withSnapshot.size();
 
+        int lunasCount = 0;
+        int pendingCount = 0;
+        int lateCount = 0;
+        int cancelledCount = 0;
+
+        long now = System.currentTimeMillis();
+        long sevenDaysMillis = 7L * 24 * 60 * 60 * 1000;
+
         for (QueryDocumentSnapshot doc : transSnapshot) {
             Transaction t = doc.toObject(Transaction.class);
             if (DatabaseConstants.TRANSACTION_PENDING.equals(t.getStatus())) {
                 pendingBalance += t.getAmount();
+                pendingCount++;
+                // Simple logic for late: pending for more than 7 days
+                if (now - t.getCreatedAt() > sevenDaysMillis) {
+                    lateCount++;
+                }
             } else if (DatabaseConstants.TRANSACTION_AVAILABLE.equals(t.getStatus())) {
                 availableBalance += t.getAmount();
                 totalIncome += t.getAmount();
+                lunasCount++;
             } else if (DatabaseConstants.TRANSACTION_WITHDRAWN.equals(t.getStatus())) {
                 totalIncome += t.getAmount();
+                lunasCount++;
+            } else if (DatabaseConstants.TRANSACTION_CANCELLED.equals(t.getStatus())) {
+                cancelledCount++;
             }
         }
 
@@ -275,6 +292,10 @@ public class FinanceRepository {
         summary.setTotalPendingWithdraw(totalPendingWithdraw);
         summary.setTransactionCount(transactionCount);
         summary.setWithdrawalCount(withdrawalCount);
+        summary.setLunasCount(lunasCount);
+        summary.setPendingCount(pendingCount);
+        summary.setLateCount(lateCount);
+        summary.setCancelledCount(cancelledCount);
 
         return summary;
     }

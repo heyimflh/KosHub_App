@@ -14,6 +14,12 @@ public class FinanceSummary implements Serializable {
     private int transactionCount;
     private int withdrawalCount;
 
+    // Status Pembayaran Counts
+    private int lunasCount;
+    private int pendingCount;
+    private int lateCount;
+    private int cancelledCount;
+
     public FinanceSummary() {
     }
 
@@ -37,4 +43,16 @@ public class FinanceSummary implements Serializable {
 
     public int getWithdrawalCount() { return withdrawalCount; }
     public void setWithdrawalCount(int withdrawalCount) { this.withdrawalCount = withdrawalCount; }
+
+    public int getLunasCount() { return lunasCount; }
+    public void setLunasCount(int lunasCount) { this.lunasCount = lunasCount; }
+
+    public int getPendingCount() { return pendingCount; }
+    public void setPendingCount(int pendingCount) { this.pendingCount = pendingCount; }
+
+    public int getLateCount() { return lateCount; }
+    public void setLateCount(int lateCount) { this.lateCount = lateCount; }
+
+    public int getCancelledCount() { return cancelledCount; }
+    public void setCancelledCount(int cancelledCount) { this.cancelledCount = cancelledCount; }
 }

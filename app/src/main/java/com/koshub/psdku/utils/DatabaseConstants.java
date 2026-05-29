@@ -114,6 +114,7 @@ public class DatabaseConstants {
     public static final String FIELD_BANK_NAME = "bankName";
     public static final String FIELD_BANK_ACCOUNT_NUMBER = "bankAccountNumber";
     public static final String FIELD_BANK_ACCOUNT_NAME = "bankAccountName";
+    public static final String FIELD_TARGET_BULANAN = "targetBulanan";
     public static final String FIELD_CREATED_AT = "createdAt";
     public static final String FIELD_UPDATED_AT = "updatedAt";
 

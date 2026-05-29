@@ -83,6 +83,7 @@ public class OwnerDashboardActivity extends AppCompatActivity {
     // Header
     private View btnOwnerNotification;
     private TextView tvStatValuePendapatan, tvSaldoTersedia, tvSaldoPending;
+    private TextView tvRevenueTotal, tvRevenueMasukValue, tvRevenuePendingValue, tvRevenueEstimasiValue;
 
     // Stats
     private LinearLayout statTotalKos;
@@ -223,6 +224,10 @@ public class OwnerDashboardActivity extends AppCompatActivity {
 
         // Revenue
         cardRevenue = findViewById(R.id.cardRevenue);
+        tvRevenueTotal = findViewById(R.id.tvRevenueTotal);
+        tvRevenueMasukValue = findViewById(R.id.tvRevenueMasukValue);
+        tvRevenuePendingValue = findViewById(R.id.tvRevenuePendingValue);
+        tvRevenueEstimasiValue = findViewById(R.id.tvRevenueEstimasiValue);
 
         // Bottom Nav
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.DASHBOARD);
@@ -276,8 +281,9 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         FinanceRepository.getInstance().getFinanceSummary(uid, new FinanceRepository.FinanceSummaryCallback() {
             @Override
             public void onSuccess(FinanceSummary summary) {
+                double totalRevenue = summary.getTotalIncome() + summary.getPendingBalance();
                 if (tvStatValuePendapatan != null) {
-                    tvStatValuePendapatan.setText(CurrencyHelper.formatRupiah(summary.getTotalIncome()));
+                    tvStatValuePendapatan.setText(CurrencyHelper.formatRupiah(totalRevenue));
                 }
                 if (tvSaldoTersedia != null) {
                     tvSaldoTersedia.setText(CurrencyHelper.formatRupiah(summary.getAvailableBalance()));
@@ -285,6 +291,13 @@ public class OwnerDashboardActivity extends AppCompatActivity {
                 if (tvSaldoPending != null) {
                     tvSaldoPending.setText(CurrencyHelper.formatRupiah(summary.getPendingBalance()));
                 }
+
+                // Update bottom revenue card
+                if (tvRevenueTotal != null) tvRevenueTotal.setText(CurrencyHelper.formatRupiah(totalRevenue));
+                if (tvRevenueMasukValue != null) tvRevenueMasukValue.setText(CurrencyHelper.formatRupiah(summary.getTotalIncome()));
+                if (tvRevenuePendingValue != null) tvRevenuePendingValue.setText(CurrencyHelper.formatRupiah(summary.getPendingBalance()));
+                // For estimation, we can use totalRevenue for now as a simple placeholder
+                if (tvRevenueEstimasiValue != null) tvRevenueEstimasiValue.setText(CurrencyHelper.formatRupiah(totalRevenue));
             }
 
             @Override

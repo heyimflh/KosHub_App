@@ -9,7 +9,7 @@
     <string name="finance_filter_year">Tahun Ini</string>
     <string name="finance_total_income">Total Pendapatan</string>
     <string name="finance_total_income_value">Rp 12.500.000</string>
-    <string name="finance_total_income_indicator">+12%% dari bulan lalu</string>
+    <string name="finance_total_income_indicator">+12% dari bulan lalu</string>
     <string name="finance_payment_in">Pembayaran Masuk</string>
     <string name="finance_payment_in_value">Rp 10.750.000</string>
     <string name="finance_payment_pending">Pembayaran Pending</string>
@@ -21,7 +21,7 @@
     <string name="finance_income_overview">Ringkasan Pendapatan</string>
     <string name="finance_target_label">Target Bulan Ini</string>
     <string name="finance_target_value">Rp 15.000.000</string>
-    <string name="finance_achieved_label">Tercapai: 83%%</string>
+    <string name="finance_achieved_label">Tercapai: 83%</string>
     <string name="finance_transaction_title">Transaksi Terbaru</string>
     <string name="finance_transaction_see_all">Lihat Semua</string>
     <string name="finance_status_success">Berhasil</string>
@@ -45,9 +45,9 @@
     <string name="finance_expense_other">Lainnya</string>
     <string name="finance_expense_other_value">Rp 200.000</string>
     <string name="finance_export_btn">Download Laporan</string>
-    <string name="finance_insight_1">📈 Pendapatan bulan ini naik 12%% dari bulan lalu</string>
+    <string name="finance_insight_1">📈 Pendapatan bulan ini naik 12% dari bulan lalu</string>
     <string name="finance_insight_2">⏳ 3 pembayaran masih menunggu konfirmasi</string>
-    <string name="finance_insight_3">🎯 Target pendapatan sudah tercapai 83%%</string>
+    <string name="finance_insight_3">🎯 Target pendapatan sudah tercapai 83%</string>
     <string name="finance_nav_dashboard">Dashboard</string>
     <string name="finance_nav_kos">Kos Saya</string>
     <string name="finance_nav_booking">Booking</string>

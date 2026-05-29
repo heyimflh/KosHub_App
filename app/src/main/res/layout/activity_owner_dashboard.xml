@@ -1084,6 +1084,7 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tvRevenueTotal"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
@@ -1113,6 +1114,7 @@
                             android:textColor="@color/owner_text_secondary"
                             android:textSize="12sp" />
                         <TextView
+                            android:id="@+id/tvRevenueMasukValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/owner_revenue_masuk_value"
@@ -1141,6 +1143,7 @@
                             android:textColor="@color/owner_text_secondary"
                             android:textSize="12sp" />
                         <TextView
+                            android:id="@+id/tvRevenuePendingValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/owner_revenue_pending_value"
@@ -1170,6 +1173,7 @@
                             android:textColor="@color/owner_text_secondary"
                             android:textSize="12sp" />
                         <TextView
+                            android:id="@+id/tvRevenueEstimasiValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/owner_revenue_estimasi_value"
