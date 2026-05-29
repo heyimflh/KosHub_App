@@ -48,6 +48,7 @@ public class WaitingListQueueActivity extends AppCompatActivity {
 
     private View layoutEmptyState;
     private View sectionNeedsAction, sectionActiveQueue, sectionTimeline, sectionNextSteps;
+    private View cardNextStep, cardGuide, cardInfo;
 
     private View btnPrimaryAction;
     private TextView btnSecondaryAction;
@@ -110,6 +111,9 @@ public class WaitingListQueueActivity extends AppCompatActivity {
         sectionActiveQueue = findViewById(R.id.sectionActiveQueue);
         sectionTimeline = findViewById(R.id.queueTimelineContainer);
         sectionNextSteps = findViewById(R.id.sectionNextSteps);
+        cardNextStep = findViewById(R.id.cardNextStep);
+        cardGuide = findViewById(R.id.cardGuide);
+        cardInfo = findViewById(R.id.cardInfo);
 
         btnPrimaryAction = findViewById(R.id.btnPrimaryAction);
         btnSecondaryAction = findViewById(R.id.btnSecondaryAction);
@@ -179,11 +183,11 @@ public class WaitingListQueueActivity extends AppCompatActivity {
             public void onSuccess(List<Booking> bookings) {
                 if (bookings.isEmpty()) {
                     if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.VISIBLE);
-                    cardQueueStatus.setVisibility(View.GONE);
-                    cardAvailableStatus.setVisibility(View.GONE);
+                    findViewById(R.id.scrollWaitingList).setVisibility(View.GONE);
                     hideAllSections();
                 } else {
                     if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
+                    findViewById(R.id.scrollWaitingList).setVisibility(View.VISIBLE);
                     showAllSections();
                     Booking b = bookings.get(0); // Show most recent
                     updateUIWithBooking(b);
@@ -202,6 +206,11 @@ public class WaitingListQueueActivity extends AppCompatActivity {
         if (sectionActiveQueue != null) sectionActiveQueue.setVisibility(View.GONE);
         if (sectionTimeline != null) sectionTimeline.setVisibility(View.GONE);
         if (sectionNextSteps != null) sectionNextSteps.setVisibility(View.GONE);
+        if (cardNextStep != null) cardNextStep.setVisibility(View.GONE);
+        if (cardQueueStatus != null) cardQueueStatus.setVisibility(View.GONE);
+        if (cardAvailableStatus != null) cardAvailableStatus.setVisibility(View.GONE);
+        if (cardGuide != null) cardGuide.setVisibility(View.GONE);
+        if (cardInfo != null) cardInfo.setVisibility(View.GONE);
     }
 
     private void showAllSections() {
@@ -209,6 +218,9 @@ public class WaitingListQueueActivity extends AppCompatActivity {
         if (sectionActiveQueue != null) sectionActiveQueue.setVisibility(View.VISIBLE);
         if (sectionTimeline != null) sectionTimeline.setVisibility(View.VISIBLE);
         if (sectionNextSteps != null) sectionNextSteps.setVisibility(View.VISIBLE);
+        if (cardNextStep != null) cardNextStep.setVisibility(View.VISIBLE);
+        if (cardGuide != null) cardGuide.setVisibility(View.VISIBLE);
+        if (cardInfo != null) cardInfo.setVisibility(View.VISIBLE);
     }
 
     private void updateUIWithBooking(Booking b) {
