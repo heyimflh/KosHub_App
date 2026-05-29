@@ -11,6 +11,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.koshub.psdku.models.Booking;
@@ -19,14 +20,18 @@ import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.KosRepository;
 import com.koshub.psdku.utils.DatabaseConstants;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class OwnerBookingActivity extends AppCompatActivity {
 
     private LinearLayout bookingListContainer;
     private TextView tabAll, tabPending, tabActive, tabCompleted;
-    private View btnNotification, layoutEmptyState, layoutLoadingState;
+    private TextView tvStatMenunggu, tvStatDiterima, tvStatSelesai, tvStatDitolak, tvBookingBaruBadge, tvHeaderDate, tvPriorityAlertTitle;
+    private View btnNotification, layoutEmptyState, layoutLoadingState, cardPriorityAlert;
     private EditText etSearch;
 
     private List<Booking> realBookings = new ArrayList<>();
@@ -64,6 +69,21 @@ public class OwnerBookingActivity extends AppCompatActivity {
         etSearch = findViewById(R.id.etSearch);
         layoutEmptyState = findViewById(R.id.layoutEmptyState);
         layoutLoadingState = findViewById(R.id.layoutLoadingState);
+
+        tvHeaderDate = findViewById(R.id.tvHeaderDate);
+        tvStatMenunggu = findViewById(R.id.tvStatMenunggu);
+        tvStatDiterima = findViewById(R.id.tvStatDiterima);
+        tvStatSelesai = findViewById(R.id.tvStatSelesai);
+        tvStatDitolak = findViewById(R.id.tvStatDitolak);
+        tvBookingBaruBadge = findViewById(R.id.tvBookingBaruBadge);
+        tvPriorityAlertTitle = findViewById(R.id.tvPriorityAlertTitle);
+        cardPriorityAlert = findViewById(R.id.cardPriorityAlert);
+
+        // Set Dynamic Date
+        SimpleDateFormat sdf = new SimpleDateFormat("EEEE, dd MMMM yyyy", new Locale("id", "ID"));
+        if (tvHeaderDate != null) {
+            tvHeaderDate.setText(sdf.format(new Date()));
+        }
     }
 
     private void loadRealBookings() {
@@ -76,6 +96,7 @@ public class OwnerBookingActivity extends AppCompatActivity {
             public void onSuccess(List<Booking> bookings) {
                 if (layoutLoadingState != null) layoutLoadingState.setVisibility(View.GONE);
                 realBookings = bookings;
+                updateStatsCards(bookings);
                 renderBookings(currentTab);
             }
 
@@ -105,6 +126,63 @@ public class OwnerBookingActivity extends AppCompatActivity {
                 NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
             });
         }
+
+        if (findViewById(R.id.btnPriorityBooking) != null) {
+            findViewById(R.id.btnPriorityBooking).setOnClickListener(v -> {
+                currentTab = "pending";
+                renderBookings("pending");
+            });
+        }
+    }
+
+    private void updateStatsCards(List<Booking> bookings) {
+        int pending = 0;
+        int accepted = 0;
+        int completed = 0;
+        int rejected = 0;
+
+        for (Booking b : bookings) {
+            String status = b.getStatus();
+            if (status == null) continue;
+
+            if (status.equals(DatabaseConstants.BOOKING_PENDING)) {
+                pending++;
+            } else if (status.equals(DatabaseConstants.BOOKING_ACCEPTED) ||
+                    status.equals(DatabaseConstants.BOOKING_WAITING_CHECKIN) ||
+                    status.equals(DatabaseConstants.BOOKING_ACTIVE)) {
+                accepted++;
+            } else if (status.equals(DatabaseConstants.BOOKING_COMPLETED)) {
+                completed++;
+            } else if (status.equals(DatabaseConstants.BOOKING_REJECTED) ||
+                    status.equals(DatabaseConstants.BOOKING_CANCELLED)) {
+                rejected++;
+            }
+        }
+
+        if (tvStatMenunggu != null) tvStatMenunggu.setText(String.valueOf(pending));
+        if (tvStatDiterima != null) tvStatDiterima.setText(String.valueOf(accepted));
+        if (tvStatSelesai != null) tvStatSelesai.setText(String.valueOf(completed));
+        if (tvStatDitolak != null) tvStatDitolak.setText(String.valueOf(rejected));
+
+        if (tvBookingBaruBadge != null) {
+            if (pending > 0) {
+                tvBookingBaruBadge.setVisibility(View.VISIBLE);
+                tvBookingBaruBadge.setText(pending + " Booking Baru");
+            } else {
+                tvBookingBaruBadge.setVisibility(View.GONE);
+            }
+        }
+
+        if (cardPriorityAlert != null) {
+            if (pending > 0) {
+                cardPriorityAlert.setVisibility(View.VISIBLE);
+                if (tvPriorityAlertTitle != null) {
+                    tvPriorityAlertTitle.setText(pending + " booking perlu dikonfirmasi hari ini");
+                }
+            } else {
+                cardPriorityAlert.setVisibility(View.GONE);
+            }
+        }
     }
 
     private void updateTabUI(String filterStatus) {
@@ -117,7 +195,7 @@ public class OwnerBookingActivity extends AppCompatActivity {
 
         if (activeTab != null) {
             activeTab.setBackgroundResource(R.drawable.bg_chip_active);
-            activeTab.setTextColor(getResources().getColor(R.color.text_white));
+            activeTab.setTextColor(ContextCompat.getColor(this, R.color.text_white));
             activeTab.setTypeface(null, android.graphics.Typeface.BOLD);
         }
     }
@@ -127,7 +205,7 @@ public class OwnerBookingActivity extends AppCompatActivity {
         for (TextView t : tabs) {
             if (t != null) {
                 t.setBackgroundResource(R.drawable.bg_chip_inactive_premium);
-                t.setTextColor(getResources().getColor(R.color.text_secondary));
+                t.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
                 t.setTypeface(null, android.graphics.Typeface.NORMAL);
             }
         }

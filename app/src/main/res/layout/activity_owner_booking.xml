@@ -62,13 +62,15 @@
                         android:textSize="13sp" />
 
                     <TextView
+                        android:id="@+id/tvBookingBaruBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:background="@drawable/bg_badge_pending"
                         android:paddingHorizontal="10dp"
                         android:paddingVertical="4dp"
-                        android:text="3 Booking Baru"
+                        android:text=""
+                        android:visibility="gone"
                         android:textColor="@color/status_pending_text"
                         android:textSize="11sp"
                         android:textStyle="bold" />
@@ -170,11 +172,12 @@
                             android:src="@drawable/ic_waiting_queue" />
                     </FrameLayout>
                     <TextView
+                        android:id="@+id/tvStatMenunggu"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
                         android:fontFamily="sans-serif-black"
-                        android:text="3"
+                        android:text="0"
                         android:textColor="@color/status_pending_text"
                         android:textSize="22sp" />
                     <TextView
@@ -213,11 +216,12 @@
                             android:src="@drawable/ic_mgmt_confirm" />
                     </FrameLayout>
                     <TextView
+                        android:id="@+id/tvStatDiterima"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
                         android:fontFamily="sans-serif-black"
-                        android:text="12"
+                        android:text="0"
                         android:textColor="@color/status_accepted_text"
                         android:textSize="22sp" />
                     <TextView
@@ -256,11 +260,12 @@
                             android:src="@drawable/ic_profile_history" />
                     </FrameLayout>
                     <TextView
+                        android:id="@+id/tvStatSelesai"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
                         android:fontFamily="sans-serif-black"
-                        android:text="28"
+                        android:text="0"
                         android:textColor="@color/status_active_text"
                         android:textSize="22sp" />
                     <TextView
@@ -299,11 +304,12 @@
                             android:src="@drawable/ic_owner_warning" />
                     </FrameLayout>
                     <TextView
+                        android:id="@+id/tvStatDitolak"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
                         android:fontFamily="sans-serif-black"
-                        android:text="3"
+                        android:text="0"
                         android:textColor="@color/status_rejected_text"
                         android:textSize="22sp" />
                     <TextView
@@ -410,7 +416,8 @@
                 android:layout_marginTop="20dp"
                 android:background="@drawable/bg_owner_alert_card"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -422,11 +429,12 @@
                         android:layout_height="20dp"
                         android:src="@drawable/ic_owner_warning" />
                     <TextView
+                        android:id="@+id/tvPriorityAlertTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="10dp"
                         android:fontFamily="sans-serif-medium"
-                        android:text="3 booking perlu dikonfirmasi hari ini"
+                        android:text=""
                         android:textColor="@color/status_pending_text"
                         android:textSize="14sp"
                         android:textStyle="bold" />
