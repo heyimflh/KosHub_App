@@ -23,6 +23,7 @@ import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.AuthRepository;
 import com.koshub.psdku.repositories.FavoriteRepository;
 import com.koshub.psdku.repositories.ReviewRepository;
+import com.koshub.psdku.utils.CurrencyHelper;
 import com.koshub.psdku.utils.DatabaseConstants;
 import com.koshub.psdku.services.FirebaseService;
 
@@ -171,6 +172,27 @@ public class ProfileHistoryActivity extends AppCompatActivity {
                     TextView tvReviewValue = findViewById(R.id.tvStatReviewValue);
                     if (tvReviewValue != null) {
                         tvReviewValue.setText(String.valueOf(reviews.size()));
+                    }
+                }
+
+                @Override
+                public void onError(String message) {
+                }
+            });
+
+            BookingRepository.getInstance().getBookingsByStudent(uid, new BookingRepository.BookingListCallback() {
+                @Override
+                public void onSuccess(List<Booking> bookings) {
+                    double totalTransaction = 0;
+                    for (Booking b : bookings) {
+                        if (DatabaseConstants.BOOKING_ACTIVE.equals(b.getStatus()) ||
+                                DatabaseConstants.BOOKING_COMPLETED.equals(b.getStatus())) {
+                            totalTransaction += b.getTotalPrice();
+                        }
+                    }
+                    TextView tvTransactionValue = findViewById(R.id.tvStatTransactionValue);
+                    if (tvTransactionValue != null) {
+                        tvTransactionValue.setText(CurrencyHelper.formatRupiah(totalTransaction));
                     }
                 }
 

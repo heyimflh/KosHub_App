@@ -78,13 +78,13 @@
     <string name="profile_completion_percent">75%</string>
     <string name="profile_completion_cta">Lengkapi Sekarang</string>
     <string name="profile_stat_booking">Booking</string>
-    <string name="profile_stat_booking_value">12</string>
+    <string name="profile_stat_booking_value">0</string>
     <string name="profile_stat_favorite">Favorit</string>
-    <string name="profile_stat_favorite_value">24</string>
+    <string name="profile_stat_favorite_value">0</string>
     <string name="profile_stat_review">Ulasan</string>
-    <string name="profile_stat_review_value">8</string>
+    <string name="profile_stat_review_value">0</string>
     <string name="profile_stat_transaction">Transaksi</string>
-    <string name="profile_stat_transaction_value">Rp 5.2jt</string>
+    <string name="profile_stat_transaction_value">Rp 0</string>
     <string name="profile_history_title">Riwayat Sewa</string>
     <string name="profile_history_see_all">Lihat Semua</string>
     <string name="profile_history_status_done">Selesai</string>
