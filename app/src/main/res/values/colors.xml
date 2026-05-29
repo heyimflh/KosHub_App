@@ -175,4 +175,11 @@
     <color name="status_info_text">#FF0284C7</color>
     <color name="status_warning_bg">#FFFEE7CC</color>
     <color name="status_warning_text">#FF995500</color>
+    <!-- Onboarding Redesign Colors -->
+    <color name="primary_green">#095D40</color>
+    <color name="text_title">#1E3A2F</color>
+    <color name="text_body">#63736D</color>
+    <color name="bg_gradient_start">#E5F5F0</color>
+    <color name="bg_gradient_end">#FFFFFF</color>
+    <color name="dot_inactive_onboarding">#D1E0DB</color>
 </resources>

@@ -79,8 +79,21 @@ public class SplashActivity extends AppCompatActivity {
                     });
                 });
             } else {
-                navigateToLogin();
+                navigateToOnboardingOrLogin();
             }
+        } else {
+            navigateToOnboardingOrLogin();
+        }
+    }
+
+    private void navigateToOnboardingOrLogin() {
+        android.content.SharedPreferences prefs = getSharedPreferences("KosHubPrefs", android.content.Context.MODE_PRIVATE);
+        boolean onboardingDone = prefs.getBoolean("onboarding_done", false);
+
+        if (!onboardingDone) {
+            Intent intent = new Intent(SplashActivity.this, OnboardingActivity.class);
+            startActivity(intent);
+            finish();
         } else {
             navigateToLogin();
         }

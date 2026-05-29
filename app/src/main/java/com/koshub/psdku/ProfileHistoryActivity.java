@@ -185,7 +185,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
         View.OnClickListener comingSoon = v -> showToast("Fitur ini akan segera hadir");
         menuPersonal.setOnClickListener(v -> showEditProfileBottomSheet());
         menuHistory.setOnClickListener(v -> {
-            Intent intent = new Intent(this, WaitingListQueueActivity.class);
+            Intent intent = new Intent(this, RentalHistoryActivity.class);
             startActivity(intent);
         });
         menuWishlist.setOnClickListener(v -> {
@@ -208,7 +208,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
             emptyStateHistory.setVisibility(View.GONE);
 
             btnSeeAllHistory.setOnClickListener(v -> {
-                Intent intent = new Intent(this, WaitingListQueueActivity.class);
+                Intent intent = new Intent(this, RentalHistoryActivity.class);
                 startActivity(intent);
             });
 

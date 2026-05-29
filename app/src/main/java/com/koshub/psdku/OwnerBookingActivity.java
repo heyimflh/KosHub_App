@@ -9,11 +9,14 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.koshub.psdku.models.Booking;
+import com.koshub.psdku.models.Room;
 import com.koshub.psdku.repositories.BookingRepository;
+import com.koshub.psdku.repositories.KosRepository;
 import com.koshub.psdku.utils.DatabaseConstants;
 
 import java.util.ArrayList;
@@ -22,8 +25,8 @@ import java.util.List;
 public class OwnerBookingActivity extends AppCompatActivity {
 
     private LinearLayout bookingListContainer;
-    private TextView tabAll, tabPending, tabAccepted, tabActive, tabCompleted, tabRejected;
-    private View btnFilter, btnNotification, layoutEmptyState, layoutLoadingState;
+    private TextView tabAll, tabPending, tabActive, tabCompleted;
+    private View btnNotification, layoutEmptyState, layoutLoadingState;
     private EditText etSearch;
 
     private List<Booking> realBookings = new ArrayList<>();
@@ -50,12 +53,13 @@ public class OwnerBookingActivity extends AppCompatActivity {
 
         tabAll = findViewById(R.id.tabAll);
         tabPending = findViewById(R.id.tabPending);
-        tabAccepted = findViewById(R.id.tabAccepted);
         tabActive = findViewById(R.id.tabActive);
         tabCompleted = findViewById(R.id.tabCompleted);
-        tabRejected = findViewById(R.id.tabRejected);
+        
+        // Hide redundant tabs
+        if (findViewById(R.id.tabAccepted) != null) findViewById(R.id.tabAccepted).setVisibility(View.GONE);
+        if (findViewById(R.id.tabRejected) != null) findViewById(R.id.tabRejected).setVisibility(View.GONE);
 
-        btnFilter = findViewById(R.id.btnFilter);
         btnNotification = findViewById(R.id.btnNotification);
         etSearch = findViewById(R.id.etSearch);
         layoutEmptyState = findViewById(R.id.layoutEmptyState);
@@ -86,10 +90,8 @@ public class OwnerBookingActivity extends AppCompatActivity {
     private void setupClickListeners() {
         tabAll.setOnClickListener(v -> { currentTab = "all"; renderBookings("all"); });
         tabPending.setOnClickListener(v -> { currentTab = "pending"; renderBookings("pending"); });
-        tabAccepted.setOnClickListener(v -> { currentTab = "accepted"; renderBookings("accepted"); });
         tabActive.setOnClickListener(v -> { currentTab = "active"; renderBookings("active"); });
         tabCompleted.setOnClickListener(v -> { currentTab = "completed"; renderBookings("completed"); });
-        tabRejected.setOnClickListener(v -> { currentTab = "rejected"; renderBookings("rejected"); });
         
         if (findViewById(R.id.btnManageKos) != null) {
             findViewById(R.id.btnManageKos).setOnClickListener(v -> {
@@ -110,10 +112,8 @@ public class OwnerBookingActivity extends AppCompatActivity {
         TextView activeTab = null;
         if (filterStatus.equals("all")) activeTab = tabAll;
         else if (filterStatus.equals("pending")) activeTab = tabPending;
-        else if (filterStatus.equals("accepted")) activeTab = tabAccepted;
         else if (filterStatus.equals("active")) activeTab = tabActive;
         else if (filterStatus.equals("completed")) activeTab = tabCompleted;
-        else if (filterStatus.equals("rejected")) activeTab = tabRejected;
 
         if (activeTab != null) {
             activeTab.setBackgroundResource(R.drawable.bg_chip_active);
@@ -123,7 +123,7 @@ public class OwnerBookingActivity extends AppCompatActivity {
     }
 
     private void resetTabStyles() {
-        TextView[] tabs = {tabAll, tabPending, tabAccepted, tabActive, tabCompleted, tabRejected};
+        TextView[] tabs = {tabAll, tabPending, tabActive, tabCompleted};
         for (TextView t : tabs) {
             if (t != null) {
                 t.setBackgroundResource(R.drawable.bg_chip_inactive_premium);
@@ -147,10 +147,16 @@ public class OwnerBookingActivity extends AppCompatActivity {
             
             if (filterStatus.equals("all")) matches = true;
             else if (filterStatus.equals("pending")) matches = status.equals(DatabaseConstants.BOOKING_PENDING);
-            else if (filterStatus.equals("accepted")) matches = status.equals(DatabaseConstants.BOOKING_ACCEPTED) || status.equals(DatabaseConstants.BOOKING_WAITING_CHECKIN);
-            else if (filterStatus.equals("active")) matches = status.equals(DatabaseConstants.BOOKING_ACTIVE);
-            else if (filterStatus.equals("completed")) matches = status.equals(DatabaseConstants.BOOKING_COMPLETED);
-            else if (filterStatus.equals("rejected")) matches = status.equals(DatabaseConstants.BOOKING_REJECTED) || status.equals(DatabaseConstants.BOOKING_CANCELLED);
+            else if (filterStatus.equals("active")) {
+                matches = status.equals(DatabaseConstants.BOOKING_ACCEPTED) || 
+                          status.equals(DatabaseConstants.BOOKING_WAITING_CHECKIN) || 
+                          status.equals(DatabaseConstants.BOOKING_ACTIVE);
+            }
+            else if (filterStatus.equals("completed")) {
+                matches = status.equals(DatabaseConstants.BOOKING_COMPLETED) || 
+                          status.equals(DatabaseConstants.BOOKING_REJECTED) || 
+                          status.equals(DatabaseConstants.BOOKING_CANCELLED);
+            }
 
             if (matches) {
                 count++;
@@ -212,9 +218,71 @@ public class OwnerBookingActivity extends AppCompatActivity {
             return;
         }
 
+        if (b.getKosId() == null) {
+            showToast("ID Kos tidak ditemukan pada data booking.");
+            return;
+        }
+
+        showToast("Memuat daftar kamar...");
+
+        KosRepository.getInstance().getRoomsByKos(b.getKosId(), new KosRepository.RoomListCallback() {
+            @Override
+            public void onSuccess(List<Room> rooms) {
+                if (isFinishing() || isDestroyed()) return;
+
+                List<Room> availableRooms = new ArrayList<>();
+                for (Room r : rooms) {
+                    if (DatabaseConstants.ROOM_AVAILABLE.equals(r.getStatus())) {
+                        availableRooms.add(r);
+                    }
+                }
+
+                if (availableRooms.isEmpty()) {
+                    showToast("Tidak ada kamar yang tersedia saat ini.");
+                    return;
+                }
+
+                showRoomSelectionDialog(b, availableRooms);
+            }
+
+            @Override
+            public void onError(String message) {
+                if (!isFinishing() && !isDestroyed()) {
+                    showToast("Gagal memuat kamar: " + message);
+                }
+            }
+        });
+    }
+
+    private void showRoomSelectionDialog(Booking b, List<Room> rooms) {
+        String[] roomNames = new String[rooms.size()];
+        for (int i = 0; i < rooms.size(); i++) {
+            roomNames[i] = rooms.get(i).getRoomName();
+        }
+
+        final int[] selectedIndex = {-1};
+
+        new AlertDialog.Builder(this)
+                .setTitle("Pilih Kamar")
+                .setSingleChoiceItems(roomNames, -1, (dialog, which) -> {
+                    selectedIndex[0] = which;
+                })
+                .setPositiveButton("Terima Booking", (dialog, which) -> {
+                    if (selectedIndex[0] != -1) {
+                        Room selectedRoom = rooms.get(selectedIndex[0]);
+                        processAcceptBooking(b.getId(), selectedRoom.getId());
+                    } else {
+                        showToast("Pilih kamar terlebih dahulu.");
+                    }
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    private void processAcceptBooking(String bookingId, String roomId) {
         showToast("Memproses...");
 
-        BookingRepository.getInstance().acceptBooking(b.getId(), b.getRoomId(), new BookingRepository.SimpleCallback() {
+        BookingRepository.getInstance().acceptBooking(bookingId, roomId, new BookingRepository.SimpleCallback() {
             @Override
             public void onSuccess() {
                 if (!isFinishing() && !isDestroyed()) {

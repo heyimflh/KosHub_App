@@ -28,6 +28,11 @@
         </activity>
 
         <activity
+            android:name=".OnboardingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.KosHub" />
+
+        <activity
             android:name=".LoginActivity"
             android:exported="true"
             android:theme="@style/Theme.KosHub"
@@ -55,6 +60,11 @@
 
         <activity
             android:name=".WaitingListQueueActivity"
+            android:theme="@style/Theme.KosHub" />
+
+        <activity
+            android:name=".RentalHistoryActivity"
+            android:label="Riwayat Sewa"
             android:theme="@style/Theme.KosHub" />
 
         <activity
