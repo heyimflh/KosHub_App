@@ -19,10 +19,19 @@ import androidx.core.view.WindowInsetsCompat;
 public class HelpFaqActivity extends AppCompatActivity {
 
     private LinearLayout faqContainer;
+    private String currentRole = "student";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Get role from intent
+        if (getIntent() != null && getIntent().hasExtra("role")) {
+            currentRole = getIntent().getStringExtra("role");
+        }
+        if (currentRole == null || currentRole.isEmpty()) {
+            currentRole = "student";
+        }
         
         // Edge-to-edge support
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
@@ -42,6 +51,18 @@ public class HelpFaqActivity extends AppCompatActivity {
 
         findViewById(R.id.btnTanyaAsisten).setOnClickListener(v -> {
             Intent intent = new Intent(HelpFaqActivity.this, AiAssistantActivity.class);
+            com.koshub.psdku.utils.SessionManager session = new com.koshub.psdku.utils.SessionManager(this);
+            if (session.isLoggedIn()) {
+                intent.putExtra("userName", session.getUserName());
+                // Always use currentRole from profile, or fallback to session
+                String roleToPass = currentRole;
+                if ("student".equals(roleToPass) && session.getUserRole() != null) {
+                    roleToPass = session.getUserRole();
+                }
+                intent.putExtra("role", roleToPass);
+            } else {
+                intent.putExtra("role", currentRole);
+            }
             startActivity(intent);
         });
 

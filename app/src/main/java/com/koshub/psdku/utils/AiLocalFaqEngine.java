@@ -26,6 +26,11 @@ public class AiLocalFaqEngine {
         if (TextUtils.isEmpty(userMessage)) {
             return "Silakan ketikkan pertanyaan kamu agar saya bisa membantu.";
         }
+        
+        // Normalize role
+        if (role == null || role.isEmpty()) {
+            role = "student";
+        }
 
         String normalizedMessage = normalizeText(userMessage);
         
@@ -61,6 +66,11 @@ public class AiLocalFaqEngine {
     }
 
     private static String checkIntentShortcuts(String message, String role) {
+        // Cari Kos
+        if (containsAny(message, "cari kos", "mulai cari", "cara cari kos", "mau cari kos", "bingung cari", "dari mana cari")) {
+            return findAnswerById("std_search") != null ? findAnswerById("std_search") : findAnswerById("std_booking");
+        }
+
         // Chat Owner
         if (containsAny(message, "chat owner", "chat pemilik", "hubungi pemilik", "hubungi owner", "kontak owner", "owner tidak muncul", "chat tidak muncul")) {
             return findAnswerById("std_chat");

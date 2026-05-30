@@ -42,7 +42,7 @@ public class AiAssistantRepository {
                 .build();
     }
 
-    public void askKosHubAssistant(String userMessage, String role, List<AiMessage> recentMessages, AiCallback callback) {
+    public void askKosHubAssistant(String userMessage, String role, String userName, List<AiMessage> recentMessages, AiCallback callback) {
         if (userMessage == null || userMessage.trim().isEmpty()) {
             callback.onError("Pesan tidak boleh kosong.");
             return;
@@ -59,7 +59,7 @@ public class AiAssistantRepository {
             localFaqContext = "";
         }
 
-        String prompt = buildKosHubPrompt(userMessage, role, recentMessages, localFaqContext);
+        String prompt = buildKosHubPrompt(userMessage, role, recentMessages, localFaqContext, userName);
         String url = "https://generativelanguage.googleapis.com/v1beta/models/" + BuildConfig.GEMINI_MODEL + ":generateContent";
 
         try {
@@ -79,7 +79,11 @@ public class AiAssistantRepository {
             JSONObject generationConfig = new JSONObject();
             generationConfig.put("temperature", 0.45);
             generationConfig.put("topP", 0.85);
-            generationConfig.put("maxOutputTokens", 1024);
+            generationConfig.put("maxOutputTokens", 2048);
+            generationConfig.put("stopSequences", new JSONArray()
+                    .put("Ada hal lain yang")
+                    .put("Semoga membantu ya")
+                    .put("Silakan hubungi kami jika"));
             jsonBody.put("generationConfig", generationConfig);
 
             RequestBody body = RequestBody.create(jsonBody.toString(), JSON);
@@ -191,21 +195,37 @@ public class AiAssistantRepository {
                 .trim();
 
         // 4. Truncation check (Safety fallback for hanging sentences)
-        if (cleaned.endsWith(":") || cleaned.endsWith(",")) {
-            cleaned += " dan ikuti petunjuk selanjutnya ya, Kak.";
+        String lowerCleaned = cleaned.toLowerCase();
+        if (cleaned.endsWith(":") || cleaned.endsWith(",") || 
+            lowerCleaned.endsWith(" dan") || lowerCleaned.endsWith(" atau") || lowerCleaned.endsWith(" yaitu")) {
+            
+            // Find where the suffix starts
+            int lastSpace = cleaned.lastIndexOf(' ');
+            if (lastSpace != -1) {
+                cleaned = cleaned.substring(0, lastSpace).trim();
+                // Check again for punctuation after removing the word
+                if (cleaned.endsWith(":") || cleaned.endsWith(",")) {
+                    cleaned = cleaned.substring(0, cleaned.length() - 1).trim();
+                }
+            } else {
+                // Just remove the last character if it's single word ending with punct
+                cleaned = cleaned.substring(0, cleaned.length() - 1).trim();
+            }
+            cleaned += ".";
         }
 
         return cleaned;
     }
 
-    private String buildKosHubPrompt(String userMessage, String role, List<AiMessage> recentMessages, String localFaqContext) {
+    private String buildKosHubPrompt(String userMessage, String role, List<AiMessage> recentMessages, String localFaqContext, String userName) {
         StringBuilder sb = new StringBuilder();
-        
+
+        sb.append("PERINGATAN UTAMA: Jawaban WAJIB selesai dalam 1 respons. MAKSIMAL 5 langkah jika perlu langkah. MAKSIMAL 4 kalimat untuk jawaban non-langkah. JANGAN buat kalimat menggantung.\n\n");
         sb.append("Kamu adalah Asisten KosHub, CS AI otomatis untuk aplikasi KosHub.\n\n");
-        
+
         sb.append("Aturan Keras Gaya Jawaban:\n");
         sb.append("- Bahasa Indonesia ramah, ringan, dan to the point.\n");
-        sb.append("- Panggil user HANYA dengan 'Kak'. DILARANG memakai kata 'Kakak'.\n");
+        sb.append("- Panggil user dengan 'Kak' dengan aturan posisi: (a) Gunakan 'Kak' sebagai sapaan pembuka di awal kalimat pertama saja, contoh: 'Halo Kak!'. (b) Jika perlu menyebut user di tengah atau akhir kalimat, gunakan kata GANTI 'kamu', bukan 'Kak'. Contoh BENAR: 'Kamu bisa coba langkah ini'. Contoh SALAH: 'Kak bisa coba langkah ini'. (c) Boleh tambahkan 'Kak' di akhir kalimat penutup sebagai sapaan hangat, contoh: 'Semoga berhasil ya, Kak!'. (d) DILARANG keras menggunakan kata 'Kakak' dalam bentuk apapun.\n");
         sb.append("- JANGAN gunakan markdown, bold, italic, heading, atau tanda **.\n");
         sb.append("- Jawaban MAKSIMAL 5-8 kalimat pendek. Selesaikan jawaban sampai tuntas.\n");
         sb.append("- Jika butuh langkah, MAKSIMAL 5 langkah saja. Gunakan format angka 1, 2, 3.\n");
@@ -223,14 +243,33 @@ public class AiAssistantRepository {
         
         sb.append("Role User: ").append(role).append("\n\n");
         
+        if ("student".equals(role)) {
+            sb.append("INSTRUKSI ROLE STUDENT:\n");
+            sb.append("- Prioritaskan jawaban untuk mahasiswa.\n");
+            sb.append("- Fokus pada cari kos, detail kos, booking, pembayaran, chat owner, komplain, favorite, riwayat booking, dan ulasan.\n");
+            sb.append("- Jika user bertanya fitur owner seperti tambah kos, jelaskan bahwa fitur itu hanya untuk akun owner.\n\n");
+        } else if ("owner".equals(role)) {
+            sb.append("INSTRUKSI ROLE OWNER:\n");
+            sb.append("- Prioritaskan jawaban untuk pemilik kos.\n");
+            sb.append("- Fokus pada dashboard owner, tambah/edit kos, tambah kamar, update status kamar, kelola booking, chat mahasiswa, komplain, upload foto, dan laporan/finance.\n");
+            sb.append("- Jangan menjawab seolah user adalah mahasiswa.\n");
+            sb.append("- Jika owner bertanya fitur student seperti booking kos, jelaskan bahwa fitur booking digunakan oleh mahasiswa dan owner bisa memantau booking masuk.\n\n");
+        }
+
+        sb.append("Nama User: ").append(userName).append(" (Gunakan nama ini hanya di sapaan pertama kalimat pertama saja. Setelah itu gunakan 'kamu'.)\n\n");
+        
         if (localFaqContext != null && !localFaqContext.isEmpty()) {
+            String context = localFaqContext;
+            if (context.length() > 120) {
+                context = context.substring(0, 120) + "...";
+            }
             sb.append("Referensi (Tulis ulang dengan gaya natural, singkat, maks 5 kalimat):\n");
-            sb.append(localFaqContext).append("\n\n");
+            sb.append(context).append("\n\n");
         }
         
         if (recentMessages != null && !recentMessages.isEmpty()) {
-            sb.append("Chat History (Max 4):\n");
-            int start = Math.max(0, recentMessages.size() - 4);
+            sb.append("Chat History (Max 2):\n");
+            int start = Math.max(0, recentMessages.size() - 2);
             for (int i = start; i < recentMessages.size(); i++) {
                 AiMessage msg = recentMessages.get(i);
                 String sender = "ai".equals(msg.getSenderType()) ? "Asisten" : "User";

@@ -92,6 +92,18 @@
                         android:textSize="12sp" />
                 </LinearLayout>
             </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btnClearChat"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_notif_button"
+                android:clickable="true"
+                android:contentDescription="Bersihkan chat"
+                android:focusable="true"
+                android:padding="10dp"
+                android:src="@drawable/ic_delete_outline"
+                app:tint="@color/home_text_secondary" />
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -135,9 +147,10 @@
                     android:layout_marginStart="16dp"
                     android:layout_marginBottom="8dp"
                     android:fontFamily="sans-serif-medium"
-                    android:text="Mungkin ini yang kamu cari:"
+                    android:text="Saran bantuan:"
                     android:textColor="@color/home_text_secondary"
-                    android:textSize="12sp" />
+                    android:textSize="11sp"
+                    android:alpha="0.6" />
 
                 <!-- Horizontal Chips -->
                 <HorizontalScrollView

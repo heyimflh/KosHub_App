@@ -228,6 +228,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
         menuDocument.setOnClickListener(comingSoon);
         menuHelp.setOnClickListener(v -> {
             Intent intent = new Intent(this, HelpFaqActivity.class);
+            intent.putExtra("role", "student");
             startActivity(intent);
         });
         menuSettings.setOnClickListener(v -> showSettingsBottomSheet());

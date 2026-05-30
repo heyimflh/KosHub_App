@@ -127,6 +127,7 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
         menuSecurity.setOnClickListener(v -> showSecurityBottomSheet());
         menuHelp.setOnClickListener(v -> {
             Intent intent = new Intent(this, HelpFaqActivity.class);
+            intent.putExtra("role", "owner");
             startActivity(intent);
         });
 

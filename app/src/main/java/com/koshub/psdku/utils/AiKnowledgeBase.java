@@ -62,6 +62,14 @@ public class AiKnowledgeBase {
 
         // STUDENT
         items.add(new AiFaqItem(
+                "std_search",
+                "Cara Cari Kos",
+                "student",
+                Arrays.asList("cari kos", "mencari kos", "filter kos", "pencarian", "temukan kos"),
+                "Untuk cari kos di KosHub, buka halaman Beranda lalu gunakan kolom pencarian di bagian atas. Kak bisa filter berdasarkan lokasi, harga, dan tipe kamar. Setelah menemukan kos yang cocok, klik untuk melihat detailnya."
+        ));
+
+        items.add(new AiFaqItem(
                 "std_booking",
                 "Cara Booking Kos",
                 "student",
@@ -204,6 +212,39 @@ public class AiKnowledgeBase {
                 "owner",
                 Arrays.asList("laporan keuangan", "finance owner", "pendapatan", "penghasilan", "tarik saldo"),
                 "KosHub menyediakan ringkasan pendapatan di dashboard Owner. Kamu bisa melihat total penghasilan bulanan dan riwayat transaksi pembayaran dari penghuni."
+        ));
+
+        // MISMATCH ROLE FAQ
+        items.add(new AiFaqItem(
+                "std_ask_own_add_kos",
+                "Cara Tambah Kos (Student asking)",
+                "student",
+                Arrays.asList("tambah kos", "daftarkan kos", "buat kos"),
+                "Fitur tambah kos hanya tersedia untuk akun owner, Kak. Kalau Kak memakai akun mahasiswa, Kak bisa memakai fitur cari kos, booking kamar, chat owner, komplain, favorite, dan riwayat booking."
+        ));
+
+        items.add(new AiFaqItem(
+                "std_ask_own_add_room",
+                "Cara Tambah Kamar (Student asking)",
+                "student",
+                Arrays.asList("tambah kamar", "buat kamar"),
+                "Fitur tambah kamar hanya tersedia untuk akun owner, Kak. Jika Kak adalah pemilik kos, pastikan login menggunakan akun owner. Kalau memakai akun mahasiswa, fitur yang tersedia adalah cari kos, booking, chat owner, dan komplain."
+        ));
+
+        items.add(new AiFaqItem(
+                "own_ask_std_booking",
+                "Cara Booking Kos (Owner asking)",
+                "owner",
+                Arrays.asList("booking kos", "pesan kamar"),
+                "Fitur booking biasanya digunakan oleh mahasiswa, Kak. Untuk akun owner, Kak bisa melihat dan mengelola booking yang masuk melalui dashboard atau menu booking owner."
+        ));
+
+        items.add(new AiFaqItem(
+                "own_ask_std_payment",
+                "Cara Bayar Kos (Owner asking)",
+                "owner",
+                Arrays.asList("cara bayar", "pembayaran"),
+                "Pembayaran biasanya dilakukan dari akun mahasiswa, Kak. Sebagai owner, Kak bisa memantau status booking dan transaksi dari dashboard atau laporan jika fitur tersebut tersedia."
         ));
 
         return items;
