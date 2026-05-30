@@ -106,6 +106,11 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
                     textColor = R.color.status_active_text;
                     statusText = "Diterima";
                     break;
+                case DatabaseConstants.BOOKING_WAITING_PAYMENT:
+                    bgColor = R.color.status_warning_bg;
+                    textColor = R.color.status_warning_text;
+                    statusText = "Menunggu Bayar";
+                    break;
                 case DatabaseConstants.BOOKING_ACTIVE:
                     bgColor = R.color.status_accepted_bg;
                     textColor = R.color.status_accepted_text;
@@ -143,8 +148,12 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
             String status = booking.getStatus() != null ? booking.getStatus() : "";
             
             // Primary action logic
-            if (DatabaseConstants.BOOKING_ACCEPTED.equals(status)) {
-                btnAction.setText("Bayar");
+            if (DatabaseConstants.BOOKING_ACCEPTED.equals(status) || DatabaseConstants.BOOKING_WAITING_PAYMENT.equals(status)) {
+                if (DatabaseConstants.PAYMENT_PENDING.equals(booking.getPaymentStatus())) {
+                    btnAction.setText("Lanjutkan");
+                } else {
+                    btnAction.setText("Bayar");
+                }
                 btnAction.setVisibility(View.VISIBLE);
             } else if (DatabaseConstants.BOOKING_ACTIVE.equals(status) || DatabaseConstants.BOOKING_WAITING_CHECKIN.equals(status)) {
                 btnAction.setText("Chat");

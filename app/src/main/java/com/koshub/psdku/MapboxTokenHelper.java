@@ -5,7 +5,6 @@ import android.util.Log;
 
 public class MapboxTokenHelper {
     private static final String TAG = "MapboxSafety";
-    private static final String PLACEHOLDER = "YOUR_MAPBOX_PUBLIC_TOKEN_HERE";
 
     /**
      * Checks if the Mapbox token is valid using a 2-layer approach:
@@ -34,14 +33,21 @@ public class MapboxTokenHelper {
             Log.e(TAG, "Error reading Mapbox token from resources", e);
         }
 
-        Log.e(TAG, "Mapbox token is invalid or missing in both BuildConfig and Resources.");
+        Log.w(TAG, "Mapbox token is invalid or missing. Features requiring Mapbox will be disabled.");
         return false;
     }
 
     private static boolean isValidToken(String token) {
+        // A valid token must:
+        // 1. Not be null or empty
+        // 2. Start with 'pk.' (public) or 'sk.' (secret)
+        // 3. Have a minimum reasonable length for a real token (usually > 50 chars)
+        // 4. Not be a generic placeholder
         return token != null 
                 && !token.trim().isEmpty() 
-                && !token.equals(PLACEHOLDER) 
-                && token.startsWith("pk.");
+                && (token.startsWith("pk.") || token.startsWith("sk."))
+                && token.length() > 20
+                && !token.toUpperCase().contains("YOUR_")
+                && !token.toUpperCase().contains("_HERE");
     }
 }

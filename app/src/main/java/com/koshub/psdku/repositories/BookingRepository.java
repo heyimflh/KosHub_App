@@ -4,6 +4,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -17,6 +18,7 @@ import com.koshub.psdku.utils.DatabaseConstants;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Repository for Booking data.
@@ -53,6 +55,153 @@ public class BookingRepository {
     public interface SimpleCallback {
         void onSuccess();
         void onError(String message);
+    }
+
+    public void getBookingById(String bookingId, BookingCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        try {
+                            Booking b = mapBookingSafely(documentSnapshot);
+                            callback.onSuccess(b);
+                        } catch (Exception e) {
+                            android.util.Log.e(TAG, "Error mapping booking: " + e.getMessage());
+                            callback.onError("Gagal memproses data booking.");
+                        }
+                    } else {
+                        callback.onError("Booking not found");
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public Booking mapBookingSafely(DocumentSnapshot doc) {
+        Booking b = doc.toObject(Booking.class);
+        if (b == null) return null;
+        b.setId(doc.getId());
+
+        // Extra precautions for specific fields that might crash due to type mismatch
+        b.setPaymentStatus(getStringSafe(doc, "paymentStatus", "unpaid"));
+        b.setStatus(getStringSafe(doc, "status", "pending"));
+        b.setGatewayTransactionId(getLongSafe(doc, "gatewayTransactionId", 0L));
+        b.setTotalBayar(getDoubleSafe(doc, "totalBayar", 0.0));
+        b.setQrisString(getStringSafe(doc, "qrisString", null));
+        
+        // Timestamps
+        if (doc.contains("paymentCreatedAt")) b.setPaymentCreatedAt(doc.getTimestamp("paymentCreatedAt"));
+        if (doc.contains("paidAt")) b.setPaidAt(doc.getTimestamp("paidAt"));
+
+        return b;
+    }
+
+    private String getStringSafe(DocumentSnapshot doc, String field, String defaultValue) {
+        if (!doc.contains(field)) return defaultValue;
+        Object val = doc.get(field);
+        return val == null ? defaultValue : String.valueOf(val);
+    }
+
+    private Long getLongSafe(DocumentSnapshot doc, String field, Long defaultValue) {
+        if (!doc.contains(field)) return defaultValue;
+        Object val = doc.get(field);
+        if (val == null) return defaultValue;
+        if (val instanceof Number) return ((Number) val).longValue();
+        if (val instanceof String) {
+            try {
+                return Long.parseLong((String) val);
+            } catch (Exception e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
+    private Double getDoubleSafe(DocumentSnapshot doc, String field, Double defaultValue) {
+        if (!doc.contains(field)) return defaultValue;
+        Object val = doc.get(field);
+        if (val == null) return defaultValue;
+        if (val instanceof Number) return ((Number) val).doubleValue();
+        if (val instanceof String) {
+            try {
+                return Double.parseDouble((String) val);
+            } catch (Exception e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
+    public void savePaymentDraft(String bookingId, long idTransaksi, double totalBayar, String qrisString, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        if (callback != null) callback.onError("Booking not found");
+                        return;
+                    }
+
+                    Booking b = doc.toObject(Booking.class);
+                    if (b == null) {
+                        if (callback != null) callback.onError("Failed to parse booking");
+                        return;
+                    }
+
+                    // 1. Update Booking
+                    db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
+                            .update(
+                                    "paymentStatus", DatabaseConstants.PAYMENT_PENDING,
+                                    "status", DatabaseConstants.BOOKING_WAITING_PAYMENT,
+                                    "gatewayTransactionId", idTransaksi,
+                                    "totalBayar", totalBayar,
+                                    "qrisString", qrisString,
+                                    "paymentCreatedAt", FieldValue.serverTimestamp(),
+                                    "updatedAt", FieldValue.serverTimestamp()
+                            );
+
+                    // 2. Create/Update Payment Document
+                    String paymentDocId = bookingId + "_" + idTransaksi;
+                    java.util.Map<String, Object> paymentData = new java.util.HashMap<>();
+                    paymentData.put("bookingId", bookingId);
+                    paymentData.put("studentId", b.getStudentId());
+                    paymentData.put("ownerId", b.getOwnerId());
+                    paymentData.put("kosId", b.getKosId());
+                    paymentData.put("roomId", b.getRoomId());
+                    paymentData.put("amount", totalBayar);
+                    paymentData.put("status", DatabaseConstants.PAYMENT_PENDING);
+                    paymentData.put("gateway", "custom_qris_alwaysdata");
+                    paymentData.put("gatewayTransactionId", idTransaksi);
+                    paymentData.put("qrisString", qrisString);
+                    paymentData.put("createdAt", FieldValue.serverTimestamp());
+                    paymentData.put("updatedAt", FieldValue.serverTimestamp());
+
+                    db.collection(DatabaseConstants.COLLECTION_PAYMENTS).document(paymentDocId)
+                            .set(paymentData)
+                            .addOnSuccessListener(aVoid -> {
+                                if (callback != null) callback.onSuccess();
+                            })
+                            .addOnFailureListener(e -> {
+                                if (callback != null) callback.onError(e.getMessage());
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+    }
+
+    public void updateBookingToPaid(String bookingId, long idTransaksi, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
+                .update(
+                        "paymentStatus", DatabaseConstants.PAYMENT_PAID,
+                        "status", DatabaseConstants.BOOKING_WAITING_CHECKIN,
+                        "gatewayTransactionId", idTransaksi,
+                        "paidAt", FieldValue.serverTimestamp(),
+                        "updatedAt", FieldValue.serverTimestamp(),
+                        DatabaseConstants.FIELD_STATUS_HISTORY, FieldValue.arrayUnion("PAID via AlwaysData ID " + idTransaksi + " at " + System.currentTimeMillis())
+                )
+                .addOnSuccessListener(aVoid -> {
+                    if (callback != null) callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
     }
 
     public void createBooking(Booking booking, SimpleCallback callback) {
@@ -152,9 +301,12 @@ public class BookingRepository {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Booking> list = new ArrayList<>();
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        Booking b = doc.toObject(Booking.class);
-                        b.setId(doc.getId());
-                        list.add(b);
+                        try {
+                            Booking b = mapBookingSafely(doc);
+                            if (b != null) list.add(b);
+                        } catch (Exception e) {
+                            android.util.Log.e(TAG, "Error mapping booking list item Student: " + e.getMessage());
+                        }
                     }
                     // Manual sorting to avoid composite index error
                     Collections.sort(list, (b1, b2) -> Long.compare(b2.getCreatedAt(), b1.getCreatedAt()));
@@ -179,9 +331,12 @@ public class BookingRepository {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Booking> list = new ArrayList<>();
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        Booking b = doc.toObject(Booking.class);
-                        b.setId(doc.getId());
-                        list.add(b);
+                        try {
+                            Booking b = mapBookingSafely(doc);
+                            if (b != null) list.add(b);
+                        } catch (Exception e) {
+                            android.util.Log.e(TAG, "Error mapping booking list item Owner: " + e.getMessage());
+                        }
                     }
                     // Manual sorting to avoid composite index error
                     Collections.sort(list, (b1, b2) -> Long.compare(b2.getCreatedAt(), b1.getCreatedAt()));
@@ -373,18 +528,6 @@ public class BookingRepository {
                     } else {
                         callback.onSuccess();
                     }
-                })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
-    }
-
-    public void simulatePayment(String bookingId, SimpleCallback callback) {
-        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
-                .update("status", DatabaseConstants.BOOKING_WAITING_CHECKIN, 
-                        "paymentStatus", DatabaseConstants.PAYMENT_PAID,
-                        "updatedAt", System.currentTimeMillis())
-                .addOnSuccessListener(aVoid -> {
-                    FinanceRepository.getInstance().createPendingTransactionFromBooking(bookingId, null);
-                    callback.onSuccess();
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }

@@ -1,5 +1,6 @@
 package com.koshub.psdku.models;
 
+import com.google.firebase.Timestamp;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +25,11 @@ public class Booking implements Serializable {
     private int durationMonth;
     private double totalPrice;
     private String paymentStatus; // "unpaid", "pending", "paid", "refunded"
+    private Long gatewayTransactionId;
+    private Double totalBayar;
+    private String qrisString;
+    private Timestamp paymentCreatedAt;
+    private Timestamp paidAt;
     private long createdAt;
     private long updatedAt;
     private String note;
@@ -120,6 +126,37 @@ public class Booking implements Serializable {
 
     public String getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public String getSafeStatus() {
+        return status == null || status.trim().isEmpty() ? "pending" : status;
+    }
+
+    public String getSafePaymentStatus() {
+        return paymentStatus == null || paymentStatus.trim().isEmpty() ? "unpaid" : paymentStatus;
+    }
+
+    public long getSafeGatewayTransactionId() {
+        return gatewayTransactionId == null ? 0L : gatewayTransactionId;
+    }
+
+    public double getSafeTotalBayar() {
+        return totalBayar == null ? 0.0 : totalBayar;
+    }
+
+    public Long getGatewayTransactionId() { return gatewayTransactionId; }
+    public void setGatewayTransactionId(Long gatewayTransactionId) { this.gatewayTransactionId = gatewayTransactionId; }
+
+    public Double getTotalBayar() { return totalBayar; }
+    public void setTotalBayar(Double totalBayar) { this.totalBayar = totalBayar; }
+
+    public String getQrisString() { return qrisString; }
+    public void setQrisString(String qrisString) { this.qrisString = qrisString; }
+
+    public Timestamp getPaymentCreatedAt() { return paymentCreatedAt; }
+    public void setPaymentCreatedAt(Timestamp paymentCreatedAt) { this.paymentCreatedAt = paymentCreatedAt; }
+
+    public Timestamp getPaidAt() { return paidAt; }
+    public void setPaidAt(Timestamp paidAt) { this.paidAt = paidAt; }
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }

@@ -148,6 +148,7 @@ public class OwnerBookingActivity extends AppCompatActivity {
             if (status.equals(DatabaseConstants.BOOKING_PENDING)) {
                 pending++;
             } else if (status.equals(DatabaseConstants.BOOKING_ACCEPTED) ||
+                    status.equals(DatabaseConstants.BOOKING_WAITING_PAYMENT) ||
                     status.equals(DatabaseConstants.BOOKING_WAITING_CHECKIN) ||
                     status.equals(DatabaseConstants.BOOKING_ACTIVE)) {
                 accepted++;
@@ -227,6 +228,7 @@ public class OwnerBookingActivity extends AppCompatActivity {
             else if (filterStatus.equals("pending")) matches = status.equals(DatabaseConstants.BOOKING_PENDING);
             else if (filterStatus.equals("active")) {
                 matches = status.equals(DatabaseConstants.BOOKING_ACCEPTED) || 
+                          status.equals(DatabaseConstants.BOOKING_WAITING_PAYMENT) ||
                           status.equals(DatabaseConstants.BOOKING_WAITING_CHECKIN) || 
                           status.equals(DatabaseConstants.BOOKING_ACTIVE);
             }

@@ -17,6 +17,7 @@ public class DatabaseConstants {
     public static final String COLLECTION_WITHDRAWALS = "withdrawals";
     public static final String COLLECTION_REVIEWS = "reviews";
     public static final String COLLECTION_NOTIFICATIONS = "notifications";
+    public static final String COLLECTION_PAYMENTS = "payments";
     public static final String COLLECTION_FCM_TOKENS = "fcmTokens";
 
     // Roles
@@ -38,6 +39,7 @@ public class DatabaseConstants {
     public static final String BOOKING_PENDING = "pending";
     public static final String BOOKING_ACCEPTED = "accepted";
     public static final String BOOKING_REJECTED = "rejected";
+    public static final String BOOKING_WAITING_PAYMENT = "waiting_payment";
     public static final String BOOKING_WAITING_CHECKIN = "waiting_checkin";
     public static final String BOOKING_ACTIVE = "active";
     public static final String BOOKING_COMPLETED = "completed";

@@ -30,11 +30,13 @@
         <activity
             android:name=".OnboardingActivity"
             android:exported="false"
+            tools:replace="android:exported"
             android:theme="@style/Theme.KosHub" />
 
         <activity
             android:name=".LoginActivity"
-            android:exported="true"
+            android:exported="false"
+            tools:replace="android:exported"
             android:theme="@style/Theme.KosHub"
             android:windowSoftInputMode="adjustResize">
         </activity>
@@ -42,107 +44,157 @@
         <activity
             android:name=".RegisterActivity"
             android:exported="false"
+            tools:replace="android:exported"
             android:theme="@style/Theme.KosHub"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".StudentHomeActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:theme="@style/Theme.KosHub"
             android:windowSoftInputMode="adjustPan" />
 
         <activity
             android:name=".PropertyDetailBookingActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:theme="@style/Theme.KosHub" />
 
         <activity
             android:name=".MapViewRouteNavigationActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:theme="@style/Theme.KosHub" />
 
         <activity
             android:name=".WaitingListQueueActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:theme="@style/Theme.KosHub" />
 
         <activity
             android:name=".RentalHistoryActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Riwayat Sewa"
             android:theme="@style/Theme.KosHub" />
 
         <activity
             android:name=".ProfileHistoryActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Profile"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".FavoriteListActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Kos Favorit"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".HelpFaqActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Pusat Bantuan"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".OwnerDashboardActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Owner Dashboard"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".OwnerFinanceReportActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Finance Report"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".OwnerManagementActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Manajemen Kos"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".OwnerProfileSettingsActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Owner Profile"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".OwnerBookingActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Booking Masuk"
-            android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".OwnerWithdrawActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Tarik Saldo"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".OwnerComplaintActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Laporan Komplain"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".OwnerChatActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Inbox Chat"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".OwnerChatRoomActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Chat Room"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".TenantComplaintFormActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Laporkan Komplain"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".ReviewFormActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Beri Ulasan"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
             android:name=".NotificationActivity"
+            android:exported="false"
+            tools:replace="android:exported"
             android:label="Notifikasi"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
+        <activity
+            android:name=".QrisPaymentActivity"
+            android:exported="false"
+            android:theme="@style/Theme.KosHub" />
+
+        <activity
+            android:name=".PaymentSuccessActivity"
+            android:exported="false"
+            android:theme="@style/Theme.KosHub" />
 
         <service
             android:name=".services.KosHubMessagingService"

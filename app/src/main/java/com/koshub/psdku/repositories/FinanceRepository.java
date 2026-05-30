@@ -5,6 +5,7 @@ import android.util.Log;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
@@ -59,6 +60,66 @@ public class FinanceRepository {
     public interface FinanceSummaryCallback {
         void onSuccess(FinanceSummary summary);
         void onError(String message);
+    }
+
+    public void createTransactionAfterPayment(Booking booking, long idTransaksi, double totalBayar, SimpleCallback callback) {
+        String transactionId = booking.getId() + "_" + idTransaksi;
+        
+        db.collection(DatabaseConstants.COLLECTION_TRANSACTIONS).document(transactionId).get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        if (callback != null) callback.onSuccess(); // Idempotent
+                        return;
+                    }
+
+                    Transaction transaction = new Transaction();
+                    transaction.setId(transactionId);
+                    transaction.setOwnerId(booking.getOwnerId());
+                    transaction.setStudentId(booking.getStudentId());
+                    transaction.setBookingId(booking.getId());
+                    transaction.setKosId(booking.getKosId());
+                    transaction.setKosName(booking.getKosName());
+                    transaction.setAmount(totalBayar);
+                    transaction.setType("rent_payment");
+                    transaction.setStatus(DatabaseConstants.TRANSACTION_AVAILABLE);
+                    transaction.setCreatedAt(System.currentTimeMillis());
+                    transaction.setUpdatedAt(System.currentTimeMillis());
+                    
+                    db.collection(DatabaseConstants.COLLECTION_TRANSACTIONS).document(transactionId)
+                            .set(transaction)
+                            .addOnSuccessListener(aVoid -> {
+                                // 1. Update with custom fields
+                                db.collection(DatabaseConstants.COLLECTION_TRANSACTIONS).document(transactionId)
+                                        .update(
+                                                "gateway", "custom_qris_alwaysdata",
+                                                "gatewayTransactionId", idTransaksi,
+                                                "paidAt", FieldValue.serverTimestamp()
+                                        );
+                                
+                                // 2. Update Payment document status to paid
+                                String paymentDocId = booking.getId() + "_" + idTransaksi;
+                                db.collection(DatabaseConstants.COLLECTION_PAYMENTS).document(paymentDocId)
+                                        .update(
+                                                "status", DatabaseConstants.PAYMENT_PAID,
+                                                "paidAt", FieldValue.serverTimestamp(),
+                                                "updatedAt", FieldValue.serverTimestamp()
+                                        );
+
+                                // 3. Update Room status to booked
+                                if (booking.getRoomId() != null && !booking.getRoomId().isEmpty()) {
+                                    db.collection(DatabaseConstants.COLLECTION_ROOMS).document(booking.getRoomId())
+                                            .update("status", DatabaseConstants.ROOM_BOOKED);
+                                }
+
+                                if (callback != null) callback.onSuccess();
+                            })
+                            .addOnFailureListener(e -> {
+                                if (callback != null) callback.onError(e.getMessage());
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
     }
 
     public void createPendingTransactionFromBooking(String bookingId, SimpleCallback callback) {

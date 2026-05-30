@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.koshub.psdku.R;
 import com.koshub.psdku.models.Booking;
+import com.koshub.psdku.utils.DatabaseConstants;
 import java.util.List;
 
 public class RecentBookingAdapter extends RecyclerView.Adapter<RecentBookingAdapter.ViewHolder> {
@@ -36,8 +37,10 @@ public class RecentBookingAdapter extends RecyclerView.Adapter<RecentBookingAdap
         int bgRes;
         int textColorRes;
         
-        switch (booking.getStatus().toLowerCase()) {
+        String status = booking.getStatus() != null ? booking.getStatus().toLowerCase() : "";
+        switch (status) {
             case "accepted":
+            case "waiting_payment":
                 bgRes = R.drawable.bg_owner_booking_accepted;
                 textColorRes = R.color.owner_booking_accepted_text;
                 break;

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cardAvailableStatus"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -40,7 +41,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:fontFamily="sans-serif-medium"
-            android:text="Kos Putra Harmoni"
+            tools:text="Kos Putra Harmoni"
             android:textColor="@color/md_on_surface"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -52,7 +53,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:fontFamily="sans-serif"
-            android:text="Jl. Harmoni No. 5, Dekat Kampus PSDKU"
+            tools:text="Jl. Harmoni No. 5, Dekat Kampus PSDKU"
             android:textColor="@color/md_on_surface_variant"
             android:textSize="14sp" />
 

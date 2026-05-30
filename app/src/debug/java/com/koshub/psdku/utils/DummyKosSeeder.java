@@ -7,6 +7,7 @@ import java.util.Arrays;
 /**
  * Utility to seed initial data to Firestore.
  * Use for testing purposes only.
+ * This class is located in the debug source set and will not be included in release builds.
  */
 public class DummyKosSeeder {
 

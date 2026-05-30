@@ -3,7 +3,7 @@ package com.koshub.psdku;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Looper;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,6 +29,7 @@ import java.util.List;
 
 public class WaitingListQueueActivity extends AppCompatActivity {
 
+    private static final String TAG = "WaitingListQueue";
     private FrameLayout btnNotification;
     
     // Queue Card
@@ -165,11 +166,12 @@ public class WaitingListQueueActivity extends AppCompatActivity {
     }
 
     private void openChatFromBooking(Booking b) {
+        if (b == null) return;
         Intent intent = new Intent(this, OwnerChatRoomActivity.class);
         intent.putExtra("BOOKING_ID", b.getId());
         intent.putExtra("USER_NAME", "Pemilik Kos"); // Fallback, repository will fetch real name
         intent.putExtra("KOS_NAME", b.getKosName());
-        intent.putExtra("STATUS", b.getStatus());
+        intent.putExtra("STATUS", b.getSafeStatus());
         intent.putExtra("INITIAL", "P");
         NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
@@ -181,22 +183,27 @@ public class WaitingListQueueActivity extends AppCompatActivity {
         BookingRepository.getInstance().getBookingsByStudent(uid, new BookingRepository.BookingListCallback() {
             @Override
             public void onSuccess(List<Booking> bookings) {
-                if (bookings.isEmpty()) {
-                    if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.VISIBLE);
-                    findViewById(R.id.scrollWaitingList).setVisibility(View.GONE);
-                    hideAllSections();
-                } else {
-                    if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
-                    findViewById(R.id.scrollWaitingList).setVisibility(View.VISIBLE);
-                    showAllSections();
-                    Booking b = bookings.get(0); // Show most recent
-                    updateUIWithBooking(b);
+                try {
+                    if (bookings.isEmpty()) {
+                        if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.VISIBLE);
+                        findViewById(R.id.scrollWaitingList).setVisibility(View.GONE);
+                        hideAllSections();
+                    } else {
+                        if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
+                        findViewById(R.id.scrollWaitingList).setVisibility(View.VISIBLE);
+                        showAllSections();
+                        Booking b = bookings.get(0); // Show most recent
+                        updateUIWithBooking(b);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error updating UI with bookings", e);
+                    showCustomToast("Terjadi kesalahan tampilan.");
                 }
             }
 
             @Override
             public void onError(String message) {
-                showCustomToast(message);
+                showCustomToast("Gagal memuat antrean: " + message);
             }
         });
     }
@@ -224,7 +231,14 @@ public class WaitingListQueueActivity extends AppCompatActivity {
     }
 
     private void updateUIWithBooking(Booking b) {
-        String status = b.getStatus();
+        if (b == null) return;
+        
+        String status = b.getSafeStatus();
+        String paymentStatus = b.getSafePaymentStatus();
+        
+        Log.d(TAG, "Updating UI for bookingId=" + b.getId() 
+                + ", status=" + status 
+                + ", paymentStatus=" + paymentStatus);
         
         // Populate standard fields
         tvPropertyName.setText(b.getKosName());
@@ -235,20 +249,44 @@ public class WaitingListQueueActivity extends AppCompatActivity {
         if (tvQueueMicrocopy != null) tvQueueMicrocopy.setVisibility(View.GONE);
         if (tvEstimatedAvailability != null) tvEstimatedAvailability.setText("Menunggu Konfirmasi");
 
-        if (DatabaseConstants.BOOKING_ACCEPTED.equals(status)) {
+        if (DatabaseConstants.BOOKING_ACCEPTED.equals(status) || DatabaseConstants.BOOKING_WAITING_PAYMENT.equals(status)) {
             cardQueueStatus.setVisibility(View.GONE);
             cardAvailableStatus.setVisibility(View.VISIBLE);
             tvAvailablePropertyName.setText(b.getKosName());
             tvAvailablePropertyAddress.setText(b.getKosAddress());
-            tvAvailableStatus.setText("BOOKING DITERIMA");
-            btnPayAvailable.setVisibility(View.VISIBLE);
-            btnPayAvailable.setEnabled(true);
-            btnPayAvailable.setText("Bayar Sekarang");
-            btnPayAvailable.setOnClickListener(v -> handlePayment(b));
+            
+            if (DatabaseConstants.BOOKING_WAITING_PAYMENT.equals(status)) {
+                tvAvailableStatus.setText(getString(R.string.status_waiting_payment).toUpperCase());
+            } else {
+                tvAvailableStatus.setText("BOOKING DITERIMA");
+            }
+            
+            boolean isPaid = DatabaseConstants.PAYMENT_PAID.equals(paymentStatus);
+            
+            if (isPaid) {
+                btnPayAvailable.setVisibility(View.VISIBLE);
+                btnPayAvailable.setText(R.string.status_paid);
+                btnPayAvailable.setEnabled(false);
+                btnPayAvailable.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.status_accepted_bg));
+                btnPayAvailable.setTextColor(ContextCompat.getColor(this, R.color.status_accepted_text));
+            } else {
+                btnPayAvailable.setVisibility(View.VISIBLE);
+                btnPayAvailable.setEnabled(true);
+                btnPayAvailable.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.md_primary));
+                btnPayAvailable.setTextColor(ContextCompat.getColor(this, R.color.white));
+                
+                if (DatabaseConstants.PAYMENT_PENDING.equals(paymentStatus) || DatabaseConstants.BOOKING_WAITING_PAYMENT.equals(status)) {
+                    btnPayAvailable.setText(R.string.btn_continue_payment);
+                } else {
+                    btnPayAvailable.setText(R.string.btn_pay_now);
+                }
+
+                btnPayAvailable.setOnClickListener(v -> handlePayment(b));
+            }
             
             btnSecondaryAction.setText("Batalkan Booking");
             btnSecondaryAction.setOnClickListener(v -> showCancelDialog(b));
-            updateTimeline(status);
+            updateTimeline(status, paymentStatus);
         } else if (DatabaseConstants.BOOKING_WAITING_CHECKIN.equals(status)) {
             cardQueueStatus.setVisibility(View.GONE);
             cardAvailableStatus.setVisibility(View.VISIBLE);
@@ -258,17 +296,18 @@ public class WaitingListQueueActivity extends AppCompatActivity {
             btnPayAvailable.setVisibility(View.VISIBLE);
             btnPayAvailable.setText("Sudah Bayar");
             btnPayAvailable.setEnabled(false);
+            btnPayAvailable.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.status_accepted_bg));
             
             btnSecondaryAction.setText("Sudah Ambil Kunci");
             btnSecondaryAction.setOnClickListener(v -> handleKeyTaken(b));
-            updateTimeline(status);
+            updateTimeline(status, paymentStatus);
         } else if (DatabaseConstants.BOOKING_PENDING.equals(status)) {
             cardQueueStatus.setVisibility(View.VISIBLE);
             cardAvailableStatus.setVisibility(View.GONE);
             tvQueueStatus.setText("MENUNGGU KONFIRMASI");
             btnSecondaryAction.setText("Batalkan Antrean");
             btnSecondaryAction.setOnClickListener(v -> showCancelDialog(b));
-            updateTimeline(status);
+            updateTimeline(status, paymentStatus);
         } else if (DatabaseConstants.BOOKING_ACTIVE.equals(status)) {
             cardQueueStatus.setVisibility(View.VISIBLE);
             cardAvailableStatus.setVisibility(View.GONE);
@@ -277,18 +316,18 @@ public class WaitingListQueueActivity extends AppCompatActivity {
             btnSecondaryAction.setVisibility(View.VISIBLE);
             btnSecondaryAction.setText("Hubungi Pemilik");
             btnSecondaryAction.setOnClickListener(v -> openChatFromBooking(b));
-            updateTimeline(status);
+            updateTimeline(status, paymentStatus);
         } else {
             // Rejected, Cancelled, etc.
             cardQueueStatus.setVisibility(View.VISIBLE);
             cardAvailableStatus.setVisibility(View.GONE);
             tvQueueStatus.setText("STATUS: " + status.toUpperCase());
             btnSecondaryAction.setVisibility(View.GONE);
-            updateTimeline(status);
+            updateTimeline(status, paymentStatus);
         }
     }
 
-    private void updateTimeline(String status) {
+    private void updateTimeline(String status, String paymentStatus) {
         if (stepWaitingList == null) return;
 
         // Step 1: Waiting List always done if booking exists
@@ -299,7 +338,7 @@ public class WaitingListQueueActivity extends AppCompatActivity {
             setStepPending(stepOwnerConfirm, tvStepOwnerConfirmTitle, ivStepOwnerConfirmIcon);
             setStepPending(stepPayment, tvStepPaymentTitle, ivStepPaymentIcon);
             setStepPending(stepCompleted, tvStepCompletedTitle, ivStepCompletedIcon);
-        } else if (DatabaseConstants.BOOKING_ACCEPTED.equals(status)) {
+        } else if (DatabaseConstants.BOOKING_ACCEPTED.equals(status) || DatabaseConstants.BOOKING_WAITING_PAYMENT.equals(status)) {
             setStepDone(stepAvailability, tvStepAvailabilityTitle, ivStepAvailabilityIcon);
             setStepDone(stepOwnerConfirm, tvStepOwnerConfirmTitle, ivStepOwnerConfirmIcon);
             setStepActive(stepPayment, tvStepPaymentTitle, ivStepPaymentIcon);
@@ -391,28 +430,14 @@ public class WaitingListQueueActivity extends AppCompatActivity {
     }
 
     private void handlePayment(Booking b) {
-        new AlertDialog.Builder(this)
-                .setTitle("Simulasi Pembayaran")
-                .setMessage("Lakukan pembayaran simulasi sebesar Rp " + b.getTotalPrice() + "?")
-                .setPositiveButton("Bayar Sekarang", (dialog, which) -> {
-                    BookingRepository.getInstance().simulatePayment(b.getId(), new BookingRepository.SimpleCallback() {
-                        @Override
-                        public void onSuccess() {
-                            showCustomToast("Pembayaran Berhasil!");
-                            loadRealBookings();
-                        }
-
-                        @Override
-                        public void onError(String message) {
-                            showCustomToast(message);
-                        }
-                    });
-                })
-                .setNegativeButton("Batal", null)
-                .show();
+        if (b == null) return;
+        Intent intent = new Intent(this, QrisPaymentActivity.class);
+        intent.putExtra("BOOKING_ID", b.getId());
+        startActivity(intent);
     }
 
     private void handleKeyTaken(Booking b) {
+        if (b == null) return;
         new AlertDialog.Builder(this)
                 .setTitle("Ambil Kunci")
                 .setMessage("Apakah kamu sudah menerima kunci dari pemilik?")
@@ -435,6 +460,7 @@ public class WaitingListQueueActivity extends AppCompatActivity {
     }
 
     private void showCancelDialog(Booking b) {
+        if (b == null) return;
         new AlertDialog.Builder(this)
                 .setTitle("Batalkan Booking?")
                 .setMessage("Yakin ingin membatalkan booking/antrean ini?")
@@ -457,6 +483,7 @@ public class WaitingListQueueActivity extends AppCompatActivity {
     }
 
     private void showCustomToast(String message) {
+        if (isFinishing()) return;
         TextView toastView = new TextView(this);
         toastView.setText(message);
         toastView.setTextColor(Color.WHITE);

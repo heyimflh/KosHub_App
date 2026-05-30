@@ -30,7 +30,11 @@ android {
 
         release {
 
-            isMinifyEnabled = false
+            isDebuggable = false
+
+            isMinifyEnabled = true
+
+            isShrinkResources = true
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -88,8 +92,11 @@ dependencies {
     implementation("com.github.bumptech.glide:glide:4.16.0")
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
 
-    // Cloudinary
-    implementation("com.cloudinary:cloudinary-android:3.0.2")
+    // Network
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Cloudinary (Using core to avoid video analytics endpoints)
+    implementation("com.cloudinary:cloudinary-android-core:3.0.2")
 
     testImplementation(libs.junit)
 

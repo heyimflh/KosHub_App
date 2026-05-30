@@ -167,8 +167,35 @@
     <string name="waiting_page_title">Daftar Tunggu</string>
 
     <!-- Mapbox & Safety -->
-    <string name="mapbox_access_token" translatable="false">YOUR_MAPBOX_PUBLIC_TOKEN_HERE</string>
+    <string name="mapbox_access_token" translatable="false"></string>
     <string name="map_fallback_title">Peta belum tersedia</string>
     <string name="map_fallback_sub">Fitur peta tidak tersedia. Pastikan koneksi internet aktif.</string>
+
+    <!-- CS Contact Info -->
+    <string name="cs_whatsapp_number">085700622035</string>
+    <string name="cs_whatsapp_url">https://wa.me/6285700622035?text=Halo+KosHub+CS</string>
+    <string name="cs_email_address">mufallah06@gmail.com</string>
+
+    <!-- Payment Refinement -->
+    <string name="status_waiting_payment">Menunggu Pembayaran</string>
+    <string name="btn_pay_now">Bayar Sekarang</string>
+    <string name="btn_continue_payment">Lanjutkan Pembayaran</string>
+    <string name="status_paid">Sudah Dibayar</string>
+
+    <!-- Payment Screen -->
+    <string name="payment_qris_title">Pembayaran QRIS</string>
+    <string name="payment_total_loading">Total: Memuat...</string>
+    <string name="payment_timer_loading">Berlaku hingga: Memuat...</string>
+    <string name="payment_status_preparing">Menyiapkan pembayaran...</string>
+    <string name="payment_status_requesting">Meminta data QRIS...</string>
+    <string name="payment_scan_instruction">Silakan scan QRIS di atas</string>
+    <string name="payment_expired_status">Pembayaran Kedaluwarsa</string>
+    <string name="payment_error_booking_id">Booking ID tidak ditemukan. Silakan kembali dan coba lagi.</string>
+    <string name="payment_total_failed">Total: Gagal</string>
+    <string name="payment_timer_failed">Berlaku hingga: --:--</string>
+    <string name="payment_timer_format">Berlaku hingga: %s</string>
+    <string name="payment_total_format">Total: Rp %,.0f</string>
+    <string name="payment_btn_cancel">Batal</string>
+    <string name="payment_waiting_status">Menunggu pembayaran...</string>
 </resources>
 

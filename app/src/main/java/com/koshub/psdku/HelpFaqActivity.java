@@ -86,15 +86,16 @@ public class HelpFaqActivity extends AppCompatActivity {
 
     private void setupContactButtons() {
         findViewById(R.id.btnContactWA).setOnClickListener(v -> {
-            String url = "https://wa.me/6281234567890?text=Halo+KosHub+CS";
+            String url = getString(R.string.cs_whatsapp_url);
             Intent i = new Intent(Intent.ACTION_VIEW);
             i.setData(Uri.parse(url));
             startActivity(i);
         });
 
         findViewById(R.id.btnContactEmail).setOnClickListener(v -> {
+            String email = getString(R.string.cs_email_address);
             Intent intent = new Intent(Intent.ACTION_SENDTO);
-            intent.setData(Uri.parse("mailto:cs@koshub.com"));
+            intent.setData(Uri.parse("mailto:" + email));
             intent.putExtra(Intent.EXTRA_SUBJECT, "Bantuan KosHub");
             startActivity(Intent.createChooser(intent, "Kirim Email"));
         });

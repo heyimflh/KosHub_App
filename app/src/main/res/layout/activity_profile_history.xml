@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/profile_background">
@@ -757,7 +758,7 @@
                                     android:ellipsize="end"
                                     android:fontFamily="sans-serif-medium"
                                     android:maxLines="1"
-                                    android:text="Kos Putra Harmoni"
+                                    tools:text="Kos Putra Harmoni"
                                     android:textColor="@color/profile_text_primary"
                                     android:textSize="14sp" />
 
@@ -859,7 +860,7 @@
                                     android:ellipsize="end"
                                     android:fontFamily="sans-serif-medium"
                                     android:maxLines="1"
-                                    android:text="Kos Campur Nusantara"
+                                    tools:text="Kos Campur Nusantara"
                                     android:textColor="@color/profile_text_primary"
                                     android:textSize="14sp" />
 

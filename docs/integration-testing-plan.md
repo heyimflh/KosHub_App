@@ -22,7 +22,7 @@ Memastikan seluruh fitur KosHub (Auth, Booking, Chat, Complaint, Finance, Review
 - [ ] **Chat:** Memulai chat dari halaman detail kos atau booking.
 - [ ] **Booking:** Mengajukan booking (status 'pending').
 - [ ] **Waiting List:** Memantau timeline status booking (Pending -> Accepted -> Waiting Checkin -> Active).
-- [ ] **Payment:** Simulasi pembayaran (status 'waiting_checkin').
+- [ ] **Payment:** Pembayaran QRIS (status 'waiting_checkin').
 - [ ] **Check-in:** Konfirmasi ambil kunci (status 'active').
 - [ ] **Complaint:** Mengirim komplain untuk sewa aktif.
 - [ ] **Review:** Memberi rating dan ulasan untuk booking yang sudah 'completed'.

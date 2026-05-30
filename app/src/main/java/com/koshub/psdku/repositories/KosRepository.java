@@ -9,7 +9,6 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.koshub.psdku.BuildConfig;
 import com.koshub.psdku.KosItem;
 import com.koshub.psdku.R;
 import com.koshub.psdku.models.Kos;
@@ -32,13 +31,11 @@ public class KosRepository {
     private final FirebaseFirestore db;
     private final FirebaseStorage storage;
     private final FirebaseAuth auth;
-    private List<KosItem> dummyKosList;
 
     private KosRepository() {
         this.db = FirebaseService.getFirestore();
         this.storage = FirebaseService.getStorage();
         this.auth = FirebaseService.getAuth();
-        initDummyData();
     }
 
     public static synchronized KosRepository getInstance() {
@@ -115,12 +112,7 @@ public class KosRepository {
             @Override
             public void onSuccess(List<Kos> kosList) {
                 if (kosList.isEmpty()) {
-                    if (BuildConfig.DEBUG) {
-                        // Fallback to dummy if empty for dev
-                        callback.onSuccess(new ArrayList<>(dummyKosList));
-                    } else {
-                        callback.onSuccess(new ArrayList<>());
-                    }
+                    callback.onSuccess(new ArrayList<>());
                 } else {
                     callback.onSuccess(KosMapper.toKosItemList(kosList));
                 }
@@ -128,12 +120,7 @@ public class KosRepository {
 
             @Override
             public void onError(String message) {
-                if (BuildConfig.DEBUG) {
-                    // Fallback to dummy on error for dev
-                    callback.onSuccess(new ArrayList<>(dummyKosList));
-                } else {
-                    callback.onError(message);
-                }
+                callback.onError(message);
             }
         });
     }
@@ -434,19 +421,5 @@ public class KosRepository {
                     db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId)
                             .update(DatabaseConstants.FIELD_AVAILABLE_ROOMS, count);
                 });
-    }
-
-    private void initDummyData() {
-        dummyKosList = new ArrayList<>();
-        double baseLat = -7.68307;
-        double baseLng = 109.6645;
-
-        dummyKosList.add(new KosItem("Kos Putri Premium Sakura", "Jl. Mawar No. 17, Kebumen", "Rp 1.2jt", 1200000, "8 mnt", 8, "4.9", "Putri", Arrays.asList("AC", "WiFi", "K. Mandi Dalam"), R.drawable.kos_01, true, null, baseLat + 0.001, baseLng - 0.001));
-        dummyKosList.add(new KosItem("Kos Campur Nusantara", "Jl. Sungai Lukulo No. 21, Kebumen", "Rp 550rb", 550000, "7 mnt", 7, "4.3", "Campur", Arrays.asList("WiFi", "Dapur", "Parkir Motor"), R.drawable.kos_02, false, "Sisa 2 Kamar", baseLat - 0.001, baseLng + 0.001));
-        dummyKosList.add(new KosItem("Kos Putra Harmoni", "Jl. Pendidikan No. 12, Kebumen", "Rp 750rb", 750000, "5 mnt", 5, "4.8", "Putra", Arrays.asList("WiFi", "K. Mandi Dalam", "Laundry"), R.drawable.kos_03, false, null, baseLat + 0.0005, baseLng + 0.0005));
-    }
-
-    public List<KosItem> getAllKosSync() {
-        return new ArrayList<>(dummyKosList);
     }
 }

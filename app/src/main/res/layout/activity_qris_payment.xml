@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center_horizontal"
+    android:background="@color/background_white">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/payment_qris_title"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/tvTotalBayar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/payment_total_loading"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#2E7D32"
+        android:layout_marginBottom="24dp"/>
+
+    <FrameLayout
+        android:layout_width="280dp"
+        android:layout_height="280dp"
+        android:background="@drawable/bg_border_gray"
+        android:padding="8dp">
+
+        <ImageView
+            android:id="@+id/ivQris"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
+
+        <ProgressBar
+            android:id="@+id/pbQris"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/tvScanInstruction"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/payment_scan_instruction"
+        android:layout_marginTop="16dp"
+        android:textColor="@color/text_secondary"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/tvTimer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Berlaku sesuai ketentuan QRIS. Jika sudah membayar, tekan Cek Status Pembayaran."
+        android:layout_marginTop="8dp"
+        android:textStyle="italic"
+        android:paddingHorizontal="24dp"
+        android:gravity="center"
+        android:textColor="@color/text_secondary"/>
+
+    <TextView
+        android:id="@+id/tvManualCheck"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cek Status Pembayaran"
+        android:textColor="@color/md_primary"
+        android:textStyle="bold"
+        android:layout_marginTop="16dp"
+        android:padding="8dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground"
+        android:visibility="gone"/>
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/payment_waiting_status"
+        android:textColor="#1976D2"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:id="@+id/tvTransactionId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ID Transaksi: -"
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="2dp"/>
+
+    <TextView
+        android:id="@+id/tvGatewayStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Status Gateway: -"
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="12dp"/>
+
+    <Button
+        android:id="@+id/btnCopyLink"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="Salin Link Cek Status"
+        android:textSize="10sp"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone"
+        style="@style/Widget.MaterialComponents.Button.TextButton"/>
+
+    <Button
+        android:id="@+id/btnCancel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/payment_btn_cancel"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+
+</LinearLayout>

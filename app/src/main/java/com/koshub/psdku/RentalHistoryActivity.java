@@ -128,7 +128,8 @@ public class RentalHistoryActivity extends AppCompatActivity {
         } else if (checkedId == R.id.chipPending) {
             for (Booking b : allBookings) {
                 if (DatabaseConstants.BOOKING_PENDING.equals(b.getStatus()) || 
-                    DatabaseConstants.BOOKING_ACCEPTED.equals(b.getStatus())) {
+                    DatabaseConstants.BOOKING_ACCEPTED.equals(b.getStatus()) ||
+                    DatabaseConstants.BOOKING_WAITING_PAYMENT.equals(b.getStatus())) {
                     filteredBookings.add(b);
                 }
             }
@@ -149,8 +150,8 @@ public class RentalHistoryActivity extends AppCompatActivity {
 
     private void handleAction(Booking booking) {
         String status = booking.getStatus();
-        if (DatabaseConstants.BOOKING_ACCEPTED.equals(status)) {
-            simulatePayment(booking);
+        if (DatabaseConstants.BOOKING_ACCEPTED.equals(status) || DatabaseConstants.BOOKING_WAITING_PAYMENT.equals(status)) {
+            openPayment(booking);
         } else if (DatabaseConstants.BOOKING_ACTIVE.equals(status) || DatabaseConstants.BOOKING_WAITING_CHECKIN.equals(status)) {
             openChat(booking);
         }
@@ -164,22 +165,10 @@ public class RentalHistoryActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void simulatePayment(Booking booking) {
-        progressBar.setVisibility(View.VISIBLE);
-        BookingRepository.getInstance().simulatePayment(booking.getId(), new BookingRepository.SimpleCallback() {
-            @Override
-            public void onSuccess() {
-                progressBar.setVisibility(View.GONE);
-                Toast.makeText(RentalHistoryActivity.this, "Pembayaran berhasil!", Toast.LENGTH_SHORT).show();
-                loadBookings();
-            }
-
-            @Override
-            public void onError(String error) {
-                progressBar.setVisibility(View.GONE);
-                Toast.makeText(RentalHistoryActivity.this, error, Toast.LENGTH_SHORT).show();
-            }
-        });
+    private void openPayment(Booking booking) {
+        Intent intent = new Intent(this, QrisPaymentActivity.class);
+        intent.putExtra("BOOKING_ID", booking.getId());
+        startActivity(intent);
     }
 
     private void openChat(Booking booking) {

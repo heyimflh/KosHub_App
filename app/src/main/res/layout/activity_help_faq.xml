@@ -174,7 +174,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="cs@koshub.com"
+                        android:text="@string/cs_email_address"
                         android:textColor="@color/home_text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>
