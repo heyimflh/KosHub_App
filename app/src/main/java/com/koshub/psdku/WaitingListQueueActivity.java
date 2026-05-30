@@ -148,8 +148,19 @@ public class WaitingListQueueActivity extends AppCompatActivity {
                 BookingRepository.getInstance().getBookingsByStudent(uid, new BookingRepository.BookingListCallback() {
                     @Override
                     public void onSuccess(List<Booking> bookings) {
-                        if (!bookings.isEmpty()) {
-                            Booking latest = bookings.get(0);
+                        // Filter only active bookings (exclude completed/cancelled/rejected)
+                        List<Booking> activeBookings = new java.util.ArrayList<>();
+                        for (Booking bk : bookings) {
+                            String st = bk.getSafeStatus();
+                            if (!DatabaseConstants.BOOKING_COMPLETED.equals(st) &&
+                                !DatabaseConstants.BOOKING_CANCELLED.equals(st) &&
+                                !DatabaseConstants.BOOKING_REJECTED.equals(st)) {
+                                activeBookings.add(bk);
+                            }
+                        }
+
+                        if (!activeBookings.isEmpty()) {
+                            Booking latest = activeBookings.get(0);
                             openChatFromBooking(latest);
                         } else {
                             showCustomToast("Belum ada booking untuk dikonsultasikan.");
@@ -184,7 +195,18 @@ public class WaitingListQueueActivity extends AppCompatActivity {
             @Override
             public void onSuccess(List<Booking> bookings) {
                 try {
-                    if (bookings.isEmpty()) {
+                    // Hanya tampilkan booking yang masih aktif (bukan completed/cancelled/rejected)
+                    List<Booking> activeBookings = new java.util.ArrayList<>();
+                    for (Booking bk : bookings) {
+                        String st = bk.getSafeStatus();
+                        if (!DatabaseConstants.BOOKING_COMPLETED.equals(st) &&
+                            !DatabaseConstants.BOOKING_CANCELLED.equals(st) &&
+                            !DatabaseConstants.BOOKING_REJECTED.equals(st)) {
+                            activeBookings.add(bk);
+                        }
+                    }
+
+                    if (activeBookings.isEmpty()) {
                         if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.VISIBLE);
                         findViewById(R.id.scrollWaitingList).setVisibility(View.GONE);
                         hideAllSections();
@@ -192,7 +214,7 @@ public class WaitingListQueueActivity extends AppCompatActivity {
                         if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
                         findViewById(R.id.scrollWaitingList).setVisibility(View.VISIBLE);
                         showAllSections();
-                        Booking b = bookings.get(0); // Show most recent
+                        Booking b = activeBookings.get(0); // Show most recent active booking
                         updateUIWithBooking(b);
                     }
                 } catch (Exception e) {

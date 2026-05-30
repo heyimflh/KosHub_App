@@ -13,13 +13,17 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.koshub.psdku.services.FirebaseService;
 import com.koshub.psdku.utils.CloudinaryConfig;
 import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.ImageCompressor;
+import com.koshub.psdku.utils.UploadValidator;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Repository for Cloudinary operations.
- * Handles image uploads and Firestore URL updates.
+ * Handles image validation, compression, and uploads.
  */
 public class CloudinaryRepository {
     private static final String TAG = "KosHubCloudinary";
@@ -53,13 +57,69 @@ public class CloudinaryRepository {
             MediaManager.init(context, config);
             isInitialized = true;
         } catch (IllegalStateException e) {
-            // Already initialized
             isInitialized = true;
         }
     }
 
-    public void uploadProfileImage(Context context, Uri imageUri, SimpleUploadCallback callback) {
+    /**
+     * Core upload method with validation and compression.
+     */
+    public void uploadImage(Context context, Uri imageUri, String folder, SimpleUploadCallback callback) {
         initMediaManager(context);
+
+        // 1. Validate
+        UploadValidator.ValidationResult validation = UploadValidator.validateImage(context, imageUri);
+        if (!validation.isValid) {
+            callback.onError(validation.message);
+            return;
+        }
+
+        // 2. Compress & Upload
+        new Thread(() -> {
+            try {
+                File compressedFile = ImageCompressor.compressImage(context, imageUri);
+                
+                MediaManager.get().upload(Uri.fromFile(compressedFile))
+                        .unsigned(CloudinaryConfig.UPLOAD_PRESET)
+                        .option("folder", folder)
+                        .callback(new UploadCallback() {
+                            @Override
+                            public void onStart(String requestId) {
+                                Log.d(TAG, "Upload started to folder: " + folder);
+                            }
+
+                            @Override
+                            public void onProgress(String requestId, long bytes, long totalBytes) {}
+
+                            @Override
+                            public void onSuccess(String requestId, Map resultData) {
+                                String secureUrl = (String) resultData.get("secure_url");
+                                // Delete temp file
+                                if (compressedFile.exists()) compressedFile.delete();
+                                callback.onSuccess(secureUrl);
+                            }
+
+                            @Override
+                            public void onError(String requestId, ErrorInfo error) {
+                                Log.e(TAG, "Cloudinary upload error: " + error.getDescription());
+                                if (compressedFile.exists()) compressedFile.delete();
+                                callback.onError(error.getDescription());
+                            }
+
+                            @Override
+                            public void onReschedule(String requestId, ErrorInfo error) {}
+                        }).dispatch();
+
+            } catch (IOException e) {
+                Log.e(TAG, "Compression failed", e);
+                callback.onError("Gagal memproses gambar: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    // --- Specialized Upload Methods ---
+
+    public void uploadProfileImage(Context context, Uri imageUri, SimpleUploadCallback callback) {
         String uid = auth.getUid();
         if (uid == null) {
             callback.onError("User not authenticated");
@@ -67,39 +127,24 @@ public class CloudinaryRepository {
         }
 
         String folder = CloudinaryConfig.BASE_FOLDER + "/profiles/" + uid;
-        MediaManager.get().upload(imageUri)
-                .unsigned(CloudinaryConfig.UPLOAD_PRESET)
-                .option("folder", folder)
-                .callback(new UploadCallback() {
-                    @Override
-                    public void onStart(String requestId) { Log.d(TAG, "Profile upload start"); }
+        uploadImage(context, imageUri, folder, new SimpleUploadCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                db.collection(DatabaseConstants.COLLECTION_USERS).document(uid)
+                        .update(DatabaseConstants.FIELD_PROFILE_IMAGE_URL, imageUrl,
+                                DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
+                        .addOnSuccessListener(aVoid -> callback.onSuccess(imageUrl))
+                        .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
+            }
 
-                    @Override
-                    public void onProgress(String requestId, long bytes, long totalBytes) {}
-
-                    @Override
-                    public void onSuccess(String requestId, Map resultData) {
-                        String secureUrl = (String) resultData.get("secure_url");
-                        db.collection(DatabaseConstants.COLLECTION_USERS).document(uid)
-                                .update(DatabaseConstants.FIELD_PROFILE_IMAGE_URL, secureUrl,
-                                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
-                                .addOnSuccessListener(aVoid -> callback.onSuccess(secureUrl))
-                                .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
-                    }
-
-                    @Override
-                    public void onError(String requestId, ErrorInfo error) {
-                        Log.e(TAG, "Upload error: " + error.getDescription());
-                        callback.onError(error.getDescription());
-                    }
-
-                    @Override
-                    public void onReschedule(String requestId, ErrorInfo error) {}
-                }).dispatch();
+            @Override
+            public void onError(String message) {
+                callback.onError(message);
+            }
+        });
     }
 
     public void uploadLegalDoc(Context context, Uri imageUri, String docType, SimpleUploadCallback callback) {
-        initMediaManager(context);
         String uid = auth.getUid();
         if (uid == null) {
             callback.onError("User not authenticated");
@@ -107,41 +152,26 @@ public class CloudinaryRepository {
         }
 
         String folder = CloudinaryConfig.BASE_FOLDER + "/documents/" + uid;
-        String field = docType.equals("ktp") ? DatabaseConstants.FIELD_DOC_KTP : DatabaseConstants.FIELD_DOC_SKU;
+        String field = docType.equalsIgnoreCase("ktp") ? DatabaseConstants.FIELD_DOC_KTP : DatabaseConstants.FIELD_DOC_SKU;
 
-        MediaManager.get().upload(imageUri)
-                .unsigned(CloudinaryConfig.UPLOAD_PRESET)
-                .option("folder", folder)
-                .callback(new UploadCallback() {
-                    @Override
-                    public void onStart(String requestId) { Log.d(TAG, "Doc upload start: " + docType); }
+        uploadImage(context, imageUri, folder, new SimpleUploadCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                db.collection(DatabaseConstants.COLLECTION_USERS).document(uid)
+                        .update(field, imageUrl,
+                                DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
+                        .addOnSuccessListener(aVoid -> callback.onSuccess(imageUrl))
+                        .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
+            }
 
-                    @Override
-                    public void onProgress(String requestId, long bytes, long totalBytes) {}
-
-                    @Override
-                    public void onSuccess(String requestId, Map resultData) {
-                        String secureUrl = (String) resultData.get("secure_url");
-                        db.collection(DatabaseConstants.COLLECTION_USERS).document(uid)
-                                .update(field, secureUrl,
-                                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
-                                .addOnSuccessListener(aVoid -> callback.onSuccess(secureUrl))
-                                .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
-                    }
-
-                    @Override
-                    public void onError(String requestId, ErrorInfo error) {
-                        Log.e(TAG, "Upload error: " + error.getDescription());
-                        callback.onError(error.getDescription());
-                    }
-
-                    @Override
-                    public void onReschedule(String requestId, ErrorInfo error) {}
-                }).dispatch();
+            @Override
+            public void onError(String message) {
+                callback.onError(message);
+            }
+        });
     }
 
     public void uploadKosImage(Context context, Uri imageUri, String kosId, SimpleUploadCallback callback) {
-        initMediaManager(context);
         String uid = auth.getUid();
         if (uid == null) {
             callback.onError("User not authenticated");
@@ -149,38 +179,24 @@ public class CloudinaryRepository {
         }
 
         String folder = CloudinaryConfig.BASE_FOLDER + "/kos/" + uid + "/" + kosId;
-        MediaManager.get().upload(imageUri)
-                .unsigned(CloudinaryConfig.UPLOAD_PRESET)
-                .option("folder", folder)
-                .callback(new UploadCallback() {
-                    @Override
-                    public void onStart(String requestId) { Log.d(TAG, "Kos upload start"); }
+        uploadImage(context, imageUri, folder, new SimpleUploadCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId)
+                        .update(DatabaseConstants.FIELD_IMAGE_URLS, FieldValue.arrayUnion(imageUrl),
+                                DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
+                        .addOnSuccessListener(aVoid -> callback.onSuccess(imageUrl))
+                        .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
+            }
 
-                    @Override
-                    public void onProgress(String requestId, long bytes, long totalBytes) {}
-
-                    @Override
-                    public void onSuccess(String requestId, Map resultData) {
-                        String secureUrl = (String) resultData.get("secure_url");
-                        db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId)
-                                .update(DatabaseConstants.FIELD_IMAGE_URLS, FieldValue.arrayUnion(secureUrl),
-                                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
-                                .addOnSuccessListener(aVoid -> callback.onSuccess(secureUrl))
-                                .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
-                    }
-
-                    @Override
-                    public void onError(String requestId, ErrorInfo error) {
-                        callback.onError(error.getDescription());
-                    }
-
-                    @Override
-                    public void onReschedule(String requestId, ErrorInfo error) {}
-                }).dispatch();
+            @Override
+            public void onError(String message) {
+                callback.onError(message);
+            }
+        });
     }
 
     public void uploadRoomImage(Context context, Uri imageUri, String kosId, String roomId, SimpleUploadCallback callback) {
-        initMediaManager(context);
         String uid = auth.getUid();
         if (uid == null) {
             callback.onError("User not authenticated");
@@ -188,38 +204,24 @@ public class CloudinaryRepository {
         }
 
         String folder = CloudinaryConfig.BASE_FOLDER + "/rooms/" + uid + "/" + kosId + "/" + roomId;
-        MediaManager.get().upload(imageUri)
-                .unsigned(CloudinaryConfig.UPLOAD_PRESET)
-                .option("folder", folder)
-                .callback(new UploadCallback() {
-                    @Override
-                    public void onStart(String requestId) {}
+        uploadImage(context, imageUri, folder, new SimpleUploadCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)
+                        .update(DatabaseConstants.FIELD_IMAGE_URLS, FieldValue.arrayUnion(imageUrl),
+                                DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
+                        .addOnSuccessListener(aVoid -> callback.onSuccess(imageUrl))
+                        .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
+            }
 
-                    @Override
-                    public void onProgress(String requestId, long bytes, long totalBytes) {}
-
-                    @Override
-                    public void onSuccess(String requestId, Map resultData) {
-                        String secureUrl = (String) resultData.get("secure_url");
-                        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)
-                                .update(DatabaseConstants.FIELD_IMAGE_URLS, FieldValue.arrayUnion(secureUrl),
-                                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
-                                .addOnSuccessListener(aVoid -> callback.onSuccess(secureUrl))
-                                .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
-                    }
-
-                    @Override
-                    public void onError(String requestId, ErrorInfo error) {
-                        callback.onError(error.getDescription());
-                    }
-
-                    @Override
-                    public void onReschedule(String requestId, ErrorInfo error) {}
-                }).dispatch();
+            @Override
+            public void onError(String message) {
+                callback.onError(message);
+            }
+        });
     }
 
     public void uploadComplaintEvidence(Context context, Uri imageUri, String complaintId, SimpleUploadCallback callback) {
-        initMediaManager(context);
         String uid = auth.getUid();
         if (uid == null) {
             callback.onError("User not authenticated");
@@ -227,40 +229,25 @@ public class CloudinaryRepository {
         }
 
         String folder = CloudinaryConfig.BASE_FOLDER + "/complaints/" + uid + "/" + complaintId;
-        MediaManager.get().upload(imageUri)
-                .unsigned(CloudinaryConfig.UPLOAD_PRESET)
-                .option("folder", folder)
-                .callback(new UploadCallback() {
-                    @Override
-                    public void onStart(String requestId) { Log.d(TAG, "Complaint evidence upload start"); }
+        uploadImage(context, imageUri, folder, new SimpleUploadCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                db.collection(DatabaseConstants.COLLECTION_COMPLAINTS).document(complaintId)
+                        .update(DatabaseConstants.FIELD_IMAGE_URL, imageUrl,
+                                DatabaseConstants.FIELD_EVIDENCE_IMAGE_URLS, FieldValue.arrayUnion(imageUrl),
+                                DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
+                        .addOnSuccessListener(aVoid -> callback.onSuccess(imageUrl))
+                        .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
+            }
 
-                    @Override
-                    public void onProgress(String requestId, long bytes, long totalBytes) {}
-
-                    @Override
-                    public void onSuccess(String requestId, Map resultData) {
-                        String secureUrl = (String) resultData.get("secure_url");
-                        db.collection(DatabaseConstants.COLLECTION_COMPLAINTS).document(complaintId)
-                                .update(DatabaseConstants.FIELD_IMAGE_URL, secureUrl,
-                                        DatabaseConstants.FIELD_EVIDENCE_IMAGE_URLS, FieldValue.arrayUnion(secureUrl),
-                                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
-                                .addOnSuccessListener(aVoid -> callback.onSuccess(secureUrl))
-                                .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
-                    }
-
-                    @Override
-                    public void onError(String requestId, ErrorInfo error) {
-                        Log.e(TAG, "Upload error: " + error.getDescription());
-                        callback.onError(error.getDescription());
-                    }
-
-                    @Override
-                    public void onReschedule(String requestId, ErrorInfo error) {}
-                }).dispatch();
+            @Override
+            public void onError(String message) {
+                callback.onError(message);
+            }
+        });
     }
 
     public void uploadChatMessage(Context context, Uri imageUri, SimpleUploadCallback callback) {
-        initMediaManager(context);
         String uid = auth.getUid();
         if (uid == null) {
             callback.onError("User not authenticated");
@@ -268,36 +255,11 @@ public class CloudinaryRepository {
         }
 
         String folder = CloudinaryConfig.BASE_FOLDER + "/chats/" + uid;
-        MediaManager.get().upload(imageUri)
-                .unsigned(CloudinaryConfig.UPLOAD_PRESET)
-                .option("folder", folder)
-                .callback(new UploadCallback() {
-                    @Override
-                    public void onStart(String requestId) { Log.d(TAG, "Chat image upload start"); }
-
-                    @Override
-                    public void onProgress(String requestId, long bytes, long totalBytes) {}
-
-                    @Override
-                    public void onSuccess(String requestId, Map resultData) {
-                        String secureUrl = (String) resultData.get("secure_url");
-                        callback.onSuccess(secureUrl);
-                    }
-
-                    @Override
-                    public void onError(String requestId, ErrorInfo error) {
-                        Log.e(TAG, "Chat upload error: " + error.getDescription());
-                        callback.onError(error.getDescription());
-                    }
-
-                    @Override
-                    public void onReschedule(String requestId, ErrorInfo error) {}
-                }).dispatch();
+        uploadImage(context, imageUri, folder, callback);
     }
 
     /**
      * Helper to get optimized image URL with transformations.
-     * Example: resize to width, auto quality, auto format (webp).
      */
     public String getOptimizedUrl(String originalUrl, int width, int height, boolean isCircle) {
         if (originalUrl == null || !originalUrl.contains("cloudinary.com")) return originalUrl;
@@ -307,7 +269,6 @@ public class CloudinaryRepository {
             transformation += ",r_max";
         }
 
-        // Cloudinary URL structure: .../upload/[transformations]/v123456/[public_id]
         if (originalUrl.contains("/upload/")) {
             return originalUrl.replace("/upload/", "/upload/" + transformation + "/");
         }

@@ -288,20 +288,24 @@ public class OwnerManagementActivity extends AppCompatActivity {
     }
 
     private void uploadKosImage(String kosId) {
-        showToast("Sedang mengupload foto...");
+        showToast("Sedang mengupload foto kos...");
         cloudinaryRepository.uploadKosImage(this, selectedImageUri, kosId, new CloudinaryRepository.SimpleUploadCallback() {
             @Override
-            public void onSuccess(String downloadUrl) {
-                showToast("Kos & Foto berhasil disimpan");
-                selectedImageUri = null;
-                loadData();
+            public void onSuccess(String imageUrl) {
+                runOnUiThread(() -> {
+                    showToast("Kos & Foto berhasil disimpan");
+                    selectedImageUri = null;
+                    loadData();
+                });
             }
 
             @Override
             public void onError(String message) {
-                showToast("Kos disimpan, tapi upload foto gagal: " + message);
-                selectedImageUri = null;
-                loadData();
+                runOnUiThread(() -> {
+                    showToast("Kos disimpan, tapi upload foto gagal: " + message);
+                    selectedImageUri = null;
+                    loadData();
+                });
             }
         });
     }

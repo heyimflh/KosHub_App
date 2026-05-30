@@ -296,29 +296,37 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
     }
 
     private void uploadAndSendImage(Uri imageUri, String text) {
-        hideImagePreview();
-        etMessage.setText("");
+        btnSendMessage.setEnabled(false);
         showToast("Mengirim gambar...");
         
         CloudinaryRepository.getInstance().uploadChatMessage(this, imageUri, new CloudinaryRepository.SimpleUploadCallback() {
             @Override
             public void onSuccess(String imageUrl) {
-                ChatRepository.getInstance().sendMessage(chatId, text, imageUrl, DatabaseConstants.MESSAGE_TYPE_IMAGE, new ChatRepository.SimpleCallback() {
-                    @Override
-                    public void onSuccess() {
-                        rvMessages.smoothScrollToPosition(messages.size());
-                    }
+                runOnUiThread(() -> {
+                    hideImagePreview();
+                    etMessage.setText("");
+                    btnSendMessage.setEnabled(true);
+                    
+                    ChatRepository.getInstance().sendMessage(chatId, text, imageUrl, DatabaseConstants.MESSAGE_TYPE_IMAGE, new ChatRepository.SimpleCallback() {
+                        @Override
+                        public void onSuccess() {
+                            rvMessages.smoothScrollToPosition(messages.size());
+                        }
 
-                    @Override
-                    public void onError(String message) {
-                        showToast("Gagal mengirim gambar: " + message);
-                    }
+                        @Override
+                        public void onError(String message) {
+                            showToast("Gagal mengirim gambar: " + message);
+                        }
+                    });
                 });
             }
 
             @Override
             public void onError(String message) {
-                showToast("Gagal mengunggah gambar: " + message);
+                runOnUiThread(() -> {
+                    btnSendMessage.setEnabled(true);
+                    showToast("Gagal mengunggah gambar: " + message);
+                });
             }
         });
     }

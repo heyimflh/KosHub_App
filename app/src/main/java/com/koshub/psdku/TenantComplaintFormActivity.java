@@ -18,6 +18,10 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
+import com.koshub.psdku.NavigationTransitionHelper;
+import com.koshub.psdku.repositories.ComplaintRepository;
+import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.UploadValidator;
 import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.ComplaintRepository;
@@ -159,7 +163,18 @@ public class TenantComplaintFormActivity extends AppCompatActivity {
         btnSubmit.setEnabled(false);
         btnSubmit.setText("Memeriksa...");
 
-        // Prevention of duplicate active complaints
+        // 1. Local Image Validation if exists
+        if (selectedImageUri != null) {
+            UploadValidator.ValidationResult validation = UploadValidator.validateImage(this, selectedImageUri);
+            if (!validation.isValid) {
+                showToast(validation.message);
+                btnSubmit.setEnabled(true);
+                btnSubmit.setText("Kirim Laporan");
+                return;
+            }
+        }
+
+        // 2. Prevention of duplicate active complaints
         ComplaintRepository.getInstance().getComplaintsByStudent(FirebaseAuth.getInstance().getUid(), new ComplaintRepository.ComplaintListCallback() {
             @Override
             public void onSuccess(List<com.koshub.psdku.models.Complaint> complaints) {
@@ -179,15 +194,19 @@ public class TenantComplaintFormActivity extends AppCompatActivity {
                         TenantComplaintFormActivity.this, bookingId, title, desc, selectedImageUri, new ComplaintRepository.SimpleCallback() {
                             @Override
                             public void onSuccess() {
-                                showToast("Laporan komplain berhasil dikirim");
-                                NavigationTransitionHelper.finishWithBackTransition(TenantComplaintFormActivity.this);
+                                runOnUiThread(() -> {
+                                    showToast("Laporan komplain berhasil dikirim");
+                                    NavigationTransitionHelper.finishWithBackTransition(TenantComplaintFormActivity.this);
+                                });
                             }
 
                             @Override
                             public void onError(String message) {
-                                showToast(message);
-                                btnSubmit.setEnabled(true);
-                                btnSubmit.setText("Kirim Laporan");
+                                runOnUiThread(() -> {
+                                    showToast(message);
+                                    btnSubmit.setEnabled(true);
+                                    btnSubmit.setText("Kirim Laporan");
+                                });
                             }
                         }
                 );
@@ -195,9 +214,11 @@ public class TenantComplaintFormActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
-                showToast("Gagal memvalidasi komplain: " + message);
-                btnSubmit.setEnabled(true);
-                btnSubmit.setText("Kirim Laporan");
+                runOnUiThread(() -> {
+                    showToast("Gagal memvalidasi komplain: " + message);
+                    btnSubmit.setEnabled(true);
+                    btnSubmit.setText("Kirim Laporan");
+                });
             }
         });
     }

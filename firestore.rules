@@ -9,343 +9,291 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function uid() {
-      return request.auth.uid;
-    }
-
     function isSelf(userId) {
-      return isSignedIn() && uid() == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
-    function userDoc(userId) {
-      return get(/databases/$(database)/documents/users/$(userId));
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    function currentUserDoc() {
-      return get(/databases/$(database)/documents/users/$(uid()));
-    }
-
-    function currentRole() {
-      return isSignedIn() && exists(/databases/$(database)/documents/users/$(uid()))
-        ? currentUserDoc().data.role
+    function userRole() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? userDoc().data.role
         : null;
     }
 
     function isStudent() {
-      return currentRole() == "student";
+      return userRole() == "student";
     }
 
     function isOwner() {
-      return currentRole() == "owner";
+      return userRole() == "owner";
     }
 
-    function isKosOwner(kosId) {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/kos/$(kosId))
-        && get(/databases/$(database)/documents/kos/$(kosId)).data.ownerId == uid();
+    function isValidRole(role) {
+      return role in ["student", "owner"];
     }
 
-    function isBookingParticipant(data) {
-      return isSignedIn()
-        && (data.studentId == uid() || data.ownerId == uid());
+    function unchanged(field) {
+      return !(field in request.resource.data) || request.resource.data[field] == resource.data[field];
     }
 
-    function isComplaintParticipant(data) {
-      return isSignedIn()
-        && (data.studentId == uid() || data.ownerId == uid());
+    function hasOnlyAllowedFields(allowed) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
     }
 
-    function isChatParticipant(chatId) {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/chats/$(chatId))
-        && (
-          get(/databases/$(database)/documents/chats/$(chatId)).data.studentId == uid()
-          || get(/databases/$(database)/documents/chats/$(chatId)).data.ownerId == uid()
-        );
-    }
-
-    function canCreateReviewForBooking(bookingId) {
-      return exists(/databases/$(database)/documents/bookings/$(bookingId))
-        && get(/databases/$(database)/documents/bookings/$(bookingId)).data.studentId == uid()
-        && get(/databases/$(database)/documents/bookings/$(bookingId)).data.status == "completed";
-    }
-
-    // --- STATUS VALIDATIONS ---
-
-    function validBookingStatus(status) {
-      return status in [
-        "pending",
-        "accepted",
-        "rejected",
-        "waiting_checkin",
-        "active",
-        "completed",
-        "cancelled"
-      ];
-    }
-
-    function validComplaintStatus(status) {
-      return status in ["new", "process", "done", "rejected"];
-    }
-
-    function validTransactionStatus(status) {
-      return status in ["pending", "available", "withdrawn", "cancelled"];
-    }
-
-    function validWithdrawalStatus(status) {
-      return status in ["pending", "processing", "success", "failed"];
-    }
-
-    function validNotificationType(type) {
-      return type in [
-        "booking_new",
-        "booking_accepted",
-        "booking_rejected",
-        "chat_message",
-        "complaint_new",
-        "complaint_process",
-        "complaint_done",
-        "complaint_rejected",
-        "withdraw_requested",
-        "withdraw_processing",
-        "withdraw_success",
-        "withdraw_failed",
-        "finance_available"
-      ];
+    function isChatParticipantByData(data) {
+      return isSignedIn() && (
+        ("studentId" in data && data.studentId == request.auth.uid) ||
+        ("ownerId" in data && data.ownerId == request.auth.uid) ||
+        ("senderId" in data && data.senderId == request.auth.uid) ||
+        ("receiverId" in data && data.receiverId == request.auth.uid) ||
+        ("participants" in data && request.auth.uid in data.participants) ||
+        ("participantIds" in data && request.auth.uid in data.participantIds) ||
+        ("userIds" in data && request.auth.uid in data.userIds) ||
+        ("members" in data && request.auth.uid in data.members)
+      );
     }
 
     // --- COLLECTION RULES ---
 
     // USERS
     match /users/{userId} {
-      allow read: if isSelf(userId);
-      allow create: if isSelf(userId)
-        && request.resource.data.id == userId;
-      allow update: if isSelf(userId)
-        && request.resource.data.id == resource.data.id
-        && request.resource.data.role == resource.data.role;
-      allow delete: if false;
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && isValidRole(request.resource.data.role);
 
-      match /fcmTokens/{tokenId} {
-        allow read: if isSelf(userId);
-        allow create, update: if isSelf(userId);
-        allow delete: if isSelf(userId);
-      }
+      // Student/Owner can read their own profile.
+      // For demo: allow others to read public fields if needed for booking/chat.
+      allow read: if isSignedIn();
+
+      allow update: if isSelf(userId)
+        && unchanged("role");
+
+      allow delete: if false;
     }
 
     // KOS
     match /kos/{kosId} {
       allow read: if isSignedIn();
 
-      allow create: if isSignedIn()
-        && isOwner()
-        && request.resource.data.ownerId == uid();
+      allow create: if isOwner()
+        && request.resource.data.ownerId == request.auth.uid;
 
-      allow update: if isSignedIn()
-        && (
-          // Owner can update full data
-          (resource.data.ownerId == uid() && request.resource.data.ownerId == resource.data.ownerId)
-          ||
-          // Students can update rating average/count during review
-          (isStudent()
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'ratingAverage', 'ratingCount', 'updatedAt'])
-          )
-        );
-
-      allow delete: if isSignedIn()
-        && resource.data.ownerId == uid();
+      allow update, delete: if isOwner()
+        && resource.data.ownerId == request.auth.uid
+        && unchanged("ownerId");
     }
 
     // ROOMS
     match /rooms/{roomId} {
       allow read: if isSignedIn();
 
-      allow create: if isSignedIn()
-        && isOwner()
-        && request.resource.data.ownerId == uid()
-        && isKosOwner(request.resource.data.kosId);
+      allow create: if isOwner()
+        && request.resource.data.ownerId == request.auth.uid;
 
-      allow update: if isSignedIn()
-        && (
-          // Owner can update full data
-          (resource.data.ownerId == uid() && request.resource.data.ownerId == resource.data.ownerId)
-          ||
-          // Student can update status (booked/occupied) during booking process
-          (isStudent()
-             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
-          )
-        );
-
-      allow delete: if isSignedIn()
-        && resource.data.ownerId == uid();
+      allow update, delete: if isOwner()
+        && resource.data.ownerId == request.auth.uid
+        && unchanged("ownerId")
+        && unchanged("kosId");
     }
 
     // BOOKINGS
     match /bookings/{bookingId} {
-      allow read: if isBookingParticipant(resource.data);
+      allow read: if isSignedIn()
+        && (
+          resource.data.studentId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
 
-      allow create: if isSignedIn()
-        && isStudent()
-        && request.resource.data.studentId == uid()
-        && validBookingStatus(request.resource.data.status)
-        && request.resource.data.status == "pending";
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.status == "pending"
+        && (
+          !("paymentStatus" in request.resource.data) ||
+          request.resource.data.paymentStatus == "unpaid"
+        );
 
       allow update: if isSignedIn()
-        && validBookingStatus(request.resource.data.status)
-        && request.resource.data.studentId == resource.data.studentId
-        && request.resource.data.ownerId == resource.data.ownerId
         && (
-          // Student can cancel own pending/accepted/waiting_checkin booking
+          // A. Student update (Demo Payment Flow)
           (
-            resource.data.studentId == uid()
-            && request.resource.data.status in ["cancelled", "waiting_checkin", "active"]
+            resource.data.studentId == request.auth.uid
+            && unchanged("studentId")
+            && unchanged("ownerId")
+            && unchanged("kosId")
+            && unchanged("roomId")
+            && unchanged("totalPrice")
+            && unchanged("price")
+            // TODO SECURITY: Production must update paymentStatus from backend
+            && hasOnlyAllowedFields([
+                 "paymentStatus", "status", "gatewayTransactionId",
+                 "totalBayar", "qrisString", "paymentCreatedAt",
+                 "paidAt", "updatedAt"
+               ])
           )
           ||
-          // Owner can accept/reject/complete booking they own
+          // B. Owner update (Accept/Reject/Manage)
           (
-            resource.data.ownerId == uid()
-            && request.resource.data.status in ["accepted", "rejected", "completed"]
+            resource.data.ownerId == request.auth.uid
+            && unchanged("ownerId")
+            && unchanged("studentId")
+            && unchanged("kosId")
+            && unchanged("roomId")
+            && hasOnlyAllowedFields(["status", "updatedAt", "statusHistory", "updatedBy", "note"])
           )
         );
 
       allow delete: if false;
     }
 
-    // COMPLAINTS
-    match /complaints/{complaintId} {
-      allow read: if isComplaintParticipant(resource.data);
-
-      allow create: if isSignedIn()
-        && isStudent()
-        && request.resource.data.studentId == uid()
-        && request.resource.data.status == "new"
-        && validComplaintStatus(request.resource.data.status);
-
-      allow update: if isSignedIn()
-        && isComplaintParticipant(resource.data)
-        && (
-           // Owner can update status/response
-           (resource.data.ownerId == uid() && request.resource.data.status in ["process", "done", "rejected"])
-           ||
-           // Student can update (e.g. add image ID later if needed, but repository currently updates whole doc)
-           (resource.data.studentId == uid() && request.resource.data.status == resource.data.status)
-        );
-
-      allow delete: if false;
-    }
-
-    // CHATS
-    match /chats/{chatId} {
+    // PAYMENTS
+    match /payments/{paymentId} {
       allow read: if isSignedIn()
-        && (resource.data.studentId == uid() || resource.data.ownerId == uid());
-
-      allow create: if isSignedIn()
         && (
-          request.resource.data.studentId == uid()
-          || request.resource.data.ownerId == uid()
+          resource.data.studentId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
         );
 
-      allow update: if isSignedIn()
-        && (resource.data.studentId == uid() || resource.data.ownerId == uid())
-        && request.resource.data.studentId == resource.data.studentId
-        && request.resource.data.ownerId == resource.data.ownerId;
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.status == "pending";
+
+      // TODO SECURITY: Production must update from backend
+      allow update: if isStudent()
+        && resource.data.studentId == request.auth.uid
+        && hasOnlyAllowedFields(["status", "updatedAt", "paidAt", "gatewayTransactionId"]);
 
       allow delete: if false;
-
-      match /messages/{messageId} {
-        allow read: if isChatParticipant(chatId);
-
-        allow create: if isChatParticipant(chatId)
-          && request.resource.data.senderId == uid()
-          && request.resource.data.text is string
-          && request.resource.data.text.size() > 0;
-
-        allow update: if isChatParticipant(chatId);
-        allow delete: if false;
-      }
     }
 
     // TRANSACTIONS
     match /transactions/{transactionId} {
       allow read: if isSignedIn()
-        && (resource.data.ownerId == uid() || resource.data.studentId == uid());
-
-      allow create: if isSignedIn()
         && (
-          request.resource.data.ownerId == uid()
-          || request.resource.data.studentId == uid()
-        )
-        && validTransactionStatus(request.resource.data.status);
+          resource.data.studentId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
 
-      allow update: if isSignedIn()
-        && (resource.data.ownerId == uid() || resource.data.studentId == uid())
-        && validTransactionStatus(request.resource.data.status);
+      // TODO SECURITY: Production transaction should be created by backend
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.type == "rent_payment"
+        && request.resource.data.status in ["available", "pending"];
 
-      allow delete: if false;
-    }
-
-    // WITHDRAWALS
-    match /withdrawals/{withdrawalId} {
-      allow read: if isSignedIn()
-        && resource.data.ownerId == uid();
-
-      allow create: if isSignedIn()
-        && isOwner()
-        && request.resource.data.ownerId == uid()
-        && request.resource.data.status == "pending"
-        && request.resource.data.amount > 0;
-
-      allow update: if isSignedIn()
-        && resource.data.ownerId == uid()
-        && request.resource.data.ownerId == resource.data.ownerId
-        && request.resource.data.status in ["pending", "processing", "success", "failed"];
+      allow update: if isOwner()
+        && resource.data.ownerId == request.auth.uid
+        && hasOnlyAllowedFields(["status", "updatedAt"]);
 
       allow delete: if false;
     }
 
     // FAVORITES
     match /favorites/{favoriteId} {
-      allow read: if isSignedIn()
-        && resource.data.userId == uid();
+      allow read, delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
 
       allow create: if isSignedIn()
-        && request.resource.data.userId == uid();
+        && request.resource.data.userId == request.auth.uid;
 
       allow update: if false;
+    }
 
-      allow delete: if isSignedIn()
-        && resource.data.userId == uid();
+    // CHATS
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && isChatParticipantByData(resource.data);
+
+      allow create: if isSignedIn() && isChatParticipantByData(request.resource.data);
+
+      allow update: if isSignedIn()
+        && isChatParticipantByData(resource.data)
+        && isChatParticipantByData(request.resource.data);
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn()
+          && isChatParticipantByData(get(/databases/$(database)/documents/chats/$(chatId)).data);
+
+        allow create: if isSignedIn()
+          && isChatParticipantByData(get(/databases/$(database)/documents/chats/$(chatId)).data)
+          && request.resource.data.senderId == request.auth.uid;
+
+        allow update, delete: if false;
+      }
+    }
+
+    // MESSAGES (Top-level fallback)
+    match /messages/{messageId} {
+      allow read: if isSignedIn() && isChatParticipantByData(resource.data);
+
+      allow create: if isSignedIn()
+        && request.resource.data.senderId == request.auth.uid
+        && (
+          ("receiverId" in request.resource.data && request.resource.data.receiverId is string) ||
+          ("chatId" in request.resource.data && request.resource.data.chatId is string)
+        );
+
+      allow update, delete: if false;
+    }
+
+    // COMPLAINTS
+    match /complaints/{complaintId} {
+      allow read: if isSignedIn()
+        && (
+          resource.data.studentId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
+
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid;
+
+      allow update: if isSignedIn()
+        && (
+          (isStudent() && resource.data.studentId == request.auth.uid && resource.data.status != "resolved") ||
+          (isOwner() && resource.data.ownerId == request.auth.uid)
+        );
+
+      allow delete: if false;
     }
 
     // REVIEWS
     match /reviews/{reviewId} {
       allow read: if isSignedIn();
 
-      allow create: if isSignedIn()
-        && isStudent()
-        && request.resource.data.studentId == uid()
-        && canCreateReviewForBooking(request.resource.data.bookingId)
-        && reviewId == request.resource.data.bookingId
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid
         && request.resource.data.rating >= 1
         && request.resource.data.rating <= 5;
 
+      allow update, delete: if isSelf(resource.data.studentId);
+    }
+
+    // WITHDRAWALS
+    match /withdrawals/{withdrawalId} {
+      allow read: if isOwner()
+        && resource.data.ownerId == request.auth.uid;
+
+      allow create: if isOwner()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == "pending";
+
+      // TODO SECURITY: Approval must be backend/admin
       allow update: if false;
+
       allow delete: if false;
     }
 
     // NOTIFICATIONS
     match /notifications/{notificationId} {
-      allow read: if isSignedIn()
-        && resource.data.recipientId == uid();
+      allow read: if isSelf(resource.data.userId);
 
-      allow create: if isSignedIn()
-        && request.resource.data.senderId == uid()
-        && request.resource.data.recipientId is string
-        && validNotificationType(request.resource.data.type);
+      allow update: if isSelf(resource.data.userId)
+        && hasOnlyAllowedFields(["isRead", "readAt", "updatedAt"]);
 
-      allow update: if isSignedIn()
-        && resource.data.recipientId == uid()
-        && request.resource.data.recipientId == resource.data.recipientId;
+      // For demo: allow creation if target userId is valid
+      allow create: if isSignedIn();
 
       allow delete: if false;
     }

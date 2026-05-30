@@ -91,6 +91,7 @@ public class ChatRepository {
         }).addOnFailureListener(e -> {
             if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
                 ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                Log.e(TAG, "Permission denied loading chat: " + chatId, e);
                 callback.onError("Kamu tidak memiliki izin untuk mengakses ruang chat ini.");
             } else {
                 callback.onError("Gagal mengecek ruang chat: " + e.getMessage());
@@ -248,6 +249,7 @@ public class ChatRepository {
                     if (error != null) {
                         Log.e(TAG, "Listen messages error: " + error.getMessage());
                         if (error.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            Log.e(TAG, "Permission denied loading messages for chat: " + chatId, error);
                             listener.onError("Akses ditolak. Kamu bukan bagian dari chat ini.");
                         } else {
                             listener.onError("Gagal memuat pesan realtime.");
@@ -274,6 +276,7 @@ public class ChatRepository {
                     if (error != null) {
                         Log.e(TAG, "Listen chats error: " + error.getMessage());
                         if (error.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            Log.e(TAG, "Permission denied loading chats for user: " + uid, error);
                             listener.onError("Akses ditolak. Silakan login ulang.");
                         } else {
                             listener.onError("Gagal memuat daftar chat.");

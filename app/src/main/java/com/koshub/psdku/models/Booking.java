@@ -1,6 +1,7 @@
 package com.koshub.psdku.models;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.Exclude;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -127,18 +128,22 @@ public class Booking implements Serializable {
     public String getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
 
+    @Exclude
     public String getSafeStatus() {
         return status == null || status.trim().isEmpty() ? "pending" : status;
     }
 
+    @Exclude
     public String getSafePaymentStatus() {
         return paymentStatus == null || paymentStatus.trim().isEmpty() ? "unpaid" : paymentStatus;
     }
 
+    @Exclude
     public long getSafeGatewayTransactionId() {
         return gatewayTransactionId == null ? 0L : gatewayTransactionId;
     }
 
+    @Exclude
     public double getSafeTotalBayar() {
         return totalBayar == null ? 0.0 : totalBayar;
     }

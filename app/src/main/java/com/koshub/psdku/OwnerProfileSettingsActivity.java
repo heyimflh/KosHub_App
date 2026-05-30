@@ -159,42 +159,46 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
 
 
     private void uploadProfileImage(Uri uri) {
-        showToast("Sedang mengupdate foto profil...");
-        // Show local preview immediately with circle crop
+        showToast("Sedang mengupload foto profil...");
+        // Show local preview immediately
         if (imgProfile != null) Glide.with(this).load(uri).circleCrop().into(imgProfile);
 
         cloudinaryRepository.uploadProfileImage(this, uri, new CloudinaryRepository.SimpleUploadCallback() {
             @Override
-            public void onSuccess(String downloadUrl) {
-                showToast("Foto profil diperbarui");
-                String optimizedUrl = cloudinaryRepository.getOptimizedUrl(downloadUrl, 200, 200, true);
-                Glide.with(OwnerProfileSettingsActivity.this)
-                        .load(optimizedUrl)
-                        .placeholder(R.drawable.bg_avatar_circle)
-                        .circleCrop()
-                        .into(imgProfile);
-                loadProfileData(); // Reload to update completion %
+            public void onSuccess(String imageUrl) {
+                runOnUiThread(() -> {
+                    showToast("Foto profil diperbarui");
+                    String optimizedUrl = cloudinaryRepository.getOptimizedUrl(imageUrl, 200, 200, true);
+                    Glide.with(OwnerProfileSettingsActivity.this)
+                            .load(optimizedUrl)
+                            .placeholder(R.drawable.bg_avatar_circle)
+                            .circleCrop()
+                            .into(imgProfile);
+                    loadProfileData();
+                });
             }
 
             @Override
             public void onError(String message) {
-                showToast("Gagal upload: " + message);
+                runOnUiThread(() -> showToast("Gagal upload: " + message));
             }
         });
     }
 
     private void uploadLegalDoc(Uri uri, String type) {
-        showToast("Sedang mengupload dokumen...");
+        showToast("Sedang mengupload dokumen " + type.toUpperCase() + "...");
         cloudinaryRepository.uploadLegalDoc(this, uri, type, new CloudinaryRepository.SimpleUploadCallback() {
             @Override
             public void onSuccess(String imageUrl) {
-                showToast("Dokumen berhasil diupload");
-                loadProfileData(); // Reload to update completion %
+                runOnUiThread(() -> {
+                    showToast("Dokumen " + type.toUpperCase() + " berhasil diupload");
+                    loadProfileData();
+                });
             }
 
             @Override
             public void onError(String message) {
-                showToast("Gagal upload: " + message);
+                runOnUiThread(() -> showToast("Gagal upload: " + message));
             }
         });
     }

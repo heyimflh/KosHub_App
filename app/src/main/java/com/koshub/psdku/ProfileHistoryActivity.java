@@ -143,8 +143,17 @@ public class ProfileHistoryActivity extends AppCompatActivity {
             BookingRepository.getInstance().getBookingsByStudent(uid, new BookingRepository.BookingListCallback() {
                 @Override
                 public void onSuccess(List<Booking> bookings) {
+                    int activeCount = 0;
+                    for (Booking bk : bookings) {
+                        String st = bk.getSafeStatus();
+                        if (!DatabaseConstants.BOOKING_COMPLETED.equals(st) &&
+                            !DatabaseConstants.BOOKING_CANCELLED.equals(st) &&
+                            !DatabaseConstants.BOOKING_REJECTED.equals(st)) {
+                            activeCount++;
+                        }
+                    }
                     TextView tvBookingValue = findViewById(R.id.tvStatBookingValue);
-                    if (tvBookingValue != null) tvBookingValue.setText(String.valueOf(bookings.size()));
+                    if (tvBookingValue != null) tvBookingValue.setText(String.valueOf(activeCount));
                     updateRentalHistoryUI(bookings);
                 }
 
@@ -285,22 +294,28 @@ public class ProfileHistoryActivity extends AppCompatActivity {
     }
 
     private void uploadProfileImage(Uri uri) {
-        showToast("Sedang mengupdate foto profil...");
+        showToast("Sedang mengupload foto profil...");
+        // Show local preview immediately
+        if (imgProfile != null) Glide.with(this).load(uri).circleCrop().into(imgProfile);
+
         cloudinaryRepository.uploadProfileImage(this, uri, new CloudinaryRepository.SimpleUploadCallback() {
             @Override
-            public void onSuccess(String downloadUrl) {
-                showToast("Foto profil diperbarui");
-                String optimizedUrl = cloudinaryRepository.getOptimizedUrl(downloadUrl, 200, 200, true);
-                Glide.with(ProfileHistoryActivity.this)
-                        .load(optimizedUrl)
-                        .placeholder(R.drawable.bg_avatar_circle)
-                        .circleCrop()
-                        .into(imgProfile);
+            public void onSuccess(String imageUrl) {
+                runOnUiThread(() -> {
+                    showToast("Foto profil diperbarui");
+                    String optimizedUrl = cloudinaryRepository.getOptimizedUrl(imageUrl, 200, 200, true);
+                    Glide.with(ProfileHistoryActivity.this)
+                            .load(optimizedUrl)
+                            .placeholder(R.drawable.bg_avatar_circle)
+                            .circleCrop()
+                            .into(imgProfile);
+                    loadProfileData();
+                });
             }
 
             @Override
             public void onError(String message) {
-                showToast("Gagal upload: " + message);
+                runOnUiThread(() -> showToast("Gagal upload: " + message));
             }
         });
     }
