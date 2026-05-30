@@ -102,6 +102,14 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
         <activity
+            android:name=".AiAssistantActivity"
+            android:exported="false"
+            tools:replace="android:exported"
+            android:label="Asisten KosHub"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".OwnerDashboardActivity"
             android:exported="false"
             tools:replace="android:exported"

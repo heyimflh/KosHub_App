@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     id("com.google.gms.google-services")
@@ -23,7 +25,25 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Load local.properties for API keys
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { stream -> 
+                localProperties.load(stream) 
+            }
+        }
+
+        // Mapbox Token (Existing)
         buildConfigField("String", "MAPBOX_TOKEN", "\"${project.findProperty("MAPBOX_TOKEN") ?: ""}\"")
+
+        // Gemini API Configuration
+        // Note: Add GEMINI_API_KEY to local.properties, do not commit to version control.
+        val geminiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
+        val geminiModel = localProperties.getProperty("GEMINI_MODEL") ?: "gemini-3.5-flash"
+
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+        buildConfigField("String", "GEMINI_MODEL", "\"$geminiModel\"")
     }
 
     buildTypes {

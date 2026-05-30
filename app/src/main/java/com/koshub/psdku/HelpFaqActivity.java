@@ -5,10 +5,16 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 public class HelpFaqActivity extends AppCompatActivity {
 
@@ -17,10 +23,27 @@ public class HelpFaqActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Edge-to-edge support
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        
         setContentView(R.layout.activity_help_faq);
 
         faqContainer = findViewById(R.id.faqContainer);
+        View navbarHelp = findViewById(R.id.navbarHelp);
         findViewById(R.id.btnBackHelp).setOnClickListener(v -> finish());
+
+        // Handle Safe Area Insets
+        ViewCompat.setOnApplyWindowInsetsListener(navbarHelp, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(), insets.top, v.getPaddingRight(), v.getPaddingBottom());
+            return windowInsets;
+        });
+
+        findViewById(R.id.btnTanyaAsisten).setOnClickListener(v -> {
+            Intent intent = new Intent(HelpFaqActivity.this, AiAssistantActivity.class);
+            startActivity(intent);
+        });
 
         setupFaqItems();
         setupContactButtons();
