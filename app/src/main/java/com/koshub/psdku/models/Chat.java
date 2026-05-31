@@ -1,6 +1,9 @@
 package com.koshub.psdku.models;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Model for Chat sessions between student and owner.
@@ -19,6 +22,7 @@ public class Chat implements Serializable {
     private String lastSenderId;
     private int studentUnreadCount;
     private int ownerUnreadCount;
+    private List<String> participants;
     private long createdAt;
     private long updatedAt;
 
@@ -40,6 +44,7 @@ public class Chat implements Serializable {
         this.lastSenderId = "";
         this.studentUnreadCount = 0;
         this.ownerUnreadCount = 0;
+        this.participants = new ArrayList<>(Arrays.asList(studentId, ownerId));
         this.createdAt = System.currentTimeMillis();
         this.updatedAt = System.currentTimeMillis();
     }
@@ -82,6 +87,9 @@ public class Chat implements Serializable {
 
     public int getOwnerUnreadCount() { return ownerUnreadCount; }
     public void setOwnerUnreadCount(int ownerUnreadCount) { this.ownerUnreadCount = ownerUnreadCount; }
+
+    public List<String> getParticipants() { return participants; }
+    public void setParticipants(List<String> participants) { this.participants = participants; }
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }

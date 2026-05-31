@@ -72,6 +72,10 @@ public class ChatRepository {
         return studentId + "_" + ownerId + "_" + kosId;
     }
 
+    private String generateBookingChatId(String bookingId) {
+        return "booking_" + bookingId;
+    }
+
     public void getOrCreateChatRoom(String studentId, String ownerId, String kosId, String kosName, String bookingId, ChatCallback callback) {
         String chatId = generateChatId(studentId, ownerId, kosId);
         DocumentReference chatRef = db.collection(DatabaseConstants.COLLECTION_CHATS).document(chatId);
@@ -138,25 +142,85 @@ public class ChatRepository {
     }
 
     public void getOrCreateChatFromBooking(String bookingId, ChatCallback callback) {
-        String studentId = auth.getUid();
-        if (studentId == null) {
+        String currentUid = auth.getUid();
+        if (currentUid == null) {
             callback.onError("Kamu harus login terlebih dahulu.");
+            return;
+        }
+
+        if (bookingId == null || bookingId.isEmpty()) {
+            callback.onError("Data booking tidak valid.");
             return;
         }
 
         db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
                 .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        callback.onError("Data booking tidak ditemukan.");
+                        return;
+                    }
+
                     String bStudentId = documentSnapshot.getString(DatabaseConstants.FIELD_STUDENT_ID);
-                    if (!studentId.equals(bStudentId)) {
+                    String bOwnerId = documentSnapshot.getString(DatabaseConstants.FIELD_OWNER_ID);
+                    String kosId = documentSnapshot.getString(DatabaseConstants.FIELD_KOS_ID);
+                    String kosName = documentSnapshot.getString(DatabaseConstants.FIELD_KOS_NAME);
+
+                    if (bStudentId == null || bOwnerId == null) {
+                        callback.onError("Data student atau owner tidak lengkap.");
+                        return;
+                    }
+
+                    if (!currentUid.equals(bStudentId) && !currentUid.equals(bOwnerId)) {
                         callback.onError("Akses tidak diizinkan.");
                         return;
                     }
-                    String ownerId = documentSnapshot.getString(DatabaseConstants.FIELD_OWNER_ID);
-                    String kosId = documentSnapshot.getString(DatabaseConstants.FIELD_KOS_ID);
-                    String kosName = documentSnapshot.getString(DatabaseConstants.FIELD_KOS_NAME);
-                    getOrCreateChatRoom(studentId, ownerId, kosId, kosName, bookingId, callback);
+
+                    String chatId = generateBookingChatId(bookingId);
+                    createOrMergeBookingChat(chatId, bStudentId, bOwnerId, kosId, kosName, bookingId, callback);
                 })
                 .addOnFailureListener(e -> callback.onError("Gagal memuat data booking."));
+    }
+
+    private void createOrMergeBookingChat(String chatId, String studentId, String ownerId, String kosId, String kosName, String bookingId, ChatCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_USERS).document(studentId).get()
+                .addOnSuccessListener(studentDoc -> {
+                    String studentName = studentDoc.getString(DatabaseConstants.FIELD_NAME);
+                    db.collection(DatabaseConstants.COLLECTION_USERS).document(ownerId).get()
+                            .addOnSuccessListener(ownerDoc -> {
+                                String ownerName = ownerDoc.getString(DatabaseConstants.FIELD_NAME);
+
+                                Chat chat = new Chat(chatId, studentId, studentName, ownerId, ownerName, kosId, kosName, bookingId);
+
+                                Map<String, Object> chatData = new HashMap<>();
+                                chatData.put("id", chatId);
+                                chatData.put("studentId", studentId);
+                                chatData.put("studentName", studentName);
+                                chatData.put("ownerId", ownerId);
+                                chatData.put("ownerName", ownerName);
+                                chatData.put("kosId", kosId);
+                                chatData.put("kosName", kosName);
+                                chatData.put("bookingId", bookingId);
+                                chatData.put("participants", chat.getParticipants());
+                                chatData.put("lastMessage", chat.getLastMessage());
+                                chatData.put("lastMessageAt", chat.getLastMessageAt());
+                                chatData.put("lastSenderId", chat.getLastSenderId());
+                                chatData.put("studentUnreadCount", chat.getStudentUnreadCount());
+                                chatData.put("ownerUnreadCount", chat.getOwnerUnreadCount());
+                                chatData.put("createdAt", chat.getCreatedAt());
+                                chatData.put("updatedAt", System.currentTimeMillis());
+
+                                db.collection(DatabaseConstants.COLLECTION_CHATS)
+                                        .document(chatId)
+                                        .set(chatData, SetOptions.merge())
+                                        .addOnSuccessListener(aVoid -> callback.onSuccess(chat))
+                                        .addOnFailureListener(e -> {
+                                            Log.e(TAG, "Failed to create/merge booking chat", e);
+                                            callback.onError("Gagal membuka ruang chat. Pastikan akun ini terhubung dengan booking tersebut.");
+                                        });
+                            })
+                            .addOnFailureListener(e -> callback.onError("Gagal memuat profil pemilik."));
+                })
+                .addOnFailureListener(e -> callback.onError("Gagal memuat profil student."));
     }
 
     public void sendMessage(String chatId, String text, String type, SimpleCallback callback) {

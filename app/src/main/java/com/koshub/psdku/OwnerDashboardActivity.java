@@ -110,6 +110,13 @@ public class OwnerDashboardActivity extends AppCompatActivity {
     private TextView tvCheckinCount;
     private LinearLayout layoutPerluPerhatian;
     private TextView tvPerluPerhatianContent;
+    private TextView tvAlertContent;
+
+    private int countPendingBookings = 0;
+    private int countPaymentsToCheck = 0;
+    private int countKosWithoutPhoto = 0;
+    private int countReadyCheckIn = 0;
+    private int countNewComplaints = 0;
 
     // Occupancy
     private ProgressBar progressOccupancy;
@@ -221,6 +228,7 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         tvCheckinCount = findViewById(R.id.tvCheckinCount);
         layoutPerluPerhatian = findViewById(R.id.layoutPerluPerhatian);
         tvPerluPerhatianContent = findViewById(R.id.tvPerluPerhatianContent);
+        tvAlertContent = findViewById(R.id.tvAlertContent);
 
         // Occupancy
         progressOccupancy = findViewById(R.id.progressOccupancy);
@@ -270,26 +278,66 @@ public class OwnerDashboardActivity extends AppCompatActivity {
             tvOwnerDateToday.setText(hariIndo[hari] + ", " + tgl + " " + bulanIndo[bln] + " " + thn);
         }
 
-        // Dynamic greeting from session
-        if (tvOwnerGreeting != null) {
-            com.koshub.psdku.utils.SessionManager session = new com.koshub.psdku.utils.SessionManager(this);
-            String userName = session.getUserName();
-            if (userName != null && !userName.trim().isEmpty()) {
-                // Ambil nama depan saja
-                String firstName = userName.trim().split(" ")[0];
-                tvOwnerGreeting.setText("Halo, " + firstName + "!");
-            } else if (auth.getCurrentUser() != null && auth.getCurrentUser().getDisplayName() != null) {
-                String displayName = auth.getCurrentUser().getDisplayName().trim().split(" ")[0];
-                tvOwnerGreeting.setText("Halo, " + displayName + "!");
-            } else {
-                tvOwnerGreeting.setText("Halo, Owner!");
-            }
+        // Dynamic greeting from Firestore (Reliable)
+        String uid = auth.getUid();
+        if (uid != null && tvOwnerGreeting != null) {
+            db.collection(DatabaseConstants.COLLECTION_USERS).document(uid).get()
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        String name = doc.getString(DatabaseConstants.FIELD_NAME);
+                        if (name != null && !name.trim().isEmpty()) {
+                            tvOwnerGreeting.setText("Halo, " + getFriendlyGreetingName(name) + "!");
+                        } else {
+                            applyFallbackGreeting();
+                        }
+                    } else {
+                        applyFallbackGreeting();
+                    }
+                })
+                .addOnFailureListener(e -> applyFallbackGreeting());
+        } else {
+            applyFallbackGreeting();
         }
 
         btnOwnerNotification.setOnClickListener(v -> {
             Intent intent = new Intent(this, NotificationActivity.class);
             NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
         });
+    }
+
+    private void applyFallbackGreeting() {
+        if (tvOwnerGreeting == null) return;
+        
+        com.koshub.psdku.utils.SessionManager session = new com.koshub.psdku.utils.SessionManager(this);
+        String userName = session.getUserName();
+        if (userName != null && !userName.trim().isEmpty() && !userName.equalsIgnoreCase("Owner")) {
+            tvOwnerGreeting.setText("Halo, " + getFriendlyGreetingName(userName) + "!");
+        } else if (auth.getCurrentUser() != null && auth.getCurrentUser().getDisplayName() != null) {
+            tvOwnerGreeting.setText("Halo, " + getFriendlyGreetingName(auth.getCurrentUser().getDisplayName()) + "!");
+        } else {
+            tvOwnerGreeting.setText("Halo, Owner!");
+        }
+    }
+
+    private String getFriendlyGreetingName(String fullName) {
+        if (fullName == null || fullName.trim().isEmpty()) return "Owner";
+        
+        String trimmed = fullName.trim();
+        String[] tokens = trimmed.split("\\s+");
+        
+        List<String> skipPrefixes = Arrays.asList(
+                "muh.", "muhammad", "m.", "dr.", "h.", "ir.", "bpk.", "ibu.", "pak", "bu"
+        );
+        
+        for (String token : tokens) {
+            if (!skipPrefixes.contains(token.toLowerCase())) {
+                // Return the first token that is not a prefix
+                return token;
+            }
+        }
+        
+        // Fallback to the first token if everything is filtered
+        return tokens[0];
     }
 
     private void setupStats() {
@@ -328,26 +376,46 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         });
 
         // Load real booking count for "Booking Masuk" with realtime listener
+        if (bookingListener != null) {
+            bookingListener.remove();
+            bookingListener = null;
+        }
+
         bookingListener = com.google.firebase.firestore.FirebaseFirestore.getInstance()
                 .collection("bookings")
                 .whereEqualTo("ownerId", uid)
                 .addSnapshotListener((snapshots, e) -> {
-                    if (e != null || snapshots == null) return;
+                    if (e != null) {
+                        android.util.Log.e("OwnerDashboard", "Booking listener error: " + e.getMessage());
+                        return;
+                    }
+                    if (snapshots == null) return;
+                    
                     List<Booking> bookings = new ArrayList<>();
-                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snapshots) {
-                        Booking b = doc.toObject(Booking.class);
-                        b.setId(doc.getId());
-                        bookings.add(b);
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshots.getDocuments()) {
+                        try {
+                            Booking b = BookingRepository.getInstance().mapBookingSafely(doc);
+                            if (b != null) bookings.add(b);
+                        } catch (Exception ex) {
+                            android.util.Log.e("OwnerDashboard", "Skip invalid booking: " + ex.getMessage());
+                        }
                     }
                     int pendingCount = 0;
+                    int paymentCheckCount = 0;
                     long startOfToday = getStartOfToday();
                     int todayCount = 0;
                     int acceptedCount = 0;
                     for (Booking b : bookings) {
                         if (DatabaseConstants.BOOKING_PENDING.equals(b.getStatus())) pendingCount++;
+                        if (DatabaseConstants.BOOKING_WAITING_PAYMENT.equals(b.getStatus())) paymentCheckCount++;
                         if (b.getCreatedAt() >= startOfToday) todayCount++;
                         if (DatabaseConstants.BOOKING_ACCEPTED.equals(b.getStatus())) acceptedCount++;
                     }
+                    
+                    countPendingBookings = pendingCount;
+                    countPaymentsToCheck = paymentCheckCount;
+                    countReadyCheckIn = acceptedCount;
+
                     final int finalPending = pendingCount;
                     final int finalToday = todayCount;
                     final int finalAccepted = acceptedCount;
@@ -358,7 +426,9 @@ public class OwnerDashboardActivity extends AppCompatActivity {
                             tvStatIndicatorBooking.setText(finalToday > 0 ? finalToday + " baru hari ini" : "tidak ada hari ini");
                         if (tvCheckinCount != null)
                             tvCheckinCount.setText(finalAccepted + " booking");
+                        
                         updateRecentBookingsUI(finalBookings);
+                        updateAlertsUI();
                     });
                 });
 
@@ -470,6 +540,8 @@ public class OwnerDashboardActivity extends AppCompatActivity {
                 if (tvKomplainCount != null) {
                     tvKomplainCount.setText(newComplaints > 0 ? newComplaints + " baru" : "tidak ada");
                 }
+                countNewComplaints = newComplaints;
+                runOnUiThread(() -> updateAlertsUI());
             }
             @Override
             public void onError(String message) { /* keep default */ }
@@ -482,65 +554,40 @@ public class OwnerDashboardActivity extends AppCompatActivity {
 
     private void setupAlerts() {
         String uid = auth.getUid();
-        final int[] pendingBookings = {0};
-        final int[] openComplaints = {0};
-        final int[] kosWithoutPhoto = {0};
-
-        // Check pending bookings
-        BookingRepository.getInstance().getBookingsByOwner(uid, new BookingRepository.BookingListCallback() {
-            @Override
-            public void onSuccess(List<Booking> bookings) {
-                for (Booking b : bookings) {
-                    if ("pending".equalsIgnoreCase(b.getStatus())) pendingBookings[0]++;
-                }
-                updateAlertsUI(pendingBookings[0], openComplaints[0], kosWithoutPhoto[0]);
-            }
-            @Override
-            public void onError(String message) {}
-        });
-
-        // Check open complaints
-        com.koshub.psdku.repositories.ComplaintRepository.getInstance().getComplaintsByOwner(uid, new com.koshub.psdku.repositories.ComplaintRepository.ComplaintListCallback() {
-            @Override
-            public void onSuccess(List<com.koshub.psdku.models.Complaint> complaints) {
-                for (com.koshub.psdku.models.Complaint c : complaints) {
-                    if ("pending".equalsIgnoreCase(c.getStatus()) || "open".equalsIgnoreCase(c.getStatus())) openComplaints[0]++;
-                }
-                updateAlertsUI(pendingBookings[0], openComplaints[0], kosWithoutPhoto[0]);
-            }
-            @Override
-            public void onError(String message) {}
-        });
 
         // Check kos without photos
         kosRepository.getKosByOwner(uid, new KosRepository.KosListCallback() {
             @Override
             public void onSuccess(List<Kos> kosList) {
+                int noPhoto = 0;
                 for (Kos k : kosList) {
-                    if (k.getImageUrls() == null || k.getImageUrls().isEmpty()) kosWithoutPhoto[0]++;
+                    if (k.getImageUrls() == null || k.getImageUrls().isEmpty()) noPhoto++;
                 }
-                updateAlertsUI(pendingBookings[0], openComplaints[0], kosWithoutPhoto[0]);
+                countKosWithoutPhoto = noPhoto;
+                runOnUiThread(() -> updateAlertsUI());
             }
             @Override
             public void onError(String message) {}
         });
     }
 
-    private void updateAlertsUI(int pendingBookings, int openComplaints, int kosWithoutPhoto) {
-        if (layoutPerluPerhatian == null || tvPerluPerhatianContent == null) return;
+    private void updateAlertsUI() {
+        if (tvAlertContent == null) return;
+        
         StringBuilder alerts = new StringBuilder();
-        if (pendingBookings > 0) alerts.append("• ").append(pendingBookings).append(" booking menunggu konfirmasi\n");
-        if (openComplaints > 0) alerts.append("• ").append(openComplaints).append(" komplain belum ditanggapi\n");
-        if (kosWithoutPhoto > 0) alerts.append("• ").append(kosWithoutPhoto).append(" kos belum memiliki foto\n");
+        if (countPendingBookings > 0) alerts.append("• ").append(countPendingBookings).append(" booking menunggu konfirmasi\n");
+        if (countPaymentsToCheck > 0) alerts.append("• ").append(countPaymentsToCheck).append(" pembayaran perlu dicek\n");
+        if (countKosWithoutPhoto > 0) alerts.append("• ").append(countKosWithoutPhoto).append(" kos belum memiliki foto\n");
+        if (countReadyCheckIn > 0) alerts.append("• ").append(countReadyCheckIn).append(" booking siap check-in\n");
+        if (countNewComplaints > 0) alerts.append("• ").append(countNewComplaints).append(" komplain baru\n");
+        
         String content = alerts.toString().trim();
-        runOnUiThread(() -> {
-            if (content.isEmpty()) {
-                layoutPerluPerhatian.setVisibility(View.GONE);
-            } else {
-                layoutPerluPerhatian.setVisibility(View.VISIBLE);
-                tvPerluPerhatianContent.setText(content);
-            }
-        });
+        if (content.isEmpty()) {
+            tvAlertContent.setText("Semua kondisi aman saat ini.");
+            // Optional: hide the card if absolutely empty, but instructions allow showing a "light message"
+        } else {
+            tvAlertContent.setText(content);
+        }
     }
 
     private void setupQuickActions() {

@@ -546,7 +546,7 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Row 4: Action Needed Mini Cards -->
+                <!-- Row 4: Action Needed Mini Cards - HIDDEN (Consolidated into Alerts) -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -554,13 +554,15 @@
                     android:fontFamily="sans-serif-medium"
                     android:text="@string/owner_action_needed_title"
                     android:textColor="@color/owner_text_primary"
-                    android:textSize="14sp" />
+                    android:textSize="14sp"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:visibility="gone">
 
                     <!-- Komplain Mini -->
                     <LinearLayout
@@ -757,7 +759,7 @@
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <!-- ===== H. ALERTS SECTION ===== -->
+                <!-- ===== H. ALERTS SECTION (Consolidated) ===== -->
                 <LinearLayout
                     android:id="@+id/cardAlerts"
                     android:layout_width="match_parent"
@@ -789,26 +791,14 @@
                     </LinearLayout>
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:id="@+id/tvAlertContent"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="@string/owner_alert_1"
+                        android:lineSpacingExtra="4dp"
+                        android:text="Memuat data perhatian..."
                         android:textColor="@color/owner_text_primary"
-                        android:textSize="12sp" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/owner_alert_2"
-                        android:textColor="@color/owner_text_primary"
-                        android:textSize="12sp" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/owner_alert_3"
-                        android:textColor="@color/owner_text_primary"
-                        android:textSize="12sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
 
                 <!-- ===== D. QUICK ACTIONS ===== -->

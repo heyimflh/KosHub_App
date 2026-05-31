@@ -130,7 +130,7 @@ service cloud.firestore {
             && hasOnlyAllowedFields([
                  "paymentStatus", "status", "gatewayTransactionId",
                  "totalBayar", "qrisString", "paymentCreatedAt",
-                 "paidAt", "updatedAt"
+                 "paidAt", "updatedAt", "statusHistory"
                ])
           )
           ||
@@ -287,15 +287,29 @@ service cloud.firestore {
 
     // NOTIFICATIONS
     match /notifications/{notificationId} {
-      allow read: if isSelf(resource.data.userId);
+      allow read: if isSignedIn()
+        && resource.data.recipientId == request.auth.uid;
 
-      allow update: if isSelf(resource.data.userId)
-        && hasOnlyAllowedFields(["isRead", "readAt", "updatedAt"]);
+      allow update: if isSignedIn()
+        && resource.data.recipientId == request.auth.uid
+        && hasOnlyAllowedFields(["read", "readAt", "updatedAt"]);
 
-      // For demo: allow creation if target userId is valid
       allow create: if isSignedIn();
-
       allow delete: if false;
+    }
+
+    // FCM TOKENS
+    match /users/{userId}/fcmTokens/{tokenId} {
+      allow read, write: if isSelf(userId);
+    }
+
+    // PROMOS
+    match /promos/{promoId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner()
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isOwner()
+        && resource.data.ownerId == request.auth.uid;
     }
 
     // --- DEFAULT DENY ---

@@ -282,6 +282,11 @@ public class OwnerBookingActivity extends AppCompatActivity {
     }
 
     private void openChatFromBooking(Booking b) {
+        if (b == null || b.getId() == null || b.getId().isEmpty()) {
+            showToast("Data booking tidak valid.");
+            return;
+        }
+
         Intent intent = new Intent(this, OwnerChatRoomActivity.class);
         intent.putExtra("BOOKING_ID", b.getId());
         intent.putExtra("USER_NAME", b.getStudentName());

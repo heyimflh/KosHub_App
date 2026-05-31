@@ -76,22 +76,84 @@ public class BookingRepository {
     }
 
     public Booking mapBookingSafely(DocumentSnapshot doc) {
-        Booking b = doc.toObject(Booking.class);
-        if (b == null) return null;
+        if (doc == null || !doc.exists()) return null;
+        
+        Booking b = new Booking();
         b.setId(doc.getId());
-
-        // Extra precautions for specific fields that might crash due to type mismatch
-        b.setPaymentStatus(getStringSafe(doc, "paymentStatus", "unpaid"));
+        
+        // Basic Info
+        b.setStudentId(getStringSafe(doc, "studentId", null));
+        b.setStudentName(getStringSafe(doc, "studentName", null));
+        b.setStudentEmail(getStringSafe(doc, "studentEmail", null));
+        b.setOwnerId(getStringSafe(doc, "ownerId", null));
+        b.setKosId(getStringSafe(doc, "kosId", null));
+        b.setKosName(getStringSafe(doc, "kosName", null));
+        b.setKosAddress(getStringSafe(doc, "kosAddress", null));
+        b.setRoomId(getStringSafe(doc, "roomId", null));
+        b.setRoomName(getStringSafe(doc, "roomName", null));
+        
+        // Status & Payment
         b.setStatus(getStringSafe(doc, "status", "pending"));
-        b.setGatewayTransactionId(getLongSafe(doc, "gatewayTransactionId", 0L));
+        b.setPaymentStatus(getStringSafe(doc, "paymentStatus", "unpaid"));
+        b.setGatewayTransactionId(getLongOrTimestampSafe(doc, "gatewayTransactionId", 0L));
         b.setTotalBayar(getDoubleSafe(doc, "totalBayar", 0.0));
         b.setQrisString(getStringSafe(doc, "qrisString", null));
+        b.setNote(getStringSafe(doc, "note", null));
+        b.setUpdatedBy(getStringSafe(doc, "updatedBy", null));
         
-        // Timestamps
-        if (doc.contains("paymentCreatedAt")) b.setPaymentCreatedAt(doc.getTimestamp("paymentCreatedAt"));
-        if (doc.contains("paidAt")) b.setPaidAt(doc.getTimestamp("paidAt"));
+        // Timestamps (Safe Conversion)
+        b.setBookingDate(getLongOrTimestampSafe(doc, "bookingDate", 0L));
+        b.setCheckInDate(getLongOrTimestampSafe(doc, "checkInDate", 0L));
+        b.setCreatedAt(getLongOrTimestampSafe(doc, "createdAt", 0L));
+        b.setUpdatedAt(getLongOrTimestampSafe(doc, "updatedAt", 0L));
+        b.setPaidAt(getTimestampSafe(doc, "paidAt"));
+        b.setPaymentCreatedAt(getTimestampSafe(doc, "paymentCreatedAt"));
+        
+        // Numeric values
+        b.setDurationMonth((int) getLongOrTimestampSafe(doc, "durationMonth", 0L));
+        b.setTotalPrice(getDoubleSafe(doc, "totalPrice", 0.0));
+        
+        // Legacy/Compatibility
+        b.setPrice(getStringSafe(doc, "price", null));
+
+        // History
+        if (doc.contains(DatabaseConstants.FIELD_STATUS_HISTORY)) {
+            Object history = doc.get(DatabaseConstants.FIELD_STATUS_HISTORY);
+            if (history instanceof List) {
+                b.setStatusHistory((List<String>) history);
+            }
+        }
 
         return b;
+    }
+
+    private long getLongOrTimestampSafe(DocumentSnapshot doc, String field, long defaultValue) {
+        if (!doc.contains(field) || doc.get(field) == null) return defaultValue;
+        Object val = doc.get(field);
+        
+        if (val instanceof com.google.firebase.Timestamp) {
+            return ((com.google.firebase.Timestamp) val).toDate().getTime();
+        }
+        if (val instanceof Number) {
+            return ((Number) val).longValue();
+        }
+        if (val instanceof String) {
+            try { return Long.parseLong((String) val); } catch (Exception e) { return defaultValue; }
+        }
+        return defaultValue;
+    }
+
+    private com.google.firebase.Timestamp getTimestampSafe(DocumentSnapshot doc, String field) {
+        if (!doc.contains(field) || doc.get(field) == null) return null;
+        Object val = doc.get(field);
+        
+        if (val instanceof com.google.firebase.Timestamp) {
+            return (com.google.firebase.Timestamp) val;
+        }
+        if (val instanceof Number) {
+            return new com.google.firebase.Timestamp(new java.util.Date(((Number) val).longValue()));
+        }
+        return null;
     }
 
     private String getStringSafe(DocumentSnapshot doc, String field, String defaultValue) {

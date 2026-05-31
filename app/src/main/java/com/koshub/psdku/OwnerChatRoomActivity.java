@@ -180,7 +180,10 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
 
                 @Override
                 public void onError(String message) {
+                    Log.e(TAG, "Failed to initialize chat from booking: " + message);
                     Toast.makeText(OwnerChatRoomActivity.this, message, Toast.LENGTH_SHORT).show();
+                    etMessage.setEnabled(false);
+                    btnSendMessage.setEnabled(false);
                 }
             });
         } else if (kosId != null) {
@@ -194,7 +197,10 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
 
                 @Override
                 public void onError(String message) {
+                    Log.e(TAG, "Failed to initialize chat from kos: " + message);
                     Toast.makeText(OwnerChatRoomActivity.this, message, Toast.LENGTH_SHORT).show();
+                    etMessage.setEnabled(false);
+                    btnSendMessage.setEnabled(false);
                 }
             });
         }
