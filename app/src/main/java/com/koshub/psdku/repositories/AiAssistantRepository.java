@@ -28,6 +28,7 @@ public class AiAssistantRepository {
     private static final String TAG = "AiAssistantRepository";
     private final OkHttpClient client;
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    private static final String GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
     public interface AiCallback {
         void onSuccess(String answer);
@@ -49,7 +50,8 @@ public class AiAssistantRepository {
         }
 
         if (!AiConfig.isGeminiConfigured()) {
-            callback.onError("Gemini API not configured.");
+            Log.w(TAG, "Gemini not configured, trying Groq directly.");
+            askGroqFallback(userMessage, role, userName, recentMessages, callback);
             return;
         }
 
@@ -96,19 +98,22 @@ public class AiAssistantRepository {
             client.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-                    callback.onError("Network error: " + e.getMessage());
+                    Log.w(TAG, "Gemini failed, trying Groq fallback: " + e.getMessage());
+                    askGroqFallback(userMessage, role, userName, recentMessages, callback);
                 }
 
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     try (ResponseBody responseBody = response.body()) {
                         if (!response.isSuccessful()) {
-                            callback.onError("API Error: " + response.code());
+                            Log.w(TAG, "Gemini API error " + response.code() + ", trying Groq fallback.");
+                            askGroqFallback(userMessage, role, userName, recentMessages, callback);
                             return;
                         }
 
                         if (responseBody == null) {
-                            callback.onError("Response body is null.");
+                            Log.w(TAG, "Gemini response body is null, trying Groq fallback.");
+                            askGroqFallback(userMessage, role, userName, recentMessages, callback);
                             return;
                         }
 
@@ -140,9 +145,11 @@ public class AiAssistantRepository {
                                 }
                             }
                         }
-                        callback.onError("Response empty or malformed.");
+                        Log.w(TAG, "Gemini response malformed, trying Groq fallback.");
+                        askGroqFallback(userMessage, role, userName, recentMessages, callback);
                     } catch (Exception e) {
-                        callback.onError("Parse error: " + e.getMessage());
+                        Log.w(TAG, "Gemini parse error, trying Groq fallback: " + e.getMessage());
+                        askGroqFallback(userMessage, role, userName, recentMessages, callback);
                     }
                 }
             });
@@ -286,5 +293,139 @@ public class AiAssistantRepository {
         sb.append("Jawab sekarang dengan natural, singkat, tuntas, dan tanpa markdown.");
         
         return sb.toString();
+    }
+
+    public void askGroqFallback(String userMessage, String role, String userName, List<AiMessage> recentMessages, AiCallback callback) {
+        if (!AiConfig.isGroqConfigured()) {
+            callback.onError("Groq API not configured.");
+            return;
+        }
+
+        String localFaqContext = AiLocalFaqEngine.findBestAnswer(userMessage, role);
+        if (localFaqContext.contains("Maaf, saya belum menemukan jawaban yang tepat")) {
+            localFaqContext = "";
+        }
+
+        String systemPrompt = buildKosHubSystemPrompt(role, userName, localFaqContext);
+        String userPromptText = buildKosHubUserPrompt(userMessage, recentMessages);
+
+        try {
+            JSONObject jsonBody = new JSONObject();
+            jsonBody.put("model", BuildConfig.GROQ_MODEL);
+
+            JSONArray messages = new JSONArray();
+
+            // System message
+            JSONObject systemMsg = new JSONObject();
+            systemMsg.put("role", "system");
+            systemMsg.put("content", systemPrompt);
+            messages.put(systemMsg);
+
+            // Add recent chat history (max 2 turns = 4 messages)
+            if (recentMessages != null && !recentMessages.isEmpty()) {
+                int start = Math.max(0, recentMessages.size() - 4);
+                for (int i = start; i < recentMessages.size(); i++) {
+                    AiMessage msg = recentMessages.get(i);
+                    if (msg.getMessage() == null || msg.getMessage().isEmpty()) continue;
+                    JSONObject histMsg = new JSONObject();
+                    histMsg.put("role", "ai".equals(msg.getSenderType()) ? "assistant" : "user");
+                    String text = msg.getMessage();
+                    if (text.length() > 200) text = text.substring(0, 200) + "...";
+                    histMsg.put("content", text);
+                    messages.put(histMsg);
+                }
+            }
+
+            // Current user message
+            JSONObject userMsg = new JSONObject();
+            userMsg.put("role", "user");
+            userMsg.put("content", userPromptText);
+            messages.put(userMsg);
+
+            jsonBody.put("messages", messages);
+            jsonBody.put("max_tokens", 1024);
+            jsonBody.put("temperature", 0.45);
+            jsonBody.put("top_p", 0.85);
+
+            RequestBody body = RequestBody.create(jsonBody.toString(), JSON);
+            Request request = new Request.Builder()
+                    .url(GROQ_API_URL)
+                    .addHeader("Authorization", "Bearer " + BuildConfig.GROQ_API_KEY)
+                    .addHeader("Content-Type", "application/json")
+                    .post(body)
+                    .build();
+
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    callback.onError("Groq network error: " + e.getMessage());
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    try (ResponseBody responseBody = response.body()) {
+                        if (!response.isSuccessful() || responseBody == null) {
+                            callback.onError("Groq API Error: " + response.code());
+                            return;
+                        }
+
+                        String responseStr = responseBody.string();
+                        JSONObject jsonResponse = new JSONObject(responseStr);
+
+                        JSONArray choices = jsonResponse.optJSONArray("choices");
+                        if (choices != null && choices.length() > 0) {
+                            JSONObject choice = choices.getJSONObject(0);
+                            JSONObject message = choice.optJSONObject("message");
+                            if (message != null) {
+                                String content = message.optString("content", "");
+                                if (!content.trim().isEmpty()) {
+                                    String cleaned = cleanAiResponse(content);
+                                    Log.d(TAG, "Groq response received, length: " + cleaned.length());
+                                    callback.onSuccess(cleaned);
+                                    return;
+                                }
+                            }
+                        }
+                        callback.onError("Groq response empty or malformed.");
+                    } catch (Exception e) {
+                        callback.onError("Groq parse error: " + e.getMessage());
+                    }
+                }
+            });
+
+        } catch (Exception e) {
+            callback.onError("Groq request error: " + e.getMessage());
+        }
+    }
+
+    private String buildKosHubSystemPrompt(String role, String userName, String localFaqContext) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("PERINGATAN UTAMA: Jawaban WAJIB selesai dalam 1 respons. MAKSIMAL 5 langkah jika perlu langkah. MAKSIMAL 4 kalimat untuk jawaban non-langkah. JANGAN buat kalimat menggantung.\n\n");
+        sb.append("Kamu adalah Asisten KosHub, CS AI otomatis untuk aplikasi KosHub.\n\n");
+        sb.append("Aturan Keras Gaya Jawaban:\n");
+        sb.append("- Bahasa Indonesia ramah, ringan, dan to the point.\n");
+        sb.append("- Panggil user dengan 'Kak' dengan aturan posisi: (a) Gunakan 'Kak' sebagai sapaan pembuka di awal kalimat pertama saja. (b) Di tengah atau akhir kalimat, gunakan kata GANTI 'kamu', bukan 'Kak'. Contoh BENAR: 'Kamu bisa coba langkah ini'. Contoh SALAH: 'Kak bisa coba langkah ini'. (c) Boleh tambahkan 'Kak' di akhir kalimat penutup. (d) DILARANG keras menggunakan kata 'Kakak'.\n");
+        sb.append("- JANGAN gunakan markdown, bold, italic, heading, atau tanda **.\n");
+        sb.append("- Jika butuh langkah, MAKSIMAL 5 langkah saja. Gunakan format angka 1, 2, 3.\n");
+        sb.append("- JANGAN buat jawaban menggantung atau terpotong.\n\n");
+        sb.append("Konteks KosHub: aplikasi pencarian dan manajemen kos.\n");
+        sb.append("Fitur Student: cari kos, booking, pembayaran, chat owner, komplain.\n");
+        sb.append("Fitur Owner: tambah kos/kamar, kelola booking, chat mahasiswa, laporan keuangan.\n\n");
+        sb.append("Keamanan: JANGAN minta password, OTP, KTP, atau rekening.\n\n");
+        sb.append("Role User: ").append(role).append("\n");
+        sb.append("Nama User: ").append(userName).append(" (pakai hanya di sapaan pertama, setelah itu gunakan 'kamu')\n\n");
+
+        if (localFaqContext != null && !localFaqContext.isEmpty()) {
+            String context = localFaqContext.length() > 120 ? localFaqContext.substring(0, 120) + "..." : localFaqContext;
+            sb.append("Referensi singkat: ").append(context).append("\n\n");
+        }
+
+        sb.append("Jawab dengan natural, singkat, tuntas, dan tanpa markdown.");
+        return sb.toString();
+    }
+
+    private String buildKosHubUserPrompt(String userMessage, List<AiMessage> recentMessages) {
+        return "Pertanyaan: " + userMessage;
     }
 }

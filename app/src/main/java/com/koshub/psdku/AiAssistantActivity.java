@@ -334,8 +334,7 @@ public class AiAssistantActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     removeTypingIndicator();
                     String localAnswer = AiLocalFaqEngine.findBestAnswer(userMessage, currentRole);
-                    String friendlyAnswer = "Untuk sementara saya jawab berdasarkan pusat bantuan lokal KosHub ya, Kak.\n\n" + localAnswer;
-                    addAiMessage(friendlyAnswer);
+                    addAiMessage(localAnswer);
                     updateQuickChips(localAnswer);
                     setLoadingState(false);
                     AiChatHistoryManager.saveMessages(AiAssistantActivity.this, currentRole, messageList);

@@ -56,11 +56,13 @@ import java.util.Locale;
 
 public class OwnerDashboardActivity extends AppCompatActivity {
 
+    private com.google.firebase.firestore.FirebaseFirestore db = com.google.firebase.firestore.FirebaseFirestore.getInstance();
     private KosRepository kosRepository;
     private CloudinaryRepository cloudinaryRepository;
     private StorageRepository storageRepository;
     private FirebaseAuth auth;
     private ListenerRegistration notificationListener;
+    private com.google.firebase.firestore.ListenerRegistration bookingListener;
     private Uri selectedImageUri;
     private ImageView imgPreview;
 
@@ -81,6 +83,8 @@ public class OwnerDashboardActivity extends AppCompatActivity {
     );
 
     // Header
+    private TextView tvOwnerGreeting;
+    private TextView tvOwnerDateToday;
     private View btnOwnerNotification;
     private TextView tvStatValuePendapatan, tvSaldoTersedia, tvSaldoPending;
     private TextView tvRevenueTotal, tvRevenueMasukValue, tvRevenuePendingValue, tvRevenueEstimasiValue;
@@ -90,6 +94,10 @@ public class OwnerDashboardActivity extends AppCompatActivity {
     private LinearLayout statKamarTerisi;
     private LinearLayout statBookingMasuk;
     private LinearLayout statPendapatan;
+    private TextView tvStatIndicatorKos;
+    private TextView tvStatIndicatorKamar;
+    private TextView tvStatIndicatorBooking;
+    private TextView tvStatIndicatorPendapatan;
 
     // Finance & Complaint Detail
     private LinearLayout cardSaldoOwner;
@@ -98,6 +106,10 @@ public class OwnerDashboardActivity extends AppCompatActivity {
     private LinearLayout cardSaldoPending;
     private LinearLayout cardKomplainMasuk;
     private LinearLayout cardSiapCheckin;
+    private TextView tvKomplainCount;
+    private TextView tvCheckinCount;
+    private LinearLayout layoutPerluPerhatian;
+    private TextView tvPerluPerhatianContent;
 
     // Occupancy
     private ProgressBar progressOccupancy;
@@ -144,6 +156,7 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         initViews();
         setupHeader();
         setupStats();
+        setupAlerts();
         setupOccupancy();
         setupQuickActions();
         setupBookings();
@@ -180,6 +193,8 @@ public class OwnerDashboardActivity extends AppCompatActivity {
 
     private void initViews() {
         // Header
+        tvOwnerGreeting = findViewById(R.id.tvOwnerGreeting);
+        tvOwnerDateToday = findViewById(R.id.tvOwnerDateToday);
         btnOwnerNotification = findViewById(R.id.btnOwnerTopNotification);
 
         // Stats
@@ -187,6 +202,10 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         statKamarTerisi = findViewById(R.id.statKamarTerisi);
         statBookingMasuk = findViewById(R.id.statBookingMasuk);
         statPendapatan = findViewById(R.id.statPendapatan);
+        tvStatIndicatorKos = findViewById(R.id.tvStatIndicatorKos);
+        tvStatIndicatorKamar = findViewById(R.id.tvStatIndicatorKamar);
+        tvStatIndicatorBooking = findViewById(R.id.tvStatIndicatorBooking);
+        tvStatIndicatorPendapatan = findViewById(R.id.tvStatIndicatorPendapatan);
         tvStatValuePendapatan = findViewById(R.id.tvStatValuePendapatan);
         tvSaldoTersedia = findViewById(R.id.tvSaldoTersedia);
         tvSaldoPending = findViewById(R.id.tvSaldoPending);
@@ -198,6 +217,10 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         cardSaldoPending = findViewById(R.id.cardSaldoPending);
         cardKomplainMasuk = findViewById(R.id.cardKomplainMasuk);
         cardSiapCheckin = findViewById(R.id.cardSiapCheckin);
+        tvKomplainCount = findViewById(R.id.tvKomplainCount);
+        tvCheckinCount = findViewById(R.id.tvCheckinCount);
+        layoutPerluPerhatian = findViewById(R.id.layoutPerluPerhatian);
+        tvPerluPerhatianContent = findViewById(R.id.tvPerluPerhatianContent);
 
         // Occupancy
         progressOccupancy = findViewById(R.id.progressOccupancy);
@@ -234,6 +257,35 @@ public class OwnerDashboardActivity extends AppCompatActivity {
     }
 
     private void setupHeader() {
+        // Dynamic date
+        if (tvOwnerDateToday != null) {
+            String[] hariIndo = {"Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"};
+            String[] bulanIndo = {"Januari", "Februari", "Maret", "April", "Mei", "Juni",
+                    "Juli", "Agustus", "September", "Oktober", "November", "Desember"};
+            Calendar cal = Calendar.getInstance();
+            int hari = cal.get(Calendar.DAY_OF_WEEK) - 1;
+            int tgl = cal.get(Calendar.DAY_OF_MONTH);
+            int bln = cal.get(Calendar.MONTH);
+            int thn = cal.get(Calendar.YEAR);
+            tvOwnerDateToday.setText(hariIndo[hari] + ", " + tgl + " " + bulanIndo[bln] + " " + thn);
+        }
+
+        // Dynamic greeting from session
+        if (tvOwnerGreeting != null) {
+            com.koshub.psdku.utils.SessionManager session = new com.koshub.psdku.utils.SessionManager(this);
+            String userName = session.getUserName();
+            if (userName != null && !userName.trim().isEmpty()) {
+                // Ambil nama depan saja
+                String firstName = userName.trim().split(" ")[0];
+                tvOwnerGreeting.setText("Halo, " + firstName + "!");
+            } else if (auth.getCurrentUser() != null && auth.getCurrentUser().getDisplayName() != null) {
+                String displayName = auth.getCurrentUser().getDisplayName().trim().split(" ")[0];
+                tvOwnerGreeting.setText("Halo, " + displayName + "!");
+            } else {
+                tvOwnerGreeting.setText("Halo, Owner!");
+            }
+        }
+
         btnOwnerNotification.setOnClickListener(v -> {
             Intent intent = new Intent(this, NotificationActivity.class);
             NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
@@ -248,6 +300,22 @@ public class OwnerDashboardActivity extends AppCompatActivity {
                 ((TextView) statTotalKos.findViewById(R.id.tvStatValueKos)).setText(String.valueOf(stats.getTotalKos()));
                 ((TextView) statKamarTerisi.findViewById(R.id.tvStatValueTerisi)).setText(String.valueOf(stats.getOccupiedRooms()));
                 
+                // Indicator: "dari X kamar" (total kamar realtime)
+                if (tvStatIndicatorKamar != null) {
+                    tvStatIndicatorKamar.setText("dari " + stats.getTotalRooms() + " kamar");
+                }
+                // Indicator: kos — hitung kos baru bulan ini dari Firestore
+                db.collection("kos")
+                    .whereEqualTo("ownerId", uid)
+                    .whereGreaterThan("createdAt", getStartOfCurrentMonth())
+                    .get()
+                    .addOnSuccessListener(snap -> {
+                        if (tvStatIndicatorKos != null) {
+                            int newThisMonth = snap.size();
+                            tvStatIndicatorKos.setText(newThisMonth > 0 ? "+" + newThisMonth + " bulan ini" : "tidak ada perubahan");
+                        }
+                    });
+
                 progressOccupancy.setProgress((int) stats.getOccupancyRate());
                 ((TextView) findViewById(R.id.tvOccupancyPercent)).setText(String.format(Locale.getDefault(), "%.1f%%", stats.getOccupancyRate()));
                 ((TextView) findViewById(R.id.tvOccupancyDetail)).setText(stats.getOccupiedRooms() + "/" + stats.getTotalRooms() + " Kamar Terisi");
@@ -259,23 +327,40 @@ public class OwnerDashboardActivity extends AppCompatActivity {
             }
         });
 
-        // Load real booking count for "Booking Masuk"
-        BookingRepository.getInstance().getBookingsByOwner(uid, new BookingRepository.BookingListCallback() {
-            @Override
-            public void onSuccess(List<Booking> bookings) {
-                int pendingCount = 0;
-                for (Booking b : bookings) {
-                    if (DatabaseConstants.BOOKING_PENDING.equals(b.getStatus())) pendingCount++;
-                }
-                ((TextView) statBookingMasuk.findViewById(R.id.tvStatValueBooking)).setText(String.valueOf(pendingCount));
-                updateRecentBookingsUI(bookings);
-            }
-
-            @Override
-            public void onError(String message) {
-                // Keep dummy
-            }
-        });
+        // Load real booking count for "Booking Masuk" with realtime listener
+        bookingListener = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("bookings")
+                .whereEqualTo("ownerId", uid)
+                .addSnapshotListener((snapshots, e) -> {
+                    if (e != null || snapshots == null) return;
+                    List<Booking> bookings = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : snapshots) {
+                        Booking b = doc.toObject(Booking.class);
+                        b.setId(doc.getId());
+                        bookings.add(b);
+                    }
+                    int pendingCount = 0;
+                    long startOfToday = getStartOfToday();
+                    int todayCount = 0;
+                    int acceptedCount = 0;
+                    for (Booking b : bookings) {
+                        if (DatabaseConstants.BOOKING_PENDING.equals(b.getStatus())) pendingCount++;
+                        if (b.getCreatedAt() >= startOfToday) todayCount++;
+                        if (DatabaseConstants.BOOKING_ACCEPTED.equals(b.getStatus())) acceptedCount++;
+                    }
+                    final int finalPending = pendingCount;
+                    final int finalToday = todayCount;
+                    final int finalAccepted = acceptedCount;
+                    final List<Booking> finalBookings = bookings;
+                    runOnUiThread(() -> {
+                        ((TextView) statBookingMasuk.findViewById(R.id.tvStatValueBooking)).setText(String.valueOf(finalPending));
+                        if (tvStatIndicatorBooking != null)
+                            tvStatIndicatorBooking.setText(finalToday > 0 ? finalToday + " baru hari ini" : "tidak ada hari ini");
+                        if (tvCheckinCount != null)
+                            tvCheckinCount.setText(finalAccepted + " booking");
+                        updateRecentBookingsUI(finalBookings);
+                    });
+                });
 
         // Load finance summary
         FinanceRepository.getInstance().getFinanceSummary(uid, new FinanceRepository.FinanceSummaryCallback() {
@@ -298,6 +383,31 @@ public class OwnerDashboardActivity extends AppCompatActivity {
                 if (tvRevenuePendingValue != null) tvRevenuePendingValue.setText(CurrencyHelper.formatRupiah(summary.getPendingBalance()));
                 // For estimation, we can use totalRevenue for now as a simple placeholder
                 if (tvRevenueEstimasiValue != null) tvRevenueEstimasiValue.setText(CurrencyHelper.formatRupiah(totalRevenue));
+
+                // Hitung pendapatan bulan ini vs bulan lalu dari transactions
+                FinanceRepository.getInstance().getTransactionsByOwner(uid, new FinanceRepository.TransactionListCallback() {
+                    @Override
+                    public void onSuccess(List<com.koshub.psdku.models.Transaction> transactions) {
+                        long startThisMonth = getStartOfCurrentMonth();
+                        long startLastMonth = getStartOfLastMonth();
+                        double thisMonth = 0, lastMonth = 0;
+                        for (com.koshub.psdku.models.Transaction t : transactions) {
+                            if (t.getCreatedAt() >= startThisMonth) thisMonth += t.getAmount();
+                            else if (t.getCreatedAt() >= startLastMonth && t.getCreatedAt() < startThisMonth) lastMonth += t.getAmount();
+                        }
+                        if (tvStatIndicatorPendapatan != null) {
+                            if (lastMonth == 0) {
+                                tvStatIndicatorPendapatan.setText("tidak ada data bulan lalu");
+                            } else {
+                                double pct = ((thisMonth - lastMonth) / lastMonth) * 100;
+                                String sign = pct >= 0 ? "+" : "";
+                                tvStatIndicatorPendapatan.setText(sign + String.format(Locale.getDefault(), "%.0f%%", pct) + " vs bulan lalu");
+                            }
+                        }
+                    }
+                    @Override
+                    public void onError(String message) { /* keep default */ }
+                });
             }
 
             @Override
@@ -348,10 +458,89 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         cardSiapCheckin.setOnClickListener(v -> {
             NavigationTransitionHelper.navigateMain(OwnerDashboardActivity.this, OwnerBookingActivity.class);
         });
+
+        // Load data komplain baru
+        com.koshub.psdku.repositories.ComplaintRepository.getInstance().getComplaintsByOwner(uid, new com.koshub.psdku.repositories.ComplaintRepository.ComplaintListCallback() {
+            @Override
+            public void onSuccess(List<com.koshub.psdku.models.Complaint> complaints) {
+                int newComplaints = 0;
+                for (com.koshub.psdku.models.Complaint c : complaints) {
+                    if ("pending".equalsIgnoreCase(c.getStatus()) || "open".equalsIgnoreCase(c.getStatus())) newComplaints++;
+                }
+                if (tvKomplainCount != null) {
+                    tvKomplainCount.setText(newComplaints > 0 ? newComplaints + " baru" : "tidak ada");
+                }
+            }
+            @Override
+            public void onError(String message) { /* keep default */ }
+        });
     }
 
     private void setupOccupancy() {
         // Handled within setupStats callback for synchronization
+    }
+
+    private void setupAlerts() {
+        String uid = auth.getUid();
+        final int[] pendingBookings = {0};
+        final int[] openComplaints = {0};
+        final int[] kosWithoutPhoto = {0};
+
+        // Check pending bookings
+        BookingRepository.getInstance().getBookingsByOwner(uid, new BookingRepository.BookingListCallback() {
+            @Override
+            public void onSuccess(List<Booking> bookings) {
+                for (Booking b : bookings) {
+                    if ("pending".equalsIgnoreCase(b.getStatus())) pendingBookings[0]++;
+                }
+                updateAlertsUI(pendingBookings[0], openComplaints[0], kosWithoutPhoto[0]);
+            }
+            @Override
+            public void onError(String message) {}
+        });
+
+        // Check open complaints
+        com.koshub.psdku.repositories.ComplaintRepository.getInstance().getComplaintsByOwner(uid, new com.koshub.psdku.repositories.ComplaintRepository.ComplaintListCallback() {
+            @Override
+            public void onSuccess(List<com.koshub.psdku.models.Complaint> complaints) {
+                for (com.koshub.psdku.models.Complaint c : complaints) {
+                    if ("pending".equalsIgnoreCase(c.getStatus()) || "open".equalsIgnoreCase(c.getStatus())) openComplaints[0]++;
+                }
+                updateAlertsUI(pendingBookings[0], openComplaints[0], kosWithoutPhoto[0]);
+            }
+            @Override
+            public void onError(String message) {}
+        });
+
+        // Check kos without photos
+        kosRepository.getKosByOwner(uid, new KosRepository.KosListCallback() {
+            @Override
+            public void onSuccess(List<Kos> kosList) {
+                for (Kos k : kosList) {
+                    if (k.getImageUrls() == null || k.getImageUrls().isEmpty()) kosWithoutPhoto[0]++;
+                }
+                updateAlertsUI(pendingBookings[0], openComplaints[0], kosWithoutPhoto[0]);
+            }
+            @Override
+            public void onError(String message) {}
+        });
+    }
+
+    private void updateAlertsUI(int pendingBookings, int openComplaints, int kosWithoutPhoto) {
+        if (layoutPerluPerhatian == null || tvPerluPerhatianContent == null) return;
+        StringBuilder alerts = new StringBuilder();
+        if (pendingBookings > 0) alerts.append("• ").append(pendingBookings).append(" booking menunggu konfirmasi\n");
+        if (openComplaints > 0) alerts.append("• ").append(openComplaints).append(" komplain belum ditanggapi\n");
+        if (kosWithoutPhoto > 0) alerts.append("• ").append(kosWithoutPhoto).append(" kos belum memiliki foto\n");
+        String content = alerts.toString().trim();
+        runOnUiThread(() -> {
+            if (content.isEmpty()) {
+                layoutPerluPerhatian.setVisibility(View.GONE);
+            } else {
+                layoutPerluPerhatian.setVisibility(View.VISIBLE);
+                tvPerluPerhatianContent.setText(content);
+            }
+        });
     }
 
     private void setupQuickActions() {
@@ -367,8 +556,57 @@ public class OwnerDashboardActivity extends AppCompatActivity {
             startActivity(intent);
         });
         actionAturHarga.setOnClickListener(v -> {
-            Intent intent = new Intent(this, OwnerManagementActivity.class);
-            startActivity(intent);
+            String uid = auth.getUid();
+            kosRepository.getKosByOwner(uid, new KosRepository.KosListCallback() {
+                @Override
+                public void onSuccess(List<Kos> kosList) {
+                    if (kosList.isEmpty()) {
+                        showToast("Belum ada kos terdaftar");
+                        return;
+                    }
+                    String[] names = new String[kosList.size()];
+                    for (int i = 0; i < kosList.size(); i++) names[i] = kosList.get(i).getName();
+                    new androidx.appcompat.app.AlertDialog.Builder(OwnerDashboardActivity.this)
+                            .setTitle("Pilih Kos untuk Atur Harga")
+                            .setItems(names, (dialog, which) -> {
+                                Kos selected = kosList.get(which);
+                                EditText et = new EditText(OwnerDashboardActivity.this);
+                                et.setHint("Harga baru (Rp)");
+                                et.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+                                et.setText(String.valueOf((long) selected.getPrice()));
+                                et.setPadding(48, 32, 48, 32);
+                                new androidx.appcompat.app.AlertDialog.Builder(OwnerDashboardActivity.this)
+                                        .setTitle("Atur Harga: " + selected.getName())
+                                        .setView(et)
+                                        .setPositiveButton("Simpan", (d, w) -> {
+                                            String ps = et.getText().toString().trim();
+                                            if (!ps.isEmpty()) {
+                                                selected.setPrice(Double.parseDouble(ps));
+                                                selected.setPriceText("Rp " + ps);
+                                                kosRepository.updateKos(selected, new KosRepository.SimpleCallback() {
+                                                    @Override
+                                                    public void onSuccess() {
+                                                        showToast("Harga diperbarui");
+                                                        refreshData();
+                                                    }
+
+                                                    @Override
+                                                    public void onError(String m) {
+                                                        showToast("Gagal: " + m);
+                                                    }
+                                                });
+                                            }
+                                        })
+                                        .setNegativeButton("Batal", null).show();
+                            })
+                            .show();
+                }
+
+                @Override
+                public void onError(String message) {
+                    showToast("Gagal: " + message);
+                }
+            });
         });
         actionBuatPromo.setOnClickListener(v -> showCreatePromoDialog());
     }
@@ -613,6 +851,7 @@ public class OwnerDashboardActivity extends AppCompatActivity {
 
     private void refreshData() {
         setupStats();
+        setupAlerts();
         setupProperty();
     }
 
@@ -676,9 +915,42 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         if (notificationListener != null) {
             notificationListener.remove();
         }
+        if (bookingListener != null) {
+            bookingListener.remove();
+        }
     }
 
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private long getStartOfToday() {
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTimeInMillis();
+    }
+
+    private long getStartOfCurrentMonth() {
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTimeInMillis();
+    }
+
+    private long getStartOfLastMonth() {
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.MONTH, -1);
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTimeInMillis();
     }
 }

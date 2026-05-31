@@ -15,9 +15,10 @@
         android:layout_height="48dp"
         android:background="@drawable/bg_owner_action_icon">
         <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_gravity="center"
+            android:id="@+id/imgKos"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
             android:contentDescription="Kos"
             android:src="@drawable/ic_owner_building" />
     </FrameLayout>

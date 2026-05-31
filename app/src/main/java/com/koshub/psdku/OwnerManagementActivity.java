@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.Kos;
 import com.koshub.psdku.models.OwnerKosStats;
@@ -34,6 +35,7 @@ import java.util.List;
 
 public class OwnerManagementActivity extends AppCompatActivity {
 
+    private com.google.firebase.firestore.FirebaseFirestore db = com.google.firebase.firestore.FirebaseFirestore.getInstance();
     private KosRepository kosRepository;
     private CloudinaryRepository cloudinaryRepository;
     private BookingRepository bookingRepository;
@@ -226,8 +228,41 @@ public class OwnerManagementActivity extends AppCompatActivity {
             intent.putExtra("TAB", "active");
             startActivity(intent);
         });
-        findViewById(R.id.actionMgmtFasilitas).setOnClickListener(v -> showEditFacilitiesDialog());
+
+        findViewById(R.id.actionMgmtFasilitas).setOnClickListener(v -> {
+            if (ownerKosList == null || ownerKosList.isEmpty()) {
+                showToast("Belum ada kos");
+                return;
+            }
+            String[] names = new String[ownerKosList.size()];
+            for (int i = 0; i < ownerKosList.size(); i++) names[i] = ownerKosList.get(i).getName();
+            new AlertDialog.Builder(this)
+                    .setTitle("Pilih Kos untuk Diedit")
+                    .setItems(names, (dialog, which) -> showEditKosDialog(ownerKosList.get(which)))
+                    .show();
+        });
+
         findViewById(R.id.actionMgmtMaintenance).setOnClickListener(v -> showManageRoomsDialog());
+
+        // Entry point "Atur Harga"
+        int resId = getResources().getIdentifier("actionMgmtAturHarga", "id", getPackageName());
+        if (resId != 0) {
+            View btnAturHarga = findViewById(resId);
+            if (btnAturHarga != null) {
+                btnAturHarga.setOnClickListener(v -> {
+                    if (ownerKosList == null || ownerKosList.isEmpty()) {
+                        showToast("Belum ada kos");
+                        return;
+                    }
+                    String[] names = new String[ownerKosList.size()];
+                    for (int i = 0; i < ownerKosList.size(); i++) names[i] = ownerKosList.get(i).getName();
+                    new AlertDialog.Builder(this)
+                            .setTitle("Pilih Kos untuk Atur Harga")
+                            .setItems(names, (dialog, which) -> showEditPriceDialog(ownerKosList.get(which)))
+                            .show();
+                });
+            }
+        }
     }
 
     private void showAddKosDialog() {
@@ -377,8 +412,27 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 new AlertDialog.Builder(OwnerManagementActivity.this)
                         .setTitle("Daftar Kamar")
                         .setItems(roomNames, (dialog, which) -> {
-                            Room selectedRoom = rooms.get(which);
-                            showUpdateRoomStatusDialog(selectedRoom);
+                            new AlertDialog.Builder(OwnerManagementActivity.this)
+                                    .setTitle(rooms.get(which).getRoomName())
+                                    .setItems(new String[]{"Update Status", "Hapus Kamar"}, (d2, action) -> {
+                                        if (action == 0) {
+                                            showUpdateRoomStatusDialog(rooms.get(which));
+                                        } else {
+                                            new AlertDialog.Builder(OwnerManagementActivity.this)
+                                                    .setTitle("Hapus Kamar")
+                                                    .setMessage("Yakin hapus kamar \"" + rooms.get(which).getRoomName() + "\"?")
+                                                    .setPositiveButton("Hapus", (d3, w3) -> {
+                                                        Room r = rooms.get(which);
+                                                        db.collection("rooms").document(r.getId()).delete()
+                                                                .addOnSuccessListener(a -> {
+                                                                    showToast("Kamar dihapus");
+                                                                    loadData();
+                                                                })
+                                                                .addOnFailureListener(e -> showToast("Gagal: " + e.getMessage()));
+                                                    })
+                                                    .setNegativeButton("Batal", null).show();
+                                        }
+                                    }).show();
                         })
                         .setPositiveButton("Tutup", null)
                         .show();
@@ -389,6 +443,179 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 showToast("Gagal memuat kamar: " + message);
             }
         });
+    }
+
+    private void showEditKosDialog(Kos kos) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_kos, null);
+        imgPreview = dialogView.findViewById(R.id.imgKosPreview);
+        Button btnSelectImage = dialogView.findViewById(R.id.btnSelectImage);
+        EditText etName = dialogView.findViewById(R.id.etKosName);
+        EditText etAddress = dialogView.findViewById(R.id.etKosAddress);
+        EditText etPrice = dialogView.findViewById(R.id.etKosPrice);
+        Spinner spCategory = dialogView.findViewById(R.id.spKosCategory);
+
+        // Pre-fill existing data
+        etName.setText(kos.getName());
+        etAddress.setText(kos.getAddress());
+        etPrice.setText(String.valueOf((long) kos.getPrice()));
+
+        // Load existing image preview
+        if (kos.getImageUrls() != null && !kos.getImageUrls().isEmpty()) {
+            Glide.with(this).load(kos.getImageUrls().get(0)).into(imgPreview);
+        }
+
+        btnSelectImage.setOnClickListener(v -> imagePickerLauncher.launch("image/*"));
+
+        // Set category spinner selection
+        String[] categories = {"Putra", "Putri", "Campur"};
+        ArrayAdapter<String> catAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categories);
+        spCategory.setAdapter(catAdapter);
+        for (int i = 0; i < categories.length; i++) {
+            if (categories[i].toLowerCase().equals(kos.getCategory())) {
+                spCategory.setSelection(i);
+                break;
+            }
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Edit Kos: " + kos.getName())
+                .setView(dialogView)
+                .setPositiveButton("Simpan", null)
+                .setNeutralButton("Hapus Kos", null)
+                .setNegativeButton("Batal", null)
+                .create();
+
+        dialog.setOnShowListener(d -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String name = etName.getText().toString().trim();
+                String address = etAddress.getText().toString().trim();
+                String priceStr = etPrice.getText().toString().trim();
+                String category = spCategory.getSelectedItem().toString().toLowerCase();
+
+                if (name.isEmpty() || address.isEmpty() || priceStr.isEmpty()) {
+                    showToast("Harap isi semua field wajib");
+                    return;
+                }
+
+                double newPrice;
+                try {
+                    newPrice = Double.parseDouble(priceStr);
+                } catch (NumberFormatException e) {
+                    showToast("Harga tidak valid");
+                    return;
+                }
+
+                kos.setName(name);
+                kos.setAddress(address);
+                kos.setPrice(newPrice);
+                kos.setPriceText("Rp " + priceStr);
+                kos.setCategory(category);
+
+                kosRepository.updateKos(kos, new KosRepository.SimpleCallback() {
+                    @Override
+                    public void onSuccess() {
+                        if (selectedImageUri != null) {
+                            showToast("Menyimpan foto...");
+                            cloudinaryRepository.uploadKosImage(OwnerManagementActivity.this, selectedImageUri, kos.getId(), new CloudinaryRepository.SimpleUploadCallback() {
+                                @Override
+                                public void onSuccess(String imageUrl) {
+                                    runOnUiThread(() -> {
+                                        showToast("Kos & foto berhasil diperbarui");
+                                        selectedImageUri = null;
+                                        loadData();
+                                    });
+                                }
+
+                                @Override
+                                public void onError(String message) {
+                                    runOnUiThread(() -> {
+                                        showToast("Data disimpan, tapi update foto gagal");
+                                        selectedImageUri = null;
+                                        loadData();
+                                    });
+                                }
+                            });
+                        } else {
+                            showToast("Kos berhasil diperbarui");
+                            loadData();
+                        }
+                        dialog.dismiss();
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        showToast("Gagal: " + message);
+                    }
+                });
+            });
+
+            // Hapus kos dengan konfirmasi
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
+                new AlertDialog.Builder(OwnerManagementActivity.this)
+                        .setTitle("Hapus Kos")
+                        .setMessage("Yakin ingin menghapus kos \"" + kos.getName() + "\"? Semua kamar di kos ini juga akan dihapus. Tindakan ini tidak dapat dibatalkan.")
+                        .setPositiveButton("Hapus", (confirmDialog, which) -> {
+                            kosRepository.deleteKos(kos.getId(), new KosRepository.SimpleCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    showToast("Kos berhasil dihapus");
+                                    dialog.dismiss();
+                                    loadData();
+                                }
+
+                                @Override
+                                public void onError(String message) {
+                                    showToast("Gagal menghapus: " + message);
+                                }
+                            });
+                        })
+                        .setNegativeButton("Batal", null)
+                        .show();
+            });
+        });
+        dialog.show();
+    }
+
+    private void showEditPriceDialog(Kos kos) {
+        EditText etNewPrice = new EditText(this);
+        etNewPrice.setHint("Harga baru per bulan (Rp)");
+        etNewPrice.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        etNewPrice.setText(String.valueOf((long) kos.getPrice()));
+        etNewPrice.setPadding(48, 32, 48, 32);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Atur Harga: " + kos.getName())
+                .setView(etNewPrice)
+                .setPositiveButton("Simpan", (dialog, which) -> {
+                    String priceStr = etNewPrice.getText().toString().trim();
+                    if (priceStr.isEmpty()) {
+                        showToast("Harga tidak boleh kosong");
+                        return;
+                    }
+                    double newPrice;
+                    try {
+                        newPrice = Double.parseDouble(priceStr);
+                    } catch (NumberFormatException e) {
+                        showToast("Harga tidak valid");
+                        return;
+                    }
+                    kos.setPrice(newPrice);
+                    kos.setPriceText("Rp " + priceStr);
+                    kosRepository.updateKos(kos, new KosRepository.SimpleCallback() {
+                        @Override
+                        public void onSuccess() {
+                            showToast("Harga kos \"" + kos.getName() + "\" berhasil diperbarui");
+                            loadData();
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            showToast("Gagal: " + message);
+                        }
+                    });
+                })
+                .setNegativeButton("Batal", null)
+                .show();
     }
 
     private void showUpdateRoomStatusDialog(Room room) {

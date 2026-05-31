@@ -44,6 +44,13 @@ android {
 
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
         buildConfigField("String", "GEMINI_MODEL", "\"$geminiModel\"")
+
+        // Groq API Configuration
+        val groqKey = localProperties.getProperty("GROQ_API_KEY") ?: ""
+        val groqModel = localProperties.getProperty("GROQ_MODEL") ?: "llama-3.3-70b-versatile"
+
+        buildConfigField("String", "GROQ_API_KEY", "\"$groqKey\"")
+        buildConfigField("String", "GROQ_MODEL", "\"$groqModel\"")
     }
 
     buildTypes {

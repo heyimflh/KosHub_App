@@ -24,4 +24,18 @@ public class AiConfig {
     public static String getGeminiModel() {
         return BuildConfig.GEMINI_MODEL;
     }
+
+    /**
+     * Checks if Groq API Key is configured in local.properties.
+     */
+    public static boolean isGroqConfigured() {
+        return !TextUtils.isEmpty(BuildConfig.GROQ_API_KEY);
+    }
+
+    /**
+     * Gets the configured Groq model name.
+     */
+    public static String getGroqModel() {
+        return BuildConfig.GROQ_MODEL;
+    }
 }
