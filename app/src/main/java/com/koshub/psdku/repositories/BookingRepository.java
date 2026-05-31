@@ -415,6 +415,13 @@ public class BookingRepository {
                 });
     }
 
+    public void updateBookingStatus(String bookingId, String newStatus, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
+                .update("status", newStatus, "updatedAt", System.currentTimeMillis(), "updatedBy", "owner")
+                .addOnSuccessListener(a -> { if (callback != null) callback.onSuccess(); })
+                .addOnFailureListener(e -> { if (callback != null) callback.onError(e.getMessage()); });
+    }
+
     public void acceptBooking(String bookingId, String roomId, SimpleCallback callback) {
         android.util.Log.d(TAG, "acceptBooking called: id=" + bookingId + ", roomId=" + roomId);
         

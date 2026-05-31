@@ -50,6 +50,7 @@
                         android:focusable="true" />
 
                     <TextView
+                        android:id="@+id/tvFinancePeriod"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -99,6 +100,7 @@
                     android:ellipsize="end" />
 
                 <TextView
+                    android:id="@+id/tvGrowthIndicator"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
@@ -1174,12 +1176,14 @@
                     android:padding="14dp">
 
                     <TextView
+                        android:id="@+id/tvInsight1"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/finance_insight_1"
                         android:textColor="@color/finance_text_primary"
                         android:textSize="12sp" />
                     <TextView
+                        android:id="@+id/tvInsight2"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
@@ -1187,6 +1191,7 @@
                         android:textColor="@color/finance_text_primary"
                         android:textSize="12sp" />
                     <TextView
+                        android:id="@+id/tvInsight3"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
