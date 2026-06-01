@@ -92,9 +92,10 @@
                         android:layout_weight="1"
                         android:orientation="vertical">
                         <TextView android:id="@+id/tvCurrentKosName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="@string/mgmt_property_name" android:textColor="@color/mgmt_text_primary" android:textSize="15sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_property_location" android:textColor="@color/mgmt_text_muted" android:textSize="12sp" />
+                        <TextView android:id="@+id/tvCurrentKosSubtitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="@string/mgmt_property_location" android:textColor="@color/mgmt_text_muted" android:textSize="12sp" />
                     </LinearLayout>
                     <TextView
+                        android:id="@+id/tvCurrentKosStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/bg_mgmt_status_occupied"
@@ -274,27 +275,42 @@
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:fontFamily="sans-serif-medium" android:text="@string/mgmt_booking_title" android:textColor="@color/mgmt_text_primary" android:textSize="15sp" android:textStyle="bold" />
                         <TextView android:id="@+id/btnSeeAllBooking" android:layout_width="wrap_content" android:layout_height="wrap_content" android:clickable="true" android:focusable="true" android:text="@string/mgmt_booking_see_all" android:textColor="@color/brand_green" android:textSize="13sp" android:textStyle="bold" />
                     </LinearLayout>
-                    <!-- Booking 1 -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:gravity="center_vertical" android:orientation="horizontal">
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="Raka Pratama" android:textColor="@color/mgmt_text_primary" android:textSize="14sp" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Kamar A-02 • 19 Mei 2026" android:textColor="@color/mgmt_text_muted" android:textSize="11sp" />
+
+                    <!-- Container for real data -->
+                    <LinearLayout
+                        android:id="@+id/bookingListContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+
+                    <!-- Dummy data (to be hidden programmatically) -->
+                    <LinearLayout
+                        android:id="@+id/layoutDummyBookingItems"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        <!-- Booking 1 -->
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:gravity="center_vertical" android:orientation="horizontal">
+                            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="Raka Pratama" android:textColor="@color/mgmt_text_primary" android:textSize="14sp" />
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Kamar A-02 • 19 Mei 2026" android:textColor="@color/mgmt_text_muted" android:textSize="11sp" />
+                            </LinearLayout>
+                            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal">
+                                <TextView android:id="@+id/btnAcceptBooking1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_btn_accept" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_accept" android:textColor="@color/mgmt_text_white" android:textSize="11sp" android:textStyle="bold" />
+                                <TextView android:id="@+id/btnRejectBooking1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/bg_mgmt_btn_reject" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_reject" android:textColor="@color/mgmt_btn_reject_text" android:textSize="11sp" android:textStyle="bold" />
+                            </LinearLayout>
                         </LinearLayout>
-                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal">
-                            <TextView android:id="@+id/btnAcceptBooking1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_btn_accept" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_accept" android:textColor="@color/mgmt_text_white" android:textSize="11sp" android:textStyle="bold" />
-                            <TextView android:id="@+id/btnRejectBooking1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/bg_mgmt_btn_reject" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_reject" android:textColor="@color/mgmt_btn_reject_text" android:textSize="11sp" android:textStyle="bold" />
-                        </LinearLayout>
-                    </LinearLayout>
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="10dp" android:layout_marginBottom="10dp" android:background="@color/mgmt_divider" />
-                    <!-- Booking 2 -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="Dinda Ayu" android:textColor="@color/mgmt_text_primary" android:textSize="14sp" />
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Kamar C-01 • 18 Mei 2026" android:textColor="@color/mgmt_text_muted" android:textSize="11sp" />
-                        </LinearLayout>
-                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal">
-                            <TextView android:id="@+id/btnAcceptBooking2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_btn_accept" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_accept" android:textColor="@color/mgmt_text_white" android:textSize="11sp" android:textStyle="bold" />
-                            <TextView android:id="@+id/btnRejectBooking2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/bg_mgmt_btn_reject" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_reject" android:textColor="@color/mgmt_btn_reject_text" android:textSize="11sp" android:textStyle="bold" />
+                        <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="10dp" android:layout_marginBottom="10dp" android:background="@color/mgmt_divider" />
+                        <!-- Booking 2 -->
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:fontFamily="sans-serif-medium" android:text="Dinda Ayu" android:textColor="@color/mgmt_text_primary" android:textSize="14sp" />
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Kamar C-01 • 18 Mei 2026" android:textColor="@color/mgmt_text_muted" android:textSize="11sp" />
+                            </LinearLayout>
+                            <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal">
+                                <TextView android:id="@+id/btnAcceptBooking2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_mgmt_btn_accept" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_accept" android:textColor="@color/mgmt_text_white" android:textSize="11sp" android:textStyle="bold" />
+                                <TextView android:id="@+id/btnRejectBooking2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/bg_mgmt_btn_reject" android:clickable="true" android:focusable="true" android:paddingStart="12dp" android:paddingTop="6dp" android:paddingEnd="12dp" android:paddingBottom="6dp" android:text="@string/mgmt_booking_btn_reject" android:textColor="@color/mgmt_btn_reject_text" android:textSize="11sp" android:textStyle="bold" />
+                            </LinearLayout>
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>

@@ -81,9 +81,12 @@ service cloud.firestore {
       allow create: if isOwner()
         && request.resource.data.ownerId == request.auth.uid;
 
-      allow update, delete: if isOwner()
+      allow update: if isOwner()
         && resource.data.ownerId == request.auth.uid
         && unchanged("ownerId");
+
+      allow delete: if isOwner()
+        && resource.data.ownerId == request.auth.uid;
     }
 
     // ROOMS
@@ -93,10 +96,13 @@ service cloud.firestore {
       allow create: if isOwner()
         && request.resource.data.ownerId == request.auth.uid;
 
-      allow update, delete: if isOwner()
+      allow update: if isOwner()
         && resource.data.ownerId == request.auth.uid
         && unchanged("ownerId")
         && unchanged("kosId");
+
+      allow delete: if isOwner()
+        && resource.data.ownerId == request.auth.uid;
     }
 
     // BOOKINGS

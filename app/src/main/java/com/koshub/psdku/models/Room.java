@@ -18,6 +18,15 @@ public class Room implements Serializable {
     private long createdAt;
     private long updatedAt;
 
+    // Maintenance fields
+    private String maintenanceType;
+    private String maintenanceNote;
+    private long maintenanceStartedAt;
+    private long maintenanceUpdatedAt;
+    private String maintenancePreviousStatus;
+    private long maintenanceCompletedAt;
+    private String maintenanceStatus;
+
     public Room() {
         // Required for Firebase
     }
@@ -60,4 +69,26 @@ public class Room implements Serializable {
 
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
+
+    // Maintenance Getters & Setters
+    public String getMaintenanceType() { return maintenanceType; }
+    public void setMaintenanceType(String maintenanceType) { this.maintenanceType = maintenanceType; }
+
+    public String getMaintenanceNote() { return maintenanceNote; }
+    public void setMaintenanceNote(String maintenanceNote) { this.maintenanceNote = maintenanceNote; }
+
+    public long getMaintenanceStartedAt() { return maintenanceStartedAt; }
+    public void setMaintenanceStartedAt(long maintenanceStartedAt) { this.maintenanceStartedAt = maintenanceStartedAt; }
+
+    public long getMaintenanceUpdatedAt() { return maintenanceUpdatedAt; }
+    public void setMaintenanceUpdatedAt(long maintenanceUpdatedAt) { this.maintenanceUpdatedAt = maintenanceUpdatedAt; }
+
+    public String getMaintenancePreviousStatus() { return maintenancePreviousStatus; }
+    public void setMaintenancePreviousStatus(String maintenancePreviousStatus) { this.maintenancePreviousStatus = maintenancePreviousStatus; }
+
+    public long getMaintenanceCompletedAt() { return maintenanceCompletedAt; }
+    public void setMaintenanceCompletedAt(long maintenanceCompletedAt) { this.maintenanceCompletedAt = maintenanceCompletedAt; }
+
+    public String getMaintenanceStatus() { return maintenanceStatus; }
+    public void setMaintenanceStatus(String maintenanceStatus) { this.maintenanceStatus = maintenanceStatus; }
 }

@@ -48,6 +48,7 @@ public class OwnerManagementActivity extends AppCompatActivity {
     private android.widget.LinearLayout bookingListContainer;
     private android.widget.LinearLayout tenantListContainer;
 
+    private String selectedKosId;
     private int pendingBookingsCount = 0;
     private int maintenanceRoomsCount = 0;
 
@@ -85,6 +86,12 @@ public class OwnerManagementActivity extends AppCompatActivity {
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.KOS);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadData();
+    }
+
     private void loadData() {
         String uid = auth.getUid();
         
@@ -103,7 +110,24 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 } else {
                     emptyState.setVisibility(View.GONE);
                     propertyCard.setVisibility(View.VISIBLE);
-                    updateKosUI(kosList);
+                    
+                    // Logic: cari kos yang sedang terpilih atau default ke yang pertama
+                    Kos currentKos = null;
+                    if (selectedKosId != null) {
+                        for (Kos k : kosList) {
+                            if (k.getId().equals(selectedKosId)) {
+                                currentKos = k;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (currentKos == null) {
+                        currentKos = kosList.get(0);
+                        selectedKosId = currentKos.getId();
+                    }
+                    
+                    updateCurrentKosCard(currentKos);
                 }
             }
 
@@ -154,15 +178,37 @@ public class OwnerManagementActivity extends AppCompatActivity {
         });
     }
 
-    private void updateKosUI(List<Kos> kosList) {
-        // Find existing list container or individual items if they have IDs
-        // For Phase 4, we'll try to find common IDs from activity_owner_management.xml
-        TextView tvCurrentKos = findViewById(R.id.tvCurrentKosName);
-        if (tvCurrentKos != null && !kosList.isEmpty()) {
-            tvCurrentKos.setText(kosList.get(0).getName());
-        }
+    private void updateCurrentKosCard(Kos kos) {
+        TextView tvName = findViewById(R.id.tvCurrentKosName);
+        TextView tvStatus = findViewById(R.id.tvCurrentKosStatus);
         
-        // TODO: Populate kos cards if IDs are available, or use a RecyclerView in next step
+        if (tvName != null) tvName.setText(kos.getName());
+        if (tvStatus != null) tvStatus.setText("Kelola ▾");
+        
+        selectedKosId = kos.getId();
+        updateCurrentKosSubtitle(kos);
+    }
+
+    private void updateCurrentKosSubtitle(Kos kos) {
+        TextView tvSubtitle = findViewById(R.id.tvCurrentKosSubtitle);
+        if (tvSubtitle == null) return;
+
+        String address = (kos.getAddress() != null && !kos.getAddress().isEmpty()) 
+                ? kos.getAddress() : "Alamat belum diisi";
+
+        kosRepository.getRoomsByKos(kos.getId(), new KosRepository.RoomListCallback() {
+            @Override
+            public void onSuccess(List<Room> rooms) {
+                int roomCount = rooms.size();
+                String subtitle = address + " • " + roomCount + " kamar • Ketuk untuk kelola";
+                tvSubtitle.setText(subtitle);
+            }
+
+            @Override
+            public void onError(String message) {
+                tvSubtitle.setText(address + " • Ketuk untuk kelola");
+            }
+        });
     }
 
     private void updateStatsUI(OwnerKosStats stats) {
@@ -214,18 +260,86 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 showToast("Belum ada kos terdaftar.");
                 return;
             }
-            String[] names = new String[ownerKosList.size()];
-            for (int i = 0; i < ownerKosList.size(); i++) names[i] = ownerKosList.get(i).getName();
-            
-            new AlertDialog.Builder(this)
-                    .setTitle("Pilih Kos")
-                    .setItems(names, (dialog, which) -> {
-                        Kos selected = ownerKosList.get(which);
-                        ((TextView) findViewById(R.id.tvCurrentKosName)).setText(selected.getName());
-                        showToast("Beralih ke " + selected.getName());
-                    })
-                    .show();
+
+            if (ownerKosList.size() == 1) {
+                showKosActionDialog(ownerKosList.get(0));
+            } else {
+                String[] names = new String[ownerKosList.size()];
+                for (int i = 0; i < ownerKosList.size(); i++) names[i] = ownerKosList.get(i).getName();
+                
+                new AlertDialog.Builder(this)
+                        .setTitle("Pilih Kos")
+                        .setItems(names, (dialog, which) -> {
+                            Kos selected = ownerKosList.get(which);
+                            updateCurrentKosCard(selected);
+                            showKosActionDialog(selected);
+                        })
+                        .show();
+            }
         });
+    }
+
+    private void showKosActionDialog(Kos kos) {
+        String[] options = {
+                "👁️  Tampilkan Kos Ini",
+                "✏️  Edit Data Kos",
+                "💰  Atur Harga",
+                "🛠️  Edit Fasilitas",
+                "🗑️  Hapus Kos"
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle(kos.getName())
+                .setItems(options, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            selectedKosId = kos.getId();
+                            TextView tvCurrentKos = findViewById(R.id.tvCurrentKosName);
+                            if (tvCurrentKos != null) tvCurrentKos.setText(kos.getName());
+                            showToast("Menampilkan " + kos.getName());
+                            // Optional: refresh specific sections if needed
+                            break;
+                        case 1:
+                            showEditKosDialog(kos);
+                            break;
+                        case 2:
+                            showEditPriceDialog(kos);
+                            break;
+                        case 3:
+                            showEditFacilitiesDialog();
+                            break;
+                        case 4:
+                            showDeleteKosConfirmation(kos);
+                            break;
+                    }
+                })
+                .setNegativeButton("Tutup", null)
+                .show();
+    }
+
+    private void showDeleteKosConfirmation(Kos kos) {
+        new AlertDialog.Builder(this)
+                .setTitle("Hapus Kos?")
+                .setMessage("Yakin ingin menghapus kos \"" + kos.getName() + "\"? Semua kamar di kos ini juga akan dihapus. Kos dengan booking aktif tidak bisa dihapus.")
+                .setPositiveButton("Hapus", (dialog, which) -> {
+                    kosRepository.deleteKos(kos.getId(), new KosRepository.SimpleCallback() {
+                        @Override
+                        public void onSuccess() {
+                            showToast("Kos berhasil dihapus");
+                            if (kos.getId().equals(selectedKosId)) {
+                                selectedKosId = null;
+                            }
+                            loadData();
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            showToast("Gagal menghapus: " + message);
+                        }
+                    });
+                })
+                .setNegativeButton("Batal", null)
+                .show();
     }
 
     private void setupQuickActions() {
@@ -238,18 +352,7 @@ public class OwnerManagementActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        findViewById(R.id.actionMgmtFasilitas).setOnClickListener(v -> {
-            if (ownerKosList == null || ownerKosList.isEmpty()) {
-                showToast("Belum ada kos");
-                return;
-            }
-            String[] names = new String[ownerKosList.size()];
-            for (int i = 0; i < ownerKosList.size(); i++) names[i] = ownerKosList.get(i).getName();
-            new AlertDialog.Builder(this)
-                    .setTitle("Pilih Kos untuk Diedit")
-                    .setItems(names, (dialog, which) -> showEditKosDialog(ownerKosList.get(which)))
-                    .show();
-        });
+        findViewById(R.id.actionMgmtFasilitas).setOnClickListener(v -> showEditFacilitiesDialog());
 
         findViewById(R.id.actionMgmtMaintenance).setOnClickListener(v -> showMaintenanceDialog());
 
@@ -466,7 +569,7 @@ public class OwnerManagementActivity extends AppCompatActivity {
                         case 0: showEditRoomNameDialog(room); break;
                         case 1: showEditRoomPriceDialog(room); break;
                         case 2: showUpdateRoomStatusOnlyDialog(room); break;
-                        case 3: showConfirmMoveToMaintenance(room); break;
+                        case 3: showStartMaintenanceDialog(room); break;
                         case 4: showConfirmDeleteRoom(room); break;
                     }
                 })
@@ -484,46 +587,48 @@ public class OwnerManagementActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Pisahkan kamar maintenance dan non-maintenance
                 List<Room> maintenanceRooms = new ArrayList<>();
                 List<Room> availableRooms = new ArrayList<>();
+                List<Room> busyRooms = new ArrayList<>();
+
                 for (Room r : rooms) {
                     if (DatabaseConstants.ROOM_MAINTENANCE.equals(r.getStatus())) {
                         maintenanceRooms.add(r);
                     } else if (DatabaseConstants.ROOM_AVAILABLE.equals(r.getStatus())) {
                         availableRooms.add(r);
+                    } else {
+                        busyRooms.add(r);
                     }
                 }
 
-                // Build display list: maintenance rooms first, then available ones
                 List<Room> displayList = new ArrayList<>();
                 displayList.addAll(maintenanceRooms);
                 displayList.addAll(availableRooms);
-
-                if (displayList.isEmpty()) {
-                    showToast("Tidak ada kamar yang bisa dikelola maintenancenya.");
-                    return;
-                }
+                displayList.addAll(busyRooms);
 
                 String[] items = new String[displayList.size()];
                 for (int i = 0; i < displayList.size(); i++) {
                     Room r = displayList.get(i);
+                    String label = getStatusLabel(r.getStatus());
                     if (DatabaseConstants.ROOM_MAINTENANCE.equals(r.getStatus())) {
-                        items[i] = "🔧 " + r.getRoomName() + " [Sedang Maintenance]";
+                        items[i] = "🔧 " + r.getRoomName() + " — Sedang Maintenance";
+                    } else if (DatabaseConstants.ROOM_AVAILABLE.equals(r.getStatus())) {
+                        items[i] = "✅ " + r.getRoomName() + " — Tersedia";
                     } else {
-                        items[i] = "✅ " + r.getRoomName() + " [" + getStatusLabel(r.getStatus()) + "]";
+                        items[i] = "🔒 " + r.getRoomName() + " — Sedang ditempati (" + label + ")";
                     }
                 }
 
                 new AlertDialog.Builder(OwnerManagementActivity.this)
                         .setTitle("Kelola Maintenance")
-                        .setMessage("Kamar 🔧 = sedang maintenance. Pilih kamar untuk dikelola.")
                         .setItems(items, (dialog, which) -> {
                             Room selected = displayList.get(which);
                             if (DatabaseConstants.ROOM_MAINTENANCE.equals(selected.getStatus())) {
                                 showMaintenanceActionDialog(selected);
+                            } else if (DatabaseConstants.ROOM_AVAILABLE.equals(selected.getStatus())) {
+                                showStartMaintenanceDialog(selected);
                             } else {
-                                showConfirmMoveToMaintenance(selected);
+                                showToast("Kamar sedang ditempati/dibooking. Selesaikan atau ubah status kamar terlebih dahulu sebelum maintenance.");
                             }
                         })
                         .setPositiveButton("Tutup", null)
@@ -537,10 +642,64 @@ public class OwnerManagementActivity extends AppCompatActivity {
         });
     }
 
+    private void showStartMaintenanceDialog(Room room) {
+        View view = getLayoutInflater().inflate(android.R.layout.simple_spinner_item, null); // Placeholder
+        // Actually it's better to build a custom view programmatically or inflate a simple layout if exists.
+        // Since I can't create new XML layouts easily, I'll build it programmatically.
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(48, 32, 48, 32);
+
+        TextView tvType = new TextView(this);
+        tvType.setText("Jenis Masalah:");
+        tvType.setPadding(0, 0, 0, 8);
+        layout.addView(tvType);
+
+        Spinner spType = new Spinner(this);
+        String[] types = {"AC rusak", "Kamar mandi", "Listrik", "Air", "Pintu / kunci", "Plafon / atap", "Internet / WiFi", "Kasur / lemari", "Kebersihan", "Lainnya"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, types);
+        spType.setAdapter(adapter);
+        layout.addView(spType);
+
+        TextView tvNote = new TextView(this);
+        tvNote.setText("\nCatatan Kerusakan:");
+        tvNote.setPadding(0, 16, 0, 8);
+        layout.addView(tvNote);
+
+        EditText etNote = new EditText(this);
+        etNote.setHint("Isi catatan kerusakan...");
+        layout.addView(etNote);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Mulai Maintenance: " + room.getRoomName())
+                .setMessage("Kamar tidak bisa dibooking selama maintenance.")
+                .setView(layout)
+                .setPositiveButton("Mulai Maintenance", (dialog, which) -> {
+                    String type = spType.getSelectedItem().toString();
+                    String note = etNote.getText().toString().trim();
+                    kosRepository.startRoomMaintenance(room, type, note, new KosRepository.SimpleCallback() {
+                        @Override
+                        public void onSuccess() {
+                            showToast("Maintenance dimulai.");
+                            loadData();
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            showToast("Gagal: " + message);
+                        }
+                    });
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
     private void showMaintenanceActionDialog(Room room) {
         String[] options = {
-                "✅  Selesaikan Maintenance (ubah ke Tersedia)",
-                "📝  Lihat / Edit Catatan Maintenance",
+                "🔍  Lihat Detail Maintenance",
+                "📝  Edit Catatan Maintenance",
+                "✅  Selesaikan Maintenance",
                 "❌  Batalkan Maintenance"
         };
 
@@ -548,29 +707,26 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 .setTitle("🔧 " + room.getRoomName() + " — Maintenance")
                 .setItems(options, (dialog, which) -> {
                     switch (which) {
-                        case 0:
-                            // Selesaikan maintenance, set ke available
+                        case 0: showMaintenanceDetailDialog(room); break;
+                        case 1: showEditMaintenanceNoteDialog(room); break;
+                        case 2:
                             new AlertDialog.Builder(this)
                                     .setTitle("Selesaikan Maintenance?")
-                                    .setMessage("Kamar \"" + room.getRoomName() + "\" akan diubah menjadi Tersedia (available). Lanjutkan?")
+                                    .setMessage("Maintenance kamar ini selesai dan kamar akan tersedia kembali. Lanjutkan?")
                                     .setPositiveButton("Ya, Selesaikan", (d, w) -> {
-                                        kosRepository.updateRoomStatus(room.getId(), DatabaseConstants.ROOM_AVAILABLE, room.getKosId(), new KosRepository.SimpleCallback() {
-                                            @Override public void onSuccess() { showToast("Maintenance selesai! Kamar kini tersedia."); loadData(); }
+                                        kosRepository.finishRoomMaintenance(room, new KosRepository.SimpleCallback() {
+                                            @Override public void onSuccess() { showToast("Maintenance selesai!"); loadData(); }
                                             @Override public void onError(String message) { showToast("Gagal: " + message); }
                                         });
                                     })
                                     .setNegativeButton("Batal", null).show();
                             break;
-                        case 1:
-                            showEditMaintenanceNoteDialog(room);
-                            break;
-                        case 2:
-                            // Batalkan maintenance
+                        case 3:
                             new AlertDialog.Builder(this)
                                     .setTitle("Batalkan Maintenance?")
-                                    .setMessage("Status kamar akan dikembalikan ke Tersedia.")
+                                    .setMessage("Maintenance akan dibatalkan dan kamar dikembalikan ke status sebelumnya.")
                                     .setPositiveButton("Ya, Batalkan", (d, w) -> {
-                                        kosRepository.updateRoomStatus(room.getId(), DatabaseConstants.ROOM_AVAILABLE, room.getKosId(), new KosRepository.SimpleCallback() {
+                                        kosRepository.cancelRoomMaintenance(room, new KosRepository.SimpleCallback() {
                                             @Override public void onSuccess() { showToast("Maintenance dibatalkan."); loadData(); }
                                             @Override public void onError(String message) { showToast("Gagal: " + message); }
                                         });
@@ -583,61 +739,89 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void showConfirmMoveToMaintenance(Room room) {
+    private void showMaintenanceDetailDialog(Room room) {
+        // Fetch latest data from Firestore to be sure
+        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(room.getId()).get()
+                .addOnSuccessListener(doc -> {
+                    Room r = doc.toObject(Room.class);
+                    if (r == null) return;
+                    
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Nama Kamar: ").append(r.getRoomName()).append("\n");
+                    sb.append("Status: ").append(getStatusLabel(r.getStatus())).append("\n");
+                    sb.append("Jenis Masalah: ").append(r.getMaintenanceType() != null ? r.getMaintenanceType() : "-").append("\n");
+                    sb.append("Catatan: ").append(r.getMaintenanceNote() != null ? r.getMaintenanceNote() : "-").append("\n");
+                    
+                    if (r.getMaintenanceStartedAt() > 0) {
+                        sb.append("Mulai Pada: ").append(com.koshub.psdku.utils.DateHelper.formatDate(r.getMaintenanceStartedAt())).append("\n");
+                    }
+
+                    new AlertDialog.Builder(this)
+                            .setTitle("Detail Maintenance")
+                            .setMessage(sb.toString())
+                            .setPositiveButton("Tutup", null)
+                            .setNeutralButton("Edit Catatan", (dialog, which) -> showEditMaintenanceNoteDialog(r))
+                            .show();
+                });
+    }
+
+    private void showEditMaintenanceNoteDialog(Room room) {
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(48, 32, 48, 32);
+
+        TextView tvType = new TextView(this);
+        tvType.setText("Jenis Masalah:");
+        tvType.setPadding(0, 0, 0, 8);
+        layout.addView(tvType);
+
+        Spinner spType = new Spinner(this);
+        String[] types = {"AC rusak", "Kamar mandi", "Listrik", "Air", "Pintu / kunci", "Plafon / atap", "Internet / WiFi", "Kasur / lemari", "Kebersihan", "Lainnya"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, types);
+        spType.setAdapter(adapter);
+        
+        // Pre-select current type
+        if (room.getMaintenanceType() != null) {
+            for (int i = 0; i < types.length; i++) {
+                if (types[i].equals(room.getMaintenanceType())) {
+                    spType.setSelection(i);
+                    break;
+                }
+            }
+        }
+        layout.addView(spType);
+
+        TextView tvNote = new TextView(this);
+        tvNote.setText("\nCatatan Kerusakan:");
+        tvNote.setPadding(0, 16, 0, 8);
+        layout.addView(tvNote);
+
         EditText etNote = new EditText(this);
-        etNote.setHint("Catatan kerusakan (opsional, contoh: AC rusak, perlu perbaikan)");
-        etNote.setPadding(48, 32, 48, 32);
-        etNote.setMaxLines(3);
+        etNote.setHint("Isi catatan kerusakan...");
+        etNote.setText(room.getMaintenanceNote());
+        layout.addView(etNote);
 
         new AlertDialog.Builder(this)
-                .setTitle("Pindahkan ke Maintenance?")
-                .setMessage("Kamar \"" + room.getRoomName() + "\" akan diubah statusnya menjadi Maintenance dan tidak bisa dibooking.")
-                .setView(etNote)
-                .setPositiveButton("Konfirmasi", (dialog, which) -> {
+                .setTitle("Edit Maintenance: " + room.getRoomName())
+                .setView(layout)
+                .setPositiveButton("Simpan Perubahan", (dialog, which) -> {
+                    String type = spType.getSelectedItem().toString();
                     String note = etNote.getText().toString().trim();
-                    kosRepository.updateRoomStatus(room.getId(), DatabaseConstants.ROOM_MAINTENANCE, room.getKosId(), new KosRepository.SimpleCallback() {
+                    kosRepository.updateRoomMaintenanceNote(room.getId(), type, note, new KosRepository.SimpleCallback() {
                         @Override
                         public void onSuccess() {
-                            // Simpan catatan maintenance ke Firestore jika ada
-                            if (!note.isEmpty()) {
-                                db.collection("rooms").document(room.getId())
-                                        .update("maintenanceNote", note, "updatedAt", System.currentTimeMillis());
-                            }
-                            showToast("Kamar dipindahkan ke Maintenance.");
+                            showToast("Catatan maintenance diperbarui.");
                             loadData();
                         }
-                        @Override public void onError(String message) { showToast("Gagal: " + message); }
+
+                        @Override
+                        public void onError(String message) {
+                            showToast("Gagal: " + message);
+                        }
                     });
                 })
                 .setNegativeButton("Batal", null)
                 .show();
-    }
-
-    private void showEditMaintenanceNoteDialog(Room room) {
-        // Load current note from Firestore first
-        db.collection("rooms").document(room.getId()).get()
-                .addOnSuccessListener(doc -> {
-                    String currentNote = doc.getString("maintenanceNote");
-
-                    EditText etNote = new EditText(this);
-                    etNote.setHint("Catatan kerusakan");
-                    etNote.setPadding(48, 32, 48, 32);
-                    etNote.setMaxLines(4);
-                    if (currentNote != null) etNote.setText(currentNote);
-
-                    new AlertDialog.Builder(this)
-                            .setTitle("Catatan Maintenance: " + room.getRoomName())
-                            .setView(etNote)
-                            .setPositiveButton("Simpan", (dialog, which) -> {
-                                String note = etNote.getText().toString().trim();
-                                db.collection("rooms").document(room.getId())
-                                        .update("maintenanceNote", note, "updatedAt", System.currentTimeMillis())
-                                        .addOnSuccessListener(a -> showToast("Catatan disimpan."))
-                                        .addOnFailureListener(e -> showToast("Gagal: " + e.getMessage()));
-                            })
-                            .setNegativeButton("Batal", null)
-                            .show();
-                });
     }
 
     private void showEditRoomNameDialog(Room room) {
@@ -650,7 +834,7 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 .setPositiveButton("Simpan", (dialog, which) -> {
                     String newName = et.getText().toString().trim();
                     if (newName.isEmpty()) { showToast("Nama tidak boleh kosong"); return; }
-                    db.collection("rooms").document(room.getId())
+                    db.collection(DatabaseConstants.COLLECTION_ROOMS).document(room.getId())
                             .update("roomName", newName, "updatedAt", System.currentTimeMillis())
                             .addOnSuccessListener(a -> { showToast("Nama kamar diperbarui"); loadData(); })
                             .addOnFailureListener(e -> showToast("Gagal: " + e.getMessage()));
@@ -672,7 +856,7 @@ public class OwnerManagementActivity extends AppCompatActivity {
                     if (ps.isEmpty()) { showToast("Harga tidak boleh kosong"); return; }
                     try {
                         double newPrice = Double.parseDouble(ps);
-                        db.collection("rooms").document(room.getId())
+                        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(room.getId())
                                 .update("price", newPrice, "updatedAt", System.currentTimeMillis())
                                 .addOnSuccessListener(a -> { showToast("Harga kamar diperbarui"); loadData(); })
                                 .addOnFailureListener(e -> showToast("Gagal: " + e.getMessage()));
@@ -701,7 +885,7 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 .setTitle("Hapus Kamar")
                 .setMessage("Yakin hapus kamar \"" + room.getRoomName() + "\"? Tindakan ini tidak dapat dibatalkan.")
                 .setPositiveButton("Hapus", (d, w) -> {
-                    db.collection("rooms").document(room.getId()).delete()
+                    db.collection(DatabaseConstants.COLLECTION_ROOMS).document(room.getId()).delete()
                             .addOnSuccessListener(a -> { showToast("Kamar berhasil dihapus"); loadData(); })
                             .addOnFailureListener(e -> showToast("Gagal: " + e.getMessage()));
                 })
@@ -711,63 +895,12 @@ public class OwnerManagementActivity extends AppCompatActivity {
     private String getStatusLabel(String status) {
         if (status == null) return "Tidak Diketahui";
         switch (status) {
-            case "available": return "Tersedia";
-            case "booked": return "Dibooking";
-            case "occupied": return "Ditempati";
-            case "maintenance": return "Maintenance";
+            case DatabaseConstants.ROOM_AVAILABLE: return "Tersedia";
+            case DatabaseConstants.ROOM_BOOKED: return "Dibooking";
+            case DatabaseConstants.ROOM_OCCUPIED: return "Ditempati";
+            case DatabaseConstants.ROOM_MAINTENANCE: return "Maintenance";
             default: return status;
         }
-    }
-
-    private void showManageRoomsDialog() {
-        String uid = auth.getUid();
-        kosRepository.getRoomsByOwner(uid, new KosRepository.RoomListCallback() {
-            @Override
-            public void onSuccess(List<Room> rooms) {
-                if (rooms.isEmpty()) {
-                    showToast("Belum ada kamar terdaftar");
-                    return;
-                }
-
-                String[] roomNames = new String[rooms.size()];
-                for (int i = 0; i < rooms.size(); i++) {
-                    roomNames[i] = rooms.get(i).getRoomName() + " - " + rooms.get(i).getStatus();
-                }
-
-                new AlertDialog.Builder(OwnerManagementActivity.this)
-                        .setTitle("Daftar Kamar")
-                        .setItems(roomNames, (dialog, which) -> {
-                            new AlertDialog.Builder(OwnerManagementActivity.this)
-                                    .setTitle(rooms.get(which).getRoomName())
-                                    .setItems(new String[]{"Update Status", "Hapus Kamar"}, (d2, action) -> {
-                                        if (action == 0) {
-                                            showUpdateRoomStatusDialog(rooms.get(which));
-                                        } else {
-                                            new AlertDialog.Builder(OwnerManagementActivity.this)
-                                                    .setTitle("Hapus Kamar")
-                                                    .setMessage("Yakin hapus kamar \"" + rooms.get(which).getRoomName() + "\"?")
-                                                    .setPositiveButton("Hapus", (d3, w3) -> {
-                                                        Room r = rooms.get(which);
-                                                        db.collection("rooms").document(r.getId()).delete()
-                                                                .addOnSuccessListener(a -> {
-                                                                    showToast("Kamar dihapus");
-                                                                    loadData();
-                                                                })
-                                                                .addOnFailureListener(e -> showToast("Gagal: " + e.getMessage()));
-                                                    })
-                                                    .setNegativeButton("Batal", null).show();
-                                        }
-                                    }).show();
-                        })
-                        .setPositiveButton("Tutup", null)
-                        .show();
-            }
-
-            @Override
-            public void onError(String message) {
-                showToast("Gagal memuat kamar: " + message);
-            }
-        });
     }
 
     private void showEditKosDialog(Kos kos) {
@@ -876,26 +1009,7 @@ public class OwnerManagementActivity extends AppCompatActivity {
 
             // Hapus kos dengan konfirmasi
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
-                new AlertDialog.Builder(OwnerManagementActivity.this)
-                        .setTitle("Hapus Kos")
-                        .setMessage("Yakin ingin menghapus kos \"" + kos.getName() + "\"? Semua kamar di kos ini juga akan dihapus. Tindakan ini tidak dapat dibatalkan.")
-                        .setPositiveButton("Hapus", (confirmDialog, which) -> {
-                            kosRepository.deleteKos(kos.getId(), new KosRepository.SimpleCallback() {
-                                @Override
-                                public void onSuccess() {
-                                    showToast("Kos berhasil dihapus");
-                                    dialog.dismiss();
-                                    loadData();
-                                }
-
-                                @Override
-                                public void onError(String message) {
-                                    showToast("Gagal menghapus: " + message);
-                                }
-                            });
-                        })
-                        .setNegativeButton("Batal", null)
-                        .show();
+                showDeleteKosConfirmation(kos);
             });
         });
         dialog.show();
@@ -943,79 +1057,102 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void showUpdateRoomStatusDialog(Room room) {
-        String[] statuses = {DatabaseConstants.ROOM_AVAILABLE, DatabaseConstants.ROOM_BOOKED, DatabaseConstants.ROOM_OCCUPIED, DatabaseConstants.ROOM_MAINTENANCE};
-        new AlertDialog.Builder(this)
-                .setTitle("Update Status Kamar: " + room.getRoomName())
-                .setItems(statuses, (dialog, which) -> {
-                    String newStatus = statuses[which];
-                    kosRepository.updateRoomStatus(room.getId(), newStatus, room.getKosId(), new KosRepository.SimpleCallback() {
-                        @Override
-                        public void onSuccess() {
-                            showToast("Status kamar diperbarui");
-                            loadData();
-                        }
-
-                        @Override
-                        public void onError(String message) {
-                            showToast("Gagal: " + message);
-                        }
-                    });
-                })
-                .show();
-    }
-
     private void showEditFacilitiesDialog() {
         if (ownerKosList == null || ownerKosList.isEmpty()) {
-            showToast("Belum ada kos untuk diedit");
+            showToast("Belum ada kos untuk diedit fasilitasnya.");
             return;
         }
 
-        String[] kosNames = new String[ownerKosList.size()];
-        for (int i = 0; i < ownerKosList.size(); i++) kosNames[i] = ownerKosList.get(i).getName();
+        if (ownerKosList.size() == 1) {
+            promptFacilitiesInput(ownerKosList.get(0));
+        } else {
+            String[] names = new String[ownerKosList.size()];
+            for (int i = 0; i < ownerKosList.size(); i++) names[i] = ownerKosList.get(i).getName();
 
-        new AlertDialog.Builder(this)
-                .setTitle("Pilih Kos untuk Edit Fasilitas")
-                .setItems(kosNames, (dialog, which) -> {
-                    Kos selectedKos = ownerKosList.get(which);
-                    promptFacilitiesInput(selectedKos);
-                })
-                .show();
+            new AlertDialog.Builder(this)
+                    .setTitle("Pilih Kos untuk Edit Fasilitas")
+                    .setItems(names, (dialog, which) -> promptFacilitiesInput(ownerKosList.get(which)))
+                    .show();
+        }
     }
 
     private void promptFacilitiesInput(Kos kos) {
-        EditText etFacilities = new EditText(this);
-        etFacilities.setHint("Fasilitas (pisahkan dengan koma)");
-        StringBuilder current = new StringBuilder();
-        if (kos.getFacilities() != null) {
-            for (int i = 0; i < kos.getFacilities().size(); i++) {
-                current.append(kos.getFacilities().get(i));
-                if (i < kos.getFacilities().size() - 1) current.append(", ");
+        String[] defaultFacilities = {
+                "WiFi", "AC", "Kasur", "Lemari", "Meja Belajar", "Kursi",
+                "Kamar Mandi Dalam", "Kamar Mandi Luar", "Dapur", "Parkir Motor",
+                "Parkir Mobil", "Listrik", "Air Bersih", "Laundry", "CCTV",
+                "Keamanan 24 Jam", "Jemuran", "Kulkas", "Dispenser", "Akses 24 Jam"
+        };
+
+        boolean[] checkedItems = new boolean[defaultFacilities.length];
+        List<String> currentFacilities = kos.getFacilities() != null ? kos.getFacilities() : new ArrayList<>();
+
+        for (int i = 0; i < defaultFacilities.length; i++) {
+            if (currentFacilities.contains(defaultFacilities[i])) {
+                checkedItems[i] = true;
             }
         }
-        etFacilities.setText(current.toString());
+
+        // Custom facilities (not in default list)
+        StringBuilder customBuilder = new StringBuilder();
+        for (String f : currentFacilities) {
+            boolean isDefault = false;
+            for (String df : defaultFacilities) {
+                if (df.equals(f)) {
+                    isDefault = true;
+                    break;
+                }
+            }
+            if (!isDefault) {
+                if (customBuilder.length() > 0) customBuilder.append(", ");
+                customBuilder.append(f);
+            }
+        }
+
+        EditText etCustom = new EditText(this);
+        etCustom.setHint("Fasilitas tambahan, pisahkan dengan koma");
+        etCustom.setText(customBuilder.toString());
+        etCustom.setPadding(48, 16, 48, 16);
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.addView(etCustom);
 
         new AlertDialog.Builder(this)
                 .setTitle("Edit Fasilitas: " + kos.getName())
-                .setView(etFacilities)
+                .setMultiChoiceItems(defaultFacilities, checkedItems, (dialog, which, isChecked) -> {
+                    checkedItems[which] = isChecked;
+                })
+                .setView(layout)
                 .setPositiveButton("Simpan", (dialog, which) -> {
-                    String input = etFacilities.getText().toString().trim();
-                    List<String> facilities = new ArrayList<>();
-                    if (!input.isEmpty()) {
-                        String[] parts = input.split(",");
-                        for (String p : parts) facilities.add(p.trim());
+                    List<String> newFacilities = new ArrayList<>();
+                    for (int i = 0; i < defaultFacilities.length; i++) {
+                        if (checkedItems[i]) {
+                            newFacilities.add(defaultFacilities[i]);
+                        }
                     }
-                    kos.setFacilities(facilities);
-                    kosRepository.updateKos(kos, new KosRepository.SimpleCallback() {
+
+                    String customInput = etCustom.getText().toString().trim();
+                    if (!customInput.isEmpty()) {
+                        String[] parts = customInput.split(",");
+                        for (String p : parts) {
+                            String trimmed = p.trim();
+                            if (!trimmed.isEmpty() && !newFacilities.contains(trimmed)) {
+                                newFacilities.add(trimmed);
+                            }
+                        }
+                    }
+
+                    kosRepository.updateKosFacilities(kos.getId(), newFacilities, new KosRepository.SimpleCallback() {
                         @Override
                         public void onSuccess() {
-                            showToast("Fasilitas diperbarui");
+                            showToast("Fasilitas kos berhasil diperbarui");
                             loadData();
                         }
 
                         @Override
                         public void onError(String message) {
-                            showToast("Gagal: " + message);
+                            showToast("Gagal memperbarui fasilitas: " + message);
                         }
                     });
                 })
@@ -1118,7 +1255,8 @@ public class OwnerManagementActivity extends AppCompatActivity {
                     android.widget.TextView tvDetail = new android.widget.TextView(OwnerManagementActivity.this);
                     String detail = com.koshub.psdku.utils.CurrencyHelper.formatRupiah(room.getPrice()) + "/bln";
                     if (DatabaseConstants.ROOM_MAINTENANCE.equals(room.getStatus())) {
-                        detail += " • ⚠️ Dalam Maintenance";
+                        String type = room.getMaintenanceType() != null ? room.getMaintenanceType() : "Dalam Maintenance";
+                        detail += " • 🔧 " + type;
                     }
                     tvDetail.setText(detail);
                     tvDetail.setTextColor(getResources().getColor(R.color.mgmt_text_muted));
@@ -1157,9 +1295,15 @@ public class OwnerManagementActivity extends AppCompatActivity {
                     row.addView(textSection);
                     row.addView(tvStatus);
 
-                    // Click = open room detail options
+                    // Click = open room detail options or maintenance options
                     final Room finalRoom = room;
-                    row.setOnClickListener(v -> showRoomDetailOptionsDialog(finalRoom));
+                    row.setOnClickListener(v -> {
+                        if (DatabaseConstants.ROOM_MAINTENANCE.equals(finalRoom.getStatus())) {
+                            showMaintenanceActionDialog(finalRoom);
+                        } else {
+                            showRoomDetailOptionsDialog(finalRoom);
+                        }
+                    });
 
                     roomListContainer.addView(row);
                 }
@@ -1189,17 +1333,23 @@ public class OwnerManagementActivity extends AppCompatActivity {
         if (sectionBooking == null) return;
         sectionBooking.setVisibility(View.VISIBLE);
 
-        // Sembunyikan dummy booking items (tidak ada ID spesifik, hapus seluruh isi dan rebuild)
-        // Cari tombol lihat semua
+        // Sembunyikan dummy booking items
+        View dummy = findViewById(R.id.layoutDummyBookingItems);
+        if (dummy != null) dummy.setVisibility(View.GONE);
+
         findViewById(R.id.btnSeeAllBooking).setOnClickListener(v -> {
             Intent intent = new Intent(this, OwnerBookingActivity.class);
             startActivity(intent);
         });
 
-        // Tambah dynamic container
-        bookingListContainer = new android.widget.LinearLayout(this);
-        bookingListContainer.setOrientation(android.widget.LinearLayout.VERTICAL);
-        sectionBooking.addView(bookingListContainer);
+        // Use dynamic container from XML
+        bookingListContainer = findViewById(R.id.bookingListContainer);
+        if (bookingListContainer == null) {
+            // Fallback if ID not found for some reason
+            bookingListContainer = new android.widget.LinearLayout(this);
+            bookingListContainer.setOrientation(android.widget.LinearLayout.VERTICAL);
+            sectionBooking.addView(bookingListContainer);
+        }
 
         loadBookingSection();
     }
@@ -1256,7 +1406,8 @@ public class OwnerManagementActivity extends AppCompatActivity {
                     infoCol.setOrientation(android.widget.LinearLayout.VERTICAL);
 
                     android.widget.TextView tvName = new android.widget.TextView(OwnerManagementActivity.this);
-                    String name = booking.getStudentName() != null ? booking.getStudentName() : "Penyewa";
+                    String name = booking.getStudentName() != null && !booking.getStudentName().trim().isEmpty() 
+                            ? booking.getStudentName() : "Mahasiswa";
                     tvName.setText(name);
                     tvName.setTextColor(getResources().getColor(R.color.mgmt_text_primary));
                     tvName.setTextSize(14);

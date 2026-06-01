@@ -27,6 +27,7 @@ import java.util.List;
  * Handles Firestore and Firebase Storage interactions.
  */
 public class KosRepository {
+    private static final String TAG = "KosRepository";
     private static KosRepository instance;
     private final FirebaseFirestore db;
     private final FirebaseStorage storage;
@@ -212,17 +213,100 @@ public class KosRepository {
     }
 
     public void deleteKos(String kosId, SimpleCallback callback) {
-        db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId).delete()
-                .addOnSuccessListener(aVoid -> callback.onSuccess())
-                .addOnFailureListener(e -> {
-                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
-                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
-                    } else {
-                        callback.onError(e.getMessage());
+        com.google.firebase.auth.FirebaseUser user = auth.getCurrentUser();
+        String uid = user != null ? user.getUid() : null;
+
+        if (uid == null) {
+            callback.onError("Kamu harus login terlebih dahulu.");
+            return;
+        }
+
+        if (kosId == null || kosId.isEmpty()) {
+            callback.onError("Data kos tidak valid.");
+            return;
+        }
+
+        // 1. Ambil dokumen kos untuk verifikasi owner
+        db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        callback.onError("Kos tidak ditemukan.");
+                        return;
                     }
+
+                    Kos kos = documentSnapshot.toObject(Kos.class);
+                    String ownerId = documentSnapshot.getString(DatabaseConstants.FIELD_OWNER_ID);
+                    if (kos == null || !uid.equals(ownerId)) {
+                        callback.onError("Kamu tidak memiliki izin menghapus kos ini.");
+                        return;
+                    }
+
+                    // 2. Cek booking aktif (Query wajib sertakan ownerId agar rules approve)
+                    db.collection(DatabaseConstants.COLLECTION_BOOKINGS)
+                            .whereEqualTo(DatabaseConstants.FIELD_KOS_ID, kosId)
+                            .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, uid)
+                            .get()
+                            .addOnSuccessListener(bookingSnapshots -> {
+                                List<String> activeStatuses = Arrays.asList(
+                                        DatabaseConstants.BOOKING_PENDING,
+                                        DatabaseConstants.BOOKING_WAITING_PAYMENT,
+                                        DatabaseConstants.BOOKING_ACCEPTED,
+                                        DatabaseConstants.BOOKING_WAITING_CHECKIN,
+                                        DatabaseConstants.BOOKING_ACTIVE
+                                );
+
+                                boolean hasActiveBooking = false;
+                                for (QueryDocumentSnapshot bDoc : bookingSnapshots) {
+                                    String status = bDoc.getString(DatabaseConstants.FIELD_STATUS);
+                                    if (status != null && activeStatuses.contains(status)) {
+                                        hasActiveBooking = true;
+                                        break;
+                                    }
+                                }
+
+                                if (hasActiveBooking) {
+                                    callback.onError("Kos masih memiliki booking aktif. Selesaikan atau batalkan booking terlebih dahulu.");
+                                    return;
+                                }
+
+                                // 3. Ambil semua kamar untuk dihapus (Query wajib sertakan ownerId)
+                                db.collection(DatabaseConstants.COLLECTION_ROOMS)
+                                        .whereEqualTo(DatabaseConstants.FIELD_KOS_ID, kosId)
+                                        .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, uid)
+                                        .get()
+                                        .addOnSuccessListener(roomSnapshots -> {
+                                            com.google.firebase.firestore.WriteBatch batch = db.batch();
+
+                                            // Masukkan semua kamar ke batch
+                                            for (QueryDocumentSnapshot roomDoc : roomSnapshots) {
+                                                batch.delete(roomDoc.getReference());
+                                            }
+
+                                            // Masukkan kos ke batch
+                                            batch.delete(documentSnapshot.getReference());
+
+                                            // Commit batch
+                                            batch.commit()
+                                                    .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                                    .addOnFailureListener(e -> {
+                                                        android.util.Log.e(TAG, "deleteKos batch failed", e);
+                                                        callback.onError("Gagal menghapus kos: " + e.getMessage());
+                                                    });
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            android.util.Log.e(TAG, "deleteKos failed at room check", e);
+                                            callback.onError("Gagal memverifikasi kamar. Pastikan rules sudah dipublish dan Anda adalah pemilik kos.");
+                                        });
+                            })
+                            .addOnFailureListener(e -> {
+                                android.util.Log.e(TAG, "deleteKos failed at booking check", e);
+                                callback.onError("Gagal memverifikasi booking. Pastikan rules sudah dipublish dan Anda adalah pemilik kos.");
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.e(TAG, "deleteKos initial fetch failed", e);
+                    callback.onError("Gagal memproses: " + e.getMessage());
                 });
-        // TODO: Handle related rooms and images in Storage
     }
 
     public void uploadKosImage(Uri imageUri, String kosId, UploadCallback callback) {
@@ -408,6 +492,85 @@ public class KosRepository {
                     } else {
                         callback.onError(e.getMessage());
                     }
+                });
+    }
+
+    public void updateKosFacilities(String kosId, List<String> facilities, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_KOS)
+                .document(kosId)
+                .update(
+                        DatabaseConstants.FIELD_FACILITIES, facilities,
+                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis()
+                )
+                .addOnSuccessListener(a -> { if (callback != null) callback.onSuccess(); })
+                .addOnFailureListener(e -> { if (callback != null) callback.onError(e.getMessage()); });
+    }
+
+    public void startRoomMaintenance(Room room, String maintenanceType, String note, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(room.getId())
+                .update(
+                        DatabaseConstants.FIELD_STATUS, DatabaseConstants.ROOM_MAINTENANCE,
+                        "maintenanceType", maintenanceType,
+                        "maintenanceNote", note,
+                        "maintenanceStartedAt", System.currentTimeMillis(),
+                        "maintenanceUpdatedAt", System.currentTimeMillis(),
+                        "maintenancePreviousStatus", room.getStatus(),
+                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis()
+                )
+                .addOnSuccessListener(a -> {
+                    updateAvailableRoomsCount(room.getKosId());
+                    if (callback != null) callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+    }
+
+    public void updateRoomMaintenanceNote(String roomId, String maintenanceType, String note, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)
+                .update(
+                        "maintenanceType", maintenanceType,
+                        "maintenanceNote", note,
+                        "maintenanceUpdatedAt", System.currentTimeMillis(),
+                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis()
+                )
+                .addOnSuccessListener(a -> { if (callback != null) callback.onSuccess(); })
+                .addOnFailureListener(e -> { if (callback != null) callback.onError(e.getMessage()); });
+    }
+
+    public void finishRoomMaintenance(Room room, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(room.getId())
+                .update(
+                        DatabaseConstants.FIELD_STATUS, DatabaseConstants.ROOM_AVAILABLE,
+                        "maintenanceCompletedAt", System.currentTimeMillis(),
+                        "maintenanceUpdatedAt", System.currentTimeMillis(),
+                        "maintenanceStatus", "completed",
+                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis()
+                )
+                .addOnSuccessListener(a -> {
+                    updateAvailableRoomsCount(room.getKosId());
+                    if (callback != null) callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+    }
+
+    public void cancelRoomMaintenance(Room room, SimpleCallback callback) {
+        String statusToRestore = room.getMaintenancePreviousStatus() != null ? room.getMaintenancePreviousStatus() : DatabaseConstants.ROOM_AVAILABLE;
+        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(room.getId())
+                .update(
+                        DatabaseConstants.FIELD_STATUS, statusToRestore,
+                        "maintenanceUpdatedAt", System.currentTimeMillis(),
+                        "maintenanceStatus", "cancelled",
+                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis()
+                )
+                .addOnSuccessListener(a -> {
+                    updateAvailableRoomsCount(room.getKosId());
+                    if (callback != null) callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
                 });
     }
 
