@@ -18,6 +18,13 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.libraries.places.api.model.RectangularBounds;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.widget.Autocomplete;
+import com.google.android.libraries.places.widget.AutocompleteActivity;
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.koshub.psdku.models.Booking;
@@ -52,6 +59,12 @@ public class OwnerManagementActivity extends AppCompatActivity {
     private int pendingBookingsCount = 0;
     private int maintenanceRoomsCount = 0;
 
+    private static final int AUTOCOMPLETE_REQUEST_CODE = 100;
+    private double selectedLatitude = 0.0;
+    private double selectedLongitude = 0.0;
+    private String selectedPlaceId = "";
+    private EditText etAddressRef;
+
     private final ActivityResultLauncher<String> imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
             uri -> {
@@ -66,6 +79,10 @@ public class OwnerManagementActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_owner_management);
+
+        if (!Places.isInitialized()) {
+            Places.initialize(getApplicationContext(), BuildConfig.GOOGLE_MAPS_KEY);
+        }
 
         kosRepository = KosRepository.getInstance();
         cloudinaryRepository = CloudinaryRepository.getInstance();
@@ -382,6 +399,15 @@ public class OwnerManagementActivity extends AppCompatActivity {
         imgPreview = dialogView.findViewById(R.id.imgKosPreview);
         Button btnSelectImage = dialogView.findViewById(R.id.btnSelectImage);
 
+        // Reset location fields for new entry
+        selectedLatitude = 0.0;
+        selectedLongitude = 0.0;
+        selectedPlaceId = "";
+
+        etAddressRef = dialogView.findViewById(R.id.etKosAddress);
+        etAddressRef.setFocusable(false);
+        etAddressRef.setOnClickListener(v -> startAutocompletePicker());
+
         btnSelectImage.setOnClickListener(v -> imagePickerLauncher.launch("image/*"));
 
         AlertDialog dialog = new AlertDialog.Builder(this)
@@ -394,12 +420,11 @@ public class OwnerManagementActivity extends AppCompatActivity {
         dialog.setOnShowListener(d -> {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                 EditText etName = dialogView.findViewById(R.id.etKosName);
-                EditText etAddress = dialogView.findViewById(R.id.etKosAddress);
                 EditText etPrice = dialogView.findViewById(R.id.etKosPrice);
                 Spinner spCategory = dialogView.findViewById(R.id.spKosCategory);
 
                 String name = etName.getText().toString().trim();
-                String address = etAddress.getText().toString().trim();
+                String address = etAddressRef.getText().toString().trim();
                 String priceStr = etPrice.getText().toString().trim();
                 String category = spCategory.getSelectedItem().toString().toLowerCase();
 
@@ -408,9 +433,15 @@ public class OwnerManagementActivity extends AppCompatActivity {
                     return;
                 }
 
+                if (selectedLatitude == 0.0 && selectedLongitude == 0.0) {
+                    showToast("Silakan pilih alamat dari daftar saran Google Maps");
+                    return;
+                }
+
                 double price = Double.parseDouble(priceStr);
-                Kos newKos = new Kos("", name, address, "Rp " + priceStr, (int)price, "0 mnt", 0, "0.0", category, new ArrayList<>(), 0, false, "0 Kamar", 0.0, 0.0);
+                Kos newKos = new Kos("", name, address, "Rp " + priceStr, (int)price, "...", 0, "0.0", category, new ArrayList<>(), 0, false, "0 Kamar", selectedLatitude, selectedLongitude);
                 newKos.setPrice(price);
+                newKos.setPlaceId(selectedPlaceId);
 
                 kosRepository.createKos(newKos, new KosRepository.SimpleCallback() {
                     @Override
@@ -908,13 +939,22 @@ public class OwnerManagementActivity extends AppCompatActivity {
         imgPreview = dialogView.findViewById(R.id.imgKosPreview);
         Button btnSelectImage = dialogView.findViewById(R.id.btnSelectImage);
         EditText etName = dialogView.findViewById(R.id.etKosName);
-        EditText etAddress = dialogView.findViewById(R.id.etKosAddress);
         EditText etPrice = dialogView.findViewById(R.id.etKosPrice);
         Spinner spCategory = dialogView.findViewById(R.id.spKosCategory);
 
         // Pre-fill existing data
         etName.setText(kos.getName());
-        etAddress.setText(kos.getAddress());
+
+        // Initialize location fields from existing kos
+        selectedLatitude = kos.getLatitude();
+        selectedLongitude = kos.getLongitude();
+        selectedPlaceId = kos.getPlaceId() != null ? kos.getPlaceId() : "";
+
+        etAddressRef = dialogView.findViewById(R.id.etKosAddress);
+        etAddressRef.setText(kos.getAddress());
+        etAddressRef.setFocusable(false);
+        etAddressRef.setOnClickListener(v -> startAutocompletePicker());
+
         etPrice.setText(String.valueOf((long) kos.getPrice()));
 
         // Load existing image preview
@@ -945,13 +985,22 @@ public class OwnerManagementActivity extends AppCompatActivity {
 
         dialog.setOnShowListener(d -> {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-                String name = etName.getText().toString().trim();
-                String address = etAddress.getText().toString().trim();
-                String priceStr = etPrice.getText().toString().trim();
-                String category = spCategory.getSelectedItem().toString().toLowerCase();
+                EditText etNameEdit = dialogView.findViewById(R.id.etKosName);
+                EditText etPriceEdit = dialogView.findViewById(R.id.etKosPrice);
+                Spinner spCategoryEdit = dialogView.findViewById(R.id.spKosCategory);
+
+                String name = etNameEdit.getText().toString().trim();
+                String address = etAddressRef.getText().toString().trim();
+                String priceStr = etPriceEdit.getText().toString().trim();
+                String category = spCategoryEdit.getSelectedItem().toString().toLowerCase();
 
                 if (name.isEmpty() || address.isEmpty() || priceStr.isEmpty()) {
                     showToast("Harap isi semua field wajib");
+                    return;
+                }
+
+                if (selectedLatitude == 0.0 && selectedLongitude == 0.0) {
+                    showToast("Silakan pilih alamat dari daftar saran Google Maps");
                     return;
                 }
 
@@ -968,6 +1017,9 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 kos.setPrice(newPrice);
                 kos.setPriceText("Rp " + priceStr);
                 kos.setCategory(category);
+                kos.setLatitude(selectedLatitude);
+                kos.setLongitude(selectedLongitude);
+                kos.setPlaceId(selectedPlaceId);
 
                 kosRepository.updateKos(kos, new KosRepository.SimpleCallback() {
                     @Override
@@ -1616,5 +1668,39 @@ public class OwnerManagementActivity extends AppCompatActivity {
 
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private void startAutocompletePicker() {
+        Intent intent = new Autocomplete.IntentBuilder(
+                AutocompleteActivityMode.FULLSCREEN,
+                Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.ADDRESS, Place.Field.LAT_LNG)
+        )
+                .setCountry("ID")
+                .setLocationBias(RectangularBounds.newInstance(
+                        new LatLng(-7.72, 109.60),
+                        new LatLng(-7.64, 109.72)
+                ))
+                .build(this);
+        startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == AUTOCOMPLETE_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                Place place = Autocomplete.getPlaceFromIntent(data);
+                selectedLatitude = place.getLatLng().latitude;
+                selectedLongitude = place.getLatLng().longitude;
+                selectedPlaceId = place.getId();
+                
+                if (etAddressRef != null) {
+                    etAddressRef.setText(place.getAddress());
+                }
+            } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
+                com.google.android.gms.common.api.Status status = Autocomplete.getStatusFromIntent(data);
+                showToast("Error: " + status.getStatusMessage());
+            }
+        }
     }
 }

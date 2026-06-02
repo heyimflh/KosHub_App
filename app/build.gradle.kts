@@ -51,6 +51,11 @@ android {
 
         buildConfigField("String", "GROQ_API_KEY", "\"$groqKey\"")
         buildConfigField("String", "GROQ_MODEL", "\"$groqModel\"")
+
+        // Google Maps API Configuration
+        val googleMapsKey = localProperties.getProperty("GOOGLE_MAPS_KEY") ?: ""
+        buildConfigField("String", "GOOGLE_MAPS_KEY", "\"$googleMapsKey\"")
+        manifestPlaceholders["GOOGLE_MAPS_KEY"] = googleMapsKey
     }
 
     buildTypes {
@@ -102,8 +107,9 @@ dependencies {
 
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
-    implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
+    implementation("com.google.android.libraries.places:places:3.5.0")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.13.0"))

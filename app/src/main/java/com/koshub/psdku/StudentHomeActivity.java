@@ -494,6 +494,13 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
         intent.putExtra("kos_item", item);
         intent.putExtra("kos_id", item.getId());
         intent.putExtra("owner_id", item.getOwnerId());
+        
+        // Add coordinates and basic info for detail view logic
+        intent.putExtra("kos_lat", item.getLatitude());
+        intent.putExtra("kos_lng", item.getLongitude());
+        intent.putExtra("kos_name", item.getName());
+        intent.putExtra("kos_address", item.getAddress());
+
         NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 
@@ -513,6 +520,17 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
                 adapter.notifyItemChanged(position);
             }
         });
+    }
+
+    @Override
+    public void onNavigateClick(KosItem item, int position) {
+        Intent navIntent = new Intent(this, MapViewRouteNavigationActivity.class);
+        navIntent.putExtra("kos_lat", item.getLatitude());
+        navIntent.putExtra("kos_lng", item.getLongitude());
+        navIntent.putExtra("kos_name", item.getName());
+        // Pass the whole list as well to ensure markers are loaded
+        navIntent.putExtra("kos_list", new ArrayList<>(allKosList));
+        NavigationTransitionHelper.navigateMainWithIntent(this, navIntent);
     }
 
     private void showToast(String message) {

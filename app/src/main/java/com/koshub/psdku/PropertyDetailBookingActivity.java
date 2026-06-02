@@ -14,12 +14,18 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.preference.PreferenceManager;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapView;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -30,13 +36,7 @@ import com.koshub.psdku.repositories.ChatRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.FavoriteRepository;
 import com.koshub.psdku.repositories.ReviewRepository;
-
-import org.osmdroid.api.IMapController;
-import org.osmdroid.config.Configuration;
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
-import org.osmdroid.util.GeoPoint;
-import org.osmdroid.views.MapView;
-import org.osmdroid.views.overlay.Marker;
+import com.koshub.psdku.utils.KosLocationUtils;
 
 import java.util.List;
 import java.util.Locale;
@@ -58,7 +58,8 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private ChipGroup amenityChipGroup;
     private LinearLayout reviewContainer;
     private View layoutReviewPrompt;
-    private MapView mapView;
+    private MapView mapViewDetail;
+    private GoogleMap googleMap;
 
     private KosItem currentItem;
     private boolean isFavorited = false;
@@ -67,11 +68,10 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        // OSMDroid configuration
-        Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this));
-        
         setContentView(R.layout.activity_property_detail_booking);
+
+        mapViewDetail = findViewById(R.id.mapViewDetail);
+        mapViewDetail.onCreate(savedInstanceState);
 
         Intent intent = getIntent();
         if (intent == null) {
@@ -314,8 +314,55 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         // Favorite status
         checkFavoriteStatus();
 
-        // Map
-        setupMap();
+        // Map & Route
+        initDetailMap(currentItem.getLatitude(), currentItem.getLongitude(), currentItem.getName());
+        
+        tvDetailRouteTime.setText("Menghitung...");
+        KosLocationUtils.fetchWalkingDuration(this, currentItem.getLatitude(), currentItem.getLongitude(), new KosLocationUtils.DurationCallback() {
+            @Override
+            public void onSuccess(String durationText, int durationMinutes) {
+                tvDetailRouteTime.setText(durationText);
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                tvDetailRouteTime.setText("- mnt");
+            }
+        });
+    }
+
+    private void initDetailMap(double kosLat, double kosLng, String kosName) {
+        mapViewDetail.getMapAsync(gMap -> {
+            googleMap = gMap;
+            googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+            googleMap.getUiSettings().setZoomControlsEnabled(false);
+            googleMap.getUiSettings().setScrollGesturesEnabled(false);
+
+            LatLng kosLocation = new LatLng(kosLat, kosLng);
+            LatLng campusLocation = new LatLng(
+                    KosLocationUtils.CAMPUS_LAT,
+                    KosLocationUtils.CAMPUS_LNG
+            );
+
+            // Marker kos
+            googleMap.addMarker(new MarkerOptions()
+                    .position(kosLocation)
+                    .title(kosName)
+            );
+
+            // Marker kampus
+            googleMap.addMarker(new MarkerOptions()
+                    .position(campusLocation)
+                    .title(KosLocationUtils.CAMPUS_NAME)
+            );
+
+            // Zoom agar kedua marker kelihatan
+            LatLngBounds.Builder boundsBuilder = new LatLngBounds.Builder();
+            boundsBuilder.include(kosLocation);
+            boundsBuilder.include(campusLocation);
+            LatLngBounds bounds = boundsBuilder.build();
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 120));
+        });
     }
 
     private void updateRatingViews() {
@@ -467,53 +514,6 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         return 0;
     }
 
-    private void setupMap() {
-        FrameLayout mapContainer = findViewById(R.id.mapContainer);
-        if (mapContainer == null) return;
-
-        try {
-            mapView = new MapView(this);
-            mapView.setTileSource(TileSourceFactory.MAPNIK);
-            mapView.setMultiTouchControls(true);
-            
-            double lat = currentItem != null ? currentItem.getLatitude() : -7.6298;
-            double lng = currentItem != null ? currentItem.getLongitude() : 111.5231;
-            
-            IMapController mapController = mapView.getController();
-            mapController.setZoom(15.0);
-            GeoPoint startPoint = new GeoPoint(lat, lng);
-            mapController.setCenter(startPoint);
-
-            // Add Marker
-            Marker marker = new Marker(mapView);
-            marker.setPosition(startPoint);
-            marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-            if (currentItem != null) {
-                marker.setTitle(currentItem.getName());
-            }
-            marker.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_map_home));
-            mapView.getOverlays().add(marker);
-
-            mapContainer.addView(mapView);
-        } catch (Exception e) {
-            android.util.Log.e("OSMDroid", "Failed to initialize MapView", e);
-            showMapFallback(mapContainer);
-        }
-    }
-
-    private void showMapFallback(FrameLayout container) {
-        if (container == null) return;
-        container.removeAllViews();
-        View fallbackView = LayoutInflater.from(this).inflate(R.layout.layout_map_fallback, container, false);
-        
-        TextView tvSub = fallbackView.findViewById(R.id.tvMapFallbackSub);
-        if (tvSub != null) {
-            tvSub.setText("Lokasi kos tidak dapat ditampilkan saat ini.");
-        }
-        
-        container.addView(fallbackView);
-    }
-
     private void showCustomToast(String message) {
         TextView toastView = new TextView(this);
         toastView.setText(message);
@@ -553,12 +553,30 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (mapView != null) mapView.onResume();
+        if (mapViewDetail != null) mapViewDetail.onResume();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (mapView != null) mapView.onPause();
+        if (mapViewDetail != null) mapViewDetail.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mapViewDetail != null) mapViewDetail.onDestroy();
+    }
+
+    @Override
+    public void onLowMemory() {
+        super.onLowMemory();
+        if (mapViewDetail != null) mapViewDetail.onLowMemory();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (mapViewDetail != null) mapViewDetail.onSaveInstanceState(outState);
     }
 }

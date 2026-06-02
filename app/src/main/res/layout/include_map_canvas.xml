@@ -4,6 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- MapView will be added here programmatically if token is valid -->
+    <!-- Google Maps MapView -->
+    <com.google.android.gms.maps.MapView
+        android:id="@+id/mapViewMain"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 </FrameLayout>

@@ -24,6 +24,8 @@ public class KosItem implements Serializable {
     private int ratingCount;
     private String id; // Real Firestore ID
     private String ownerId; // Owner ID
+    private String durationText;
+    private int durationMinutes;
 
     public KosItem(String name, String address, String price, int priceValue,
                    String distance, int distanceMinutes, String rating, String category,
@@ -77,4 +79,10 @@ public class KosItem implements Serializable {
 
     public int getRatingCount() { return ratingCount; }
     public void setRatingCount(int ratingCount) { this.ratingCount = ratingCount; }
+
+    public String getDurationText() { return durationText; }
+    public void setDurationText(String durationText) { this.durationText = durationText; }
+
+    public int getDurationMinutes() { return durationMinutes; }
+    public void setDurationMinutes(int durationMinutes) { this.durationMinutes = durationMinutes; }
 }

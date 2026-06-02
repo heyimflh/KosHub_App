@@ -24,9 +24,9 @@
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <!-- Mapbox MapView Container -->
-        <FrameLayout
-            android:id="@+id/mapContainer"
+        <!-- Google Maps MapView -->
+        <com.google.android.gms.maps.MapView
+            android:id="@+id/mapViewDetail"
             android:layout_width="match_parent"
             android:layout_height="220dp" />
 

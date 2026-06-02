@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.koshub.psdku.repositories.CloudinaryRepository;
+import com.koshub.psdku.utils.KosLocationUtils;
 
 import java.util.List;
 import java.util.Locale;
@@ -27,6 +28,7 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
     public interface OnKosClickListener {
         void onKosClick(KosItem item, int position);
         void onFavoriteClick(KosItem item, int position);
+        void onNavigateClick(KosItem item, int position);
     }
 
     public KosAdapter(List<KosItem> kosList, OnKosClickListener listener) {
@@ -62,7 +64,7 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
         ImageView imgKos, icFavorite;
         TextView tvBadgeCategory, tvBadgePremium, tvBadgeSisa;
         TextView tvKosName, tvRating, tvAddress, tvPrice, tvDistance;
-        LinearLayout chipContainer;
+        LinearLayout chipContainer, btnNavigate;
         FrameLayout btnFavorite;
 
         KosViewHolder(@NonNull View itemView) {
@@ -79,6 +81,7 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
             tvDistance = itemView.findViewById(R.id.tvDistance);
             chipContainer = itemView.findViewById(R.id.chipContainer);
             btnFavorite = itemView.findViewById(R.id.btnFavorite);
+            btnNavigate = itemView.findViewById(R.id.btnNavigate);
         }
 
         void bind(KosItem item, int position) {
@@ -108,6 +111,39 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
                 tvBadgeSisa.setVisibility(View.GONE);
             }
 
+            // Real-time Walking Duration to Campus
+            String cachedDuration = item.getDurationText();
+            if (cachedDuration != null && !cachedDuration.isEmpty() && !cachedDuration.equals("...")) {
+                tvDistance.setText(cachedDuration);
+            } else {
+                tvDistance.setText("...");
+                final String currentId = (item.getId() != null) ? item.getId() : item.getName();
+                tvDistance.setTag(currentId);
+
+                KosLocationUtils.fetchWalkingDuration(
+                        itemView.getContext(),
+                        item.getLatitude(),
+                        item.getLongitude(),
+                        new KosLocationUtils.DurationCallback() {
+                            @Override
+                            public void onSuccess(String durationText, int durationMinutes) {
+                                item.setDurationText(durationText);
+                                item.setDurationMinutes(durationMinutes);
+                                if (currentId.equals(tvDistance.getTag())) {
+                                    tvDistance.setText(durationText);
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(String errorMessage) {
+                                if (currentId.equals(tvDistance.getTag())) {
+                                    tvDistance.setText("- mnt");
+                                }
+                            }
+                        }
+                );
+            }
+
             // Content
             tvKosName.setText(item.getName());
             double avg = item.getRatingAverage();
@@ -118,7 +154,7 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
             }
             tvAddress.setText(item.getAddress());
             tvPrice.setText(item.getPrice());
-            tvDistance.setText(item.getDistance());
+            // tvDistance set by logic above
 
             // Favorite state
             icFavorite.setImageResource(item.isFavorite() ?
@@ -143,9 +179,12 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
                 chipContainer.addView(chip);
             }
 
-            // Click listeners
             itemView.setOnClickListener(v -> {
                 if (listener != null) listener.onKosClick(item, position);
+            });
+
+            btnNavigate.setOnClickListener(v -> {
+                if (listener != null) listener.onNavigateClick(item, position);
             });
 
             btnFavorite.setOnClickListener(v -> {

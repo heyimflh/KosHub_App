@@ -1,5 +1,6 @@
 package com.koshub.psdku.models;
 
+import com.google.firebase.firestore.Exclude;
 import java.io.Serializable;
 import java.util.List;
 
@@ -31,6 +32,11 @@ public class Kos implements Serializable {
     private int availableRooms;
     private double latitude;
     private double longitude;
+    @Exclude
+    private String durationText;
+    @Exclude
+    private int durationMinutes;
+    private String placeId;
     private long createdAt;
     private long updatedAt;
 
@@ -137,6 +143,19 @@ public class Kos implements Serializable {
 
     public double getLongitude() { return longitude; }
     public void setLongitude(double longitude) { this.longitude = longitude; }
+
+    @Exclude
+    public String getDurationText() { return durationText; }
+    @Exclude
+    public void setDurationText(String durationText) { this.durationText = durationText; }
+
+    @Exclude
+    public int getDurationMinutes() { return durationMinutes; }
+    @Exclude
+    public void setDurationMinutes(int durationMinutes) { this.durationMinutes = durationMinutes; }
+
+    public String getPlaceId() { return placeId; }
+    public void setPlaceId(String placeId) { this.placeId = placeId; }
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }

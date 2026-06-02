@@ -12,38 +12,62 @@ import java.util.Arrays;
 public class DummyKosSeeder {
 
     public static void seed(KosRepository repository) {
-        // Base location for UNS Kampus 6 PGSD Kebumen
-        double baseLat = -7.68307;
-        double baseLng = 109.6645;
-
+        // Kos 1: Kos Putri Bu Sari
         Kos kos1 = new Kos(
-                "", "Kos Putri Premium Sakura", "Jl. Mawar No. 17, Kebumen",
-                "Rp 1.2jt", 1200000, "8 mnt", 8, "4.9", "putri",
-                Arrays.asList("AC", "WiFi", "K. Mandi Dalam"),
-                0, true, "Sisa 3 Kamar",
-                baseLat + 0.001, baseLng - 0.001
+                "", "Kos Putri Bu Sari", "Jl. Kepodang No. 45, Panjer, Kebumen",
+                "Rp 600rb", 600000, "...", 0, "4.5", "putri",
+                Arrays.asList("WiFi", "K. Mandi Dalam", "Lemari"),
+                0, false, "Sisa 3 Kamar",
+                -7.682500, 109.663800
         );
-        kos1.setDescription("Kos premium eksklusif dekat kampus dengan fasilitas lengkap.");
+        kos1.setDescription("Kos nyaman untuk mahasiswi, lokasi sangat strategis dekat kampus.");
         kos1.setAvailableRooms(3);
+        kos1.setPlaceId("");
 
+        // Kos 2: Kos Putra Pak Hadi
         Kos kos2 = new Kos(
-                "", "Kos Campur Nusantara", "Jl. Sungai Lukulo No. 21, Kebumen",
-                "Rp 550rb", 550000, "7 mnt", 7, "4.3", "campur",
-                Arrays.asList("WiFi", "Dapur", "Parkir Motor"),
+                "", "Kos Putra Pak Hadi", "Jl. Cendrawasih No. 12, Kebumen",
+                "Rp 450rb", 450000, "...", 0, "4.2", "putra",
+                Arrays.asList("WiFi", "Parkir Motor", "Dapur Bersama"),
                 0, false, "Sisa 2 Kamar",
-                baseLat - 0.001, baseLng + 0.001
+                -7.684200, 109.665100
         );
-        kos2.setDescription("Kos terjangkau dengan lingkungan asri dan aman.");
+        kos2.setDescription("Lingkungan tenang, cocok untuk mahasiswa yang ingin fokus belajar.");
         kos2.setAvailableRooms(2);
+        kos2.setPlaceId("");
 
-        repository.createKos(kos1, new KosRepository.SimpleCallback() {
+        // Kos 3: Kos Campur Pak Ridwan
+        Kos kos3 = new Kos(
+                "", "Kos Campur Pak Ridwan", "Jl. Sungai Lukulo No. 8, Kebumen",
+                "Rp 500rb", 500000, "...", 0, "4.0", "campur",
+                Arrays.asList("WiFi", "Parkir Motor"),
+                0, false, "Sisa 5 Kamar",
+                -7.680500, 109.666200
+        );
+        kos3.setDescription("Akses mudah, dekat dengan fasilitas umum dan sungai Lukulo.");
+        kos3.setAvailableRooms(5);
+        kos3.setPlaceId("");
+
+        // Kos 4: Kos Putri Melati
+        Kos kos4 = new Kos(
+                "", "Kos Putri Melati", "Jl. Masjid No. 3, Panjer, Kebumen",
+                "Rp 750rb", 750000, "...", 0, "4.8", "putri",
+                Arrays.asList("AC", "WiFi", "K. Mandi Dalam", "CCTV"),
+                0, true, "Sisa 1 Kamar",
+                -7.679800, 109.663200
+        );
+        kos4.setDescription("Fasilitas eksklusif dengan keamanan CCTV 24 jam.");
+        kos4.setAvailableRooms(1);
+        kos4.setPlaceId("");
+
+        KosRepository.SimpleCallback callback = new KosRepository.SimpleCallback() {
             @Override public void onSuccess() {}
             @Override public void onError(String message) {}
-        });
+        };
 
-        repository.createKos(kos2, new KosRepository.SimpleCallback() {
-            @Override public void onSuccess() {}
-            @Override public void onError(String message) {}
-        });
+        repository.createKos(kos1, callback);
+        repository.createKos(kos2, callback);
+        repository.createKos(kos3, callback);
+        repository.createKos(kos4, callback);
     }
 }

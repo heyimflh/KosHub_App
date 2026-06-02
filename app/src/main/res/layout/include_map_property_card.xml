@@ -102,6 +102,7 @@
                     android:textSize="@dimen/map_card_price_size" />
 
                 <TextView
+                    android:id="@+id/tvPricePeriod"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="sans-serif"

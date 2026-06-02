@@ -1,7 +1,12 @@
 package com.koshub.psdku;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -14,12 +19,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.net.Uri;
-import android.provider.Settings;
-import android.content.pm.PackageManager;
-import android.location.LocationManager;
-import android.Manifest;
-import android.preference.PreferenceManager;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -29,54 +28,57 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapView;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.koshub.psdku.repositories.CloudinaryRepository;
+import com.koshub.psdku.repositories.KosRepository;
+import com.koshub.psdku.utils.KosLocationUtils;
 import com.bumptech.glide.Glide;
 import com.google.android.material.slider.RangeSlider;
 
-import org.osmdroid.api.IMapController;
-import org.osmdroid.config.Configuration;
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
-import org.osmdroid.util.GeoPoint;
-import org.osmdroid.views.MapView;
-import org.osmdroid.views.overlay.Marker;
-import org.osmdroid.util.BoundingBox;
-
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-public class MapViewRouteNavigationActivity extends AppCompatActivity {
+public class MapViewRouteNavigationActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private MapView mapView;
+    private GoogleMap googleMap;
     private List<KosItem> allKosList;
     private List<KosItem> currentFilteredList;
     private KosItem selectedKos;
+    private Map<String, KosItem> markerKosMap = new HashMap<>();
 
     // UI Components
     private AutoCompleteTextView etSearchLocation;
     private FrameLayout btnSearch;
     private LinearLayout routeCard;
     private ImageView imgKosCard;
-    private TextView tvKosName, tvKosAddress, tvDistance, tvPrice, btnViewDetail, btnNavigate;
-    private LinearLayout navHome, navWaitingList, navProfile;
+    private TextView tvKosName, tvKosAddress, tvDistance, tvPrice, tvPricePeriod, btnViewDetail, btnNavigate;
     private FrameLayout btnNotification;
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
 
-    // Coordinates for UNS Kampus 6 PGSD Kebumen
-    private static final double CAMPUS_LAT = -7.68307;
-    private static final double CAMPUS_LNG = 109.6645;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        // OSMDroid configuration
-        Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this));
-        
         setContentView(R.layout.activity_map_view_route_navigation);
+
+        mapView = findViewById(R.id.mapViewMain);
+        if (mapView != null) {
+            mapView.onCreate(savedInstanceState);
+            mapView.getMapAsync(this);
+        }
 
         // Safely get data
         try {
@@ -106,11 +108,9 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         tvKosAddress = findViewById(R.id.tvKosAddress);
         tvDistance = findViewById(R.id.tvDistance);
         tvPrice = findViewById(R.id.tvPrice);
+        tvPricePeriod = findViewById(R.id.tvPricePeriod);
         btnViewDetail = findViewById(R.id.btnViewDetail);
         btnNavigate = findViewById(R.id.btnNavigate);
-        navHome = findViewById(R.id.navHome);
-        navWaitingList = findViewById(R.id.navWaitlist);
-        navProfile = findViewById(R.id.navProfile);
         btnNotification = findViewById(R.id.btnNotification);
 
         routeCard.setVisibility(View.GONE);
@@ -166,6 +166,7 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         tvKosAddress.setText("Jl. Pendidikan No. 5, Panjer");
         tvDistance.setText("Pusat Pendidikan PSDKU");
         tvPrice.setText("Fasilitas Publik");
+        if (tvPricePeriod != null) tvPricePeriod.setVisibility(View.GONE);
         btnViewDetail.setText("Lihat Info Kampus");
     }
 
@@ -177,69 +178,146 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
     }
 
     private void setupMap() {
-        FrameLayout mapContainer = findViewById(R.id.mapContainer);
-        if (mapContainer == null) return;
+        // Now handled via getMapAsync and onMapReady
+    }
 
-        try {
-            mapView = new MapView(this);
-            mapView.setTileSource(TileSourceFactory.MAPNIK);
-            mapView.setMultiTouchControls(true);
-            
-            IMapController mapController = mapView.getController();
-            mapController.setZoom(15.5);
-            GeoPoint startPoint = new GeoPoint(CAMPUS_LAT, CAMPUS_LNG);
-            mapController.setCenter(startPoint);
+    @Override
+    public void onMapReady(@NonNull GoogleMap gMap) {
+        this.googleMap = gMap;
+        googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        googleMap.getUiSettings().setZoomControlsEnabled(true);
+        googleMap.getUiSettings().setMyLocationButtonEnabled(true);
 
-            mapContainer.addView(mapView);
-            
-            addKosMarkers();
-        } catch (Exception e) {
-            android.util.Log.e("OSMDroid", "Failed to initialize MapView", e);
-            showMapFallback(mapContainer);
+        // Tambahkan marker kampus
+        LatLng campusLatLng = new LatLng(KosLocationUtils.CAMPUS_LAT, KosLocationUtils.CAMPUS_LNG);
+        googleMap.addMarker(new MarkerOptions()
+                .position(campusLatLng)
+                .title(KosLocationUtils.CAMPUS_NAME)
+                .icon(com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_AZURE))
+        );
+
+        // Pindahkan kamera ke kampus atau kos spesifik jika ada
+        double targetLat = getIntent().getDoubleExtra("kos_lat", -1);
+        double targetLng = getIntent().getDoubleExtra("kos_lng", -1);
+
+        if (targetLat != -1 && targetLng != -1) {
+            LatLng targetLatLng = new LatLng(targetLat, targetLng);
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(targetLatLng, 17f));
+        } else {
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(campusLatLng, 15f));
+        }
+
+        // Load all markers
+        loadKosMarkers();
+
+        // Marker Click Listener
+        googleMap.setOnMarkerClickListener(marker -> {
+            String markerId = marker.getId();
+            KosItem item = markerKosMap.get(markerId);
+            if (item != null) {
+                selectedKos = item;
+                updatePropertyCard(item);
+                
+                // Fetch dynamic duration
+                tvDistance.setText("Menghitung...");
+                KosLocationUtils.fetchWalkingDuration(this, item.getLatitude(), item.getLongitude(), new KosLocationUtils.DurationCallback() {
+                    @Override
+                    public void onSuccess(String durationText, int durationMinutes) {
+                        tvDistance.setText(durationText + " ke kampus");
+                    }
+                    @Override
+                    public void onFailure(String errorMessage) {
+                        tvDistance.setText(item.getDistance());
+                    }
+                });
+                return true; // We handled the click
+            } else if (KosLocationUtils.CAMPUS_NAME.equals(marker.getTitle())) {
+                showCampusCard();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void loadKosMarkers() {
+        KosRepository.getInstance().getAllKosItems(new KosRepository.KosItemListCallback() {
+            @Override
+            public void onSuccess(List<KosItem> items) {
+                allKosList = items;
+                NavigationHelper.cachedKosList = new ArrayList<>(items);
+                currentFilteredList = new ArrayList<>(items);
+                addKosMarkers();
+                highlightTargetKos();
+            }
+
+            @Override
+            public void onError(String message) {
+                showCustomToast("Gagal memuat data kos: " + message);
+            }
+        });
+    }
+
+    private void highlightTargetKos() {
+        double targetLat = getIntent().getDoubleExtra("kos_lat", -1);
+        double targetLng = getIntent().getDoubleExtra("kos_lng", -1);
+
+        if (targetLat != -1 && targetLng != -1) {
+            for (Map.Entry<String, KosItem> entry : markerKosMap.entrySet()) {
+                KosItem item = entry.getValue();
+                if (Math.abs(item.getLatitude() - targetLat) < 0.0001 &&
+                        Math.abs(item.getLongitude() - targetLng) < 0.0001) {
+                    
+                    selectedKos = item;
+                    updatePropertyCard(item);
+                    
+                    // Fetch dynamic duration
+                    tvDistance.setText("Menghitung...");
+                    KosLocationUtils.fetchWalkingDuration(this, item.getLatitude(), item.getLongitude(), new KosLocationUtils.DurationCallback() {
+                        @Override
+                        public void onSuccess(String durationText, int durationMinutes) {
+                            tvDistance.setText(durationText + " ke kampus");
+                        }
+                        @Override
+                        public void onFailure(String errorMessage) {
+                            tvDistance.setText(item.getDistance());
+                        }
+                    });
+                    break;
+                }
+            }
         }
     }
 
     private void addKosMarkers() {
-        if (mapView == null) return;
+        if (googleMap == null) return;
         
-        mapView.getOverlays().clear();
+        // Simpan marker saat ini atau clear
+        googleMap.clear();
+        markerKosMap.clear();
 
-        // Add Campus Marker
-        Marker campusMarker = new Marker(mapView);
-        campusMarker.setPosition(new GeoPoint(CAMPUS_LAT, CAMPUS_LNG));
-        campusMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-        campusMarker.setTitle("UNS Kampus 6");
-        campusMarker.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_map_school));
-        campusMarker.setOnMarkerClickListener((marker, mv) -> {
-            showCampusCard();
-            return true;
-        });
-        mapView.getOverlays().add(campusMarker);
+        // Re-add campus marker
+        LatLng campusLatLng = new LatLng(KosLocationUtils.CAMPUS_LAT, KosLocationUtils.CAMPUS_LNG);
+        googleMap.addMarker(new MarkerOptions()
+                .position(campusLatLng)
+                .title(KosLocationUtils.CAMPUS_NAME)
+                .icon(com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker(com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_AZURE))
+        );
 
-        // Add Kos Markers
-        if (currentFilteredList != null) {
-            for (KosItem item : currentFilteredList) {
-                Marker marker = new Marker(mapView);
-                marker.setPosition(new GeoPoint(item.getLatitude(), item.getLongitude()));
-                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
-                marker.setTitle(item.getName());
-                marker.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_map_home));
-                marker.setOnMarkerClickListener((m, mv) -> {
-                    updatePropertyCard(item);
-                    return true;
-                });
-                mapView.getOverlays().add(marker);
+        for (KosItem item : currentFilteredList) {
+            LatLng pos = new LatLng(item.getLatitude(), item.getLongitude());
+            Marker marker = googleMap.addMarker(new MarkerOptions()
+                    .position(pos)
+                    .title(item.getName())
+                    .snippet(item.getPrice())
+            );
+            if (marker != null) {
+                markerKosMap.put(marker.getId(), item);
             }
         }
-        
-        mapView.invalidate();
     }
 
     private void showMapFallback(FrameLayout container) {
-        if (container == null) return;
-        container.removeAllViews();
-        View fallbackView = LayoutInflater.from(this).inflate(R.layout.layout_map_fallback, container, false);
-        container.addView(fallbackView);
+        // Not used with Google Maps SDK
     }
 
     private void updatePropertyCard(KosItem item) {
@@ -264,6 +342,7 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         tvKosAddress.setText(item.getAddress());
         tvDistance.setText(item.getDistance() + " ke Kampus");
         tvPrice.setText(item.getPrice());
+        if (tvPricePeriod != null) tvPricePeriod.setVisibility(View.VISIBLE);
         btnViewDetail.setText("Lihat Detail");
     }
 
@@ -278,9 +357,8 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         for (KosItem item : allKosList) {
             if (item.getName().toLowerCase().contains(query.toLowerCase().trim())) {
                 updatePropertyCard(item);
-                if (mapView != null) {
-                    mapView.getController().animateTo(new GeoPoint(item.getLatitude(), item.getLongitude()));
-                    mapView.getController().setZoom(17.0);
+                if (googleMap != null) {
+                    googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(item.getLatitude(), item.getLongitude()), 17.0f));
                 }
                 return;
             }
@@ -337,9 +415,9 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
             currentFilteredList = new ArrayList<>(allKosList);
             
             addKosMarkers();
-            if (mapView != null) {
-                mapView.getController().animateTo(new GeoPoint(CAMPUS_LAT, CAMPUS_LNG));
-                mapView.getController().setZoom(15.5);
+            if (googleMap != null) {
+                LatLng campusLatLng = new LatLng(KosLocationUtils.CAMPUS_LAT, KosLocationUtils.CAMPUS_LNG);
+                googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(campusLatLng, 15.5f));
             }
             
             dialog.dismiss();
@@ -373,6 +451,9 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
                 return matchCategory && matchPrice;
             })
             .collect(Collectors.toList());
+
+        addKosMarkers();
+        zoomToFitMarkers(currentFilteredList);
     }
 
     private long parsePrice(String priceStr) {
@@ -386,31 +467,23 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
     }
 
     private void zoomToFitMarkers(List<KosItem> items) {
-        if (items == null || items.isEmpty() || mapView == null) return;
+        if (googleMap == null || items == null || items.isEmpty()) return;
 
-        double minLat = Double.MAX_VALUE;
-        double maxLat = -Double.MAX_VALUE;
-        double minLng = Double.MAX_VALUE;
-        double maxLng = -Double.MAX_VALUE;
-
-        // Include campus
-        minLat = Math.min(minLat, CAMPUS_LAT);
-        maxLat = Math.max(maxLat, CAMPUS_LAT);
-        minLng = Math.min(minLng, CAMPUS_LNG);
-        maxLng = Math.max(maxLng, CAMPUS_LNG);
-
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        // Include Campus
+        builder.include(new LatLng(KosLocationUtils.CAMPUS_LAT, KosLocationUtils.CAMPUS_LNG));
+        
         for (KosItem item : items) {
-            minLat = Math.min(minLat, item.getLatitude());
-            maxLat = Math.max(maxLat, item.getLatitude());
-            minLng = Math.min(minLng, item.getLongitude());
-            maxLng = Math.max(maxLng, item.getLongitude());
+            builder.include(new LatLng(item.getLatitude(), item.getLongitude()));
         }
 
-        BoundingBox boundingBox = new BoundingBox(maxLat, maxLng, minLat, minLng);
-        mapView.zoomToBoundingBox(boundingBox, true, 100);
+        LatLngBounds bounds = builder.build();
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150));
     }
 
     private void startNavigation(KosItem destination) {
+        if (destination == null) return;
+        
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
             return;
@@ -424,14 +497,16 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
         openGoogleMapsNavigation(destination.getLatitude(), destination.getLongitude());
     }
 
-    private void openGoogleMapsNavigation(double lat, double lng) {
-        Uri gmmIntentUri = Uri.parse("google.navigation:q=" + lat + "," + lng + "&mode=d");
+    private void openGoogleMapsNavigation(double kosLat, double kosLng) {
+        Uri gmmIntentUri = Uri.parse("https://www.google.com/maps/dir/?api=1&origin=" + kosLat + "," + kosLng + "&destination=" + KosLocationUtils.CAMPUS_LAT + "," + KosLocationUtils.CAMPUS_LNG + "&travelmode=walking");
         Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
         mapIntent.setPackage("com.google.android.apps.maps");
+        
         if (mapIntent.resolveActivity(getPackageManager()) != null) {
             startActivity(mapIntent);
         } else {
-            showCustomToast("Google Maps tidak ditemukan.");
+            // Fallback to browser
+            startActivity(new Intent(Intent.ACTION_VIEW, gmmIntentUri));
         }
     }
 
@@ -480,6 +555,12 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        if (mapView != null) mapView.onStart();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (mapView != null) mapView.onResume();
@@ -489,6 +570,30 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         if (mapView != null) mapView.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (mapView != null) mapView.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mapView != null) mapView.onDestroy();
+    }
+
+    @Override
+    public void onLowMemory() {
+        super.onLowMemory();
+        if (mapView != null) mapView.onLowMemory();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (mapView != null) mapView.onSaveInstanceState(outState);
     }
 
     private void showCustomToast(String message) {

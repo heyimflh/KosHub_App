@@ -126,7 +126,16 @@ public class FavoriteListActivity extends AppCompatActivity implements KosAdapte
     @Override
     public void onKosClick(KosItem item, int position) {
         Intent intent = new Intent(this, PropertyDetailBookingActivity.class);
-        intent.putExtra("kosId", item.getId());
+        intent.putExtra("kos_item", item);
+        intent.putExtra("kos_id", item.getId());
+        intent.putExtra("owner_id", item.getOwnerId());
+        
+        // Add coordinates and basic info
+        intent.putExtra("kos_lat", item.getLatitude());
+        intent.putExtra("kos_lng", item.getLongitude());
+        intent.putExtra("kos_name", item.getName());
+        intent.putExtra("kos_address", item.getAddress());
+        
         NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 
@@ -138,8 +147,6 @@ public class FavoriteListActivity extends AppCompatActivity implements KosAdapte
                 Toast.makeText(FavoriteListActivity.this, message, Toast.LENGTH_SHORT).show();
                 if (!item.isFavorite()) {
                     // Item was unfavorited, remove from list
-                    // Since the list in adapter might be a copy or original, 
-                    // and position might change, it's safer to remove by object or refresh
                     favoriteItems.remove(item);
                     adapter.updateList(new ArrayList<>(favoriteItems));
                     if (favoriteItems.isEmpty()) {
@@ -156,5 +163,16 @@ public class FavoriteListActivity extends AppCompatActivity implements KosAdapte
                 adapter.notifyItemChanged(position);
             }
         });
+    }
+
+    @Override
+    public void onNavigateClick(KosItem item, int position) {
+        Intent navIntent = new Intent(this, MapViewRouteNavigationActivity.class);
+        navIntent.putExtra("kos_lat", item.getLatitude());
+        navIntent.putExtra("kos_lng", item.getLongitude());
+        navIntent.putExtra("kos_name", item.getName());
+        // Pass the favorite list as well if needed
+        navIntent.putExtra("kos_list", new ArrayList<>(favoriteItems));
+        NavigationTransitionHelper.navigateMainWithIntent(this, navIntent);
     }
 }
