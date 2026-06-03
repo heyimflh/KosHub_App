@@ -56,6 +56,17 @@ public class SplashActivity extends AppCompatActivity {
 
         // Navigate after 1800ms
         new Handler().postDelayed(this::checkAuthAndNavigate, 1800);
+
+        // DEBUG: Seed dummy data once in development
+        if (BuildConfig.DEBUG) {
+            android.content.SharedPreferences debugPrefs = getSharedPreferences("DebugPrefs", MODE_PRIVATE);
+            boolean hasSeeded = debugPrefs.getBoolean("has_seeded_kebumen", false);
+            if (!hasSeeded) {
+                com.koshub.psdku.utils.DummyKosSeeder.seed(com.koshub.psdku.repositories.KosRepository.getInstance());
+                debugPrefs.edit().putBoolean("has_seeded_kebumen", true).apply();
+                android.util.Log.d("DEBUG", "Dummy kos seeder triggered for Kebumen coordinates");
+            }
+        }
     }
 
     private void checkAuthAndNavigate() {

@@ -95,6 +95,8 @@ public class OwnerManagementActivity extends AppCompatActivity {
         }
 
         loadData();
+        // DEBUG: Clean old kos on first load
+        cleanOldKosWithBadCoordinates();
         setupPropertySelector();
         setupQuickActions();
         setupRoomSection();
@@ -1668,6 +1670,32 @@ public class OwnerManagementActivity extends AppCompatActivity {
 
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private void cleanOldKosWithBadCoordinates() {
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("kos")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    int deletedCount = 0;
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        Kos kos = doc.toObject(Kos.class);
+                        if (kos.getLatitude() == 0.0 && kos.getLongitude() == 0.0) {
+                            doc.getReference().delete();
+                            deletedCount++;
+                        }
+                    }
+                    if (deletedCount > 0) {
+                        int finalDeletedCount = deletedCount;
+                        runOnUiThread(() -> {
+                            Toast.makeText(this, "✓ Dihapus " + finalDeletedCount + " kos dengan koordinat invalid",
+                                    Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    // Silently fail to avoid disturbing UX if it's just a background clean
+                });
     }
 
     private void startAutocompletePicker() {

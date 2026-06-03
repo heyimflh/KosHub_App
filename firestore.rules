@@ -56,6 +56,15 @@ service cloud.firestore {
       );
     }
 
+    function isValidCoordinates(data) {
+      return data.latitude != 0.0
+        && data.longitude != 0.0
+        && data.latitude >= -90
+        && data.latitude <= 90
+        && data.longitude >= -180
+        && data.longitude <= 180;
+    }
+
     // --- COLLECTION RULES ---
 
     // USERS
@@ -79,11 +88,13 @@ service cloud.firestore {
       allow read: if isSignedIn();
 
       allow create: if isOwner()
-        && request.resource.data.ownerId == request.auth.uid;
+        && request.resource.data.ownerId == request.auth.uid
+        && isValidCoordinates(request.resource.data);
 
       allow update: if isOwner()
         && resource.data.ownerId == request.auth.uid
-        && unchanged("ownerId");
+        && unchanged("ownerId")
+        && isValidCoordinates(request.resource.data);
 
       allow delete: if isOwner()
         && resource.data.ownerId == request.auth.uid;

@@ -39,24 +39,37 @@ public class KosLocationUtils {
      * Fetches walking duration from a Kos location to the campus.
      */
     public static void fetchWalkingDuration(Context context, double kosLat, double kosLng, DurationCallback callback) {
+        // Validasi: jangan panggil API jika koordinat invalid
+        if ((kosLat == 0.0 && kosLng == 0.0) || (kosLat > 90 || kosLat < -90) || (kosLng > 180 || kosLng < -180)) {
+            postFailure(callback, "Invalid coordinates");
+            return;
+        }
+
         String apiKey = BuildConfig.GOOGLE_MAPS_KEY;
+        if (apiKey == null || apiKey.isEmpty()) {
+            postFailure(callback, "API key not configured");
+            return;
+        }
+
         String url = String.format("https://maps.googleapis.com/maps/api/directions/json?origin=%f,%f&destination=%f,%f&mode=walking&language=id&key=%s",
                 kosLat, kosLng, CAMPUS_LAT, CAMPUS_LNG, apiKey);
 
-        Request request = new Request.Builder()
-                .url(url)
-                .build();
+        Request request = new Request.Builder().url(url).build();
+
+        android.util.Log.d("KosLocationUtils", "Requesting duration for lat=" + kosLat + " lng=" + kosLng);
 
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                postFailure(callback, "Network error: " + e.getMessage());
+                android.util.Log.e("KosLocationUtils", "Network error: " + e.getMessage());
+                postFailure(callback, "Network error");
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    postFailure(callback, "Unexpected response code: " + response.code());
+                    android.util.Log.e("KosLocationUtils", "Unexpected response code: " + response.code());
+                    postFailure(callback, "Response error: " + response.code());
                     return;
                 }
 
@@ -65,8 +78,23 @@ public class KosLocationUtils {
                     JSONObject jsonObject = new JSONObject(jsonData);
                     String status = jsonObject.getString("status");
 
+                    android.util.Log.d("KosLocationUtils", "API Status: " + status);
+
                     if (!status.equals("OK")) {
-                        postFailure(callback, "API Error: " + status);
+                        // Handle error status dengan pesan yang lebih informatif
+                        String errorMessage = "API Error: " + status;
+
+                        if (status.equals("REQUEST_DENIED")) {
+                            errorMessage = "API key invalid atau Directions API tidak diaktifkan. " +
+                                    "Silakan enable Directions API di Google Cloud Console.";
+                        } else if (status.equals("ZERO_RESULTS")) {
+                            errorMessage = "Rute tidak ditemukan (koordinat mungkin invalid)";
+                        } else if (status.equals("OVER_QUERY_LIMIT")) {
+                            errorMessage = "Quota API tercapai";
+                        }
+
+                        android.util.Log.e("KosLocationUtils", errorMessage);
+                        postFailure(callback, errorMessage);
                         return;
                     }
 
@@ -80,23 +108,19 @@ public class KosLocationUtils {
 
                             int seconds = duration.getInt("value");
                             int minutes = (int) Math.round(seconds / 60.0);
-                            String durationText;
+                            String durationText = (seconds < 60) ? "< 1 mnt" : minutes + " mnt";
 
-                            if (seconds < 60) {
-                                durationText = "< 1 mnt";
-                            } else {
-                                durationText = minutes + " mnt";
-                            }
-
+                            android.util.Log.d("KosLocationUtils", "Duration: " + durationText);
                             postSuccess(callback, durationText, minutes);
                         } else {
-                            postFailure(callback, "No legs found in route");
+                            postFailure(callback, "No legs in route");
                         }
                     } else {
                         postFailure(callback, "No routes found");
                     }
                 } catch (Exception e) {
-                    postFailure(callback, "JSON Parse error: " + e.getMessage());
+                    android.util.Log.e("KosLocationUtils", "Parse error: " + e.getMessage());
+                    postFailure(callback, "Parse error");
                 }
             }
         });

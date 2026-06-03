@@ -94,6 +94,13 @@ public class KosRepository {
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         Kos kos = doc.toObject(Kos.class);
                         kos.setId(doc.getId());
+
+                        // FILTER: Skip kos dengan koordinat invalid
+                        if (!kos.hasValidCoordinates()) {
+                            android.util.Log.w(TAG, "Skipping kos with invalid coordinates: " + kos.getName());
+                            continue;
+                        }
+
                         list.add(kos);
                     }
                     callback.onSuccess(list);
@@ -160,6 +167,13 @@ public class KosRepository {
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         Kos kos = doc.toObject(Kos.class);
                         kos.setId(doc.getId());
+
+                        // FILTER: Skip kos dengan koordinat invalid
+                        if (!kos.hasValidCoordinates()) {
+                            android.util.Log.w(TAG, "Skipping kos with invalid coordinates: " + kos.getName());
+                            continue;
+                        }
+
                         list.add(kos);
                     }
                     callback.onSuccess(list);

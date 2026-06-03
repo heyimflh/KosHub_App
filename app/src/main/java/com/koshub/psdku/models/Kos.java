@@ -144,6 +144,14 @@ public class Kos implements Serializable {
     public double getLongitude() { return longitude; }
     public void setLongitude(double longitude) { this.longitude = longitude; }
 
+    /**
+     * Validasi apakah kos memiliki koordinat yang valid.
+     * Koordinat 0.0, 0.0 dianggap invalid (dummy).
+     */
+    public boolean hasValidCoordinates() {
+        return !(latitude == 0.0 && longitude == 0.0);
+    }
+
     @Exclude
     public String getDurationText() { return durationText; }
     @Exclude

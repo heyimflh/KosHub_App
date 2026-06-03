@@ -115,8 +115,11 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
             String cachedDuration = item.getDurationText();
             if (cachedDuration != null && !cachedDuration.isEmpty() && !cachedDuration.equals("...")) {
                 tvDistance.setText(cachedDuration);
+                tvDistance.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.text_primary));
             } else {
-                tvDistance.setText("...");
+                tvDistance.setText("⏳ ..."); // Add loading indicator
+                tvDistance.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.text_secondary));
+
                 final String currentId = (item.getId() != null) ? item.getId() : item.getName();
                 tvDistance.setTag(currentId);
 
@@ -131,13 +134,19 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
                                 item.setDurationMinutes(durationMinutes);
                                 if (currentId.equals(tvDistance.getTag())) {
                                     tvDistance.setText(durationText);
+                                    tvDistance.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.text_primary));
                                 }
                             }
 
                             @Override
                             public void onFailure(String errorMessage) {
+                                android.util.Log.e("KosAdapter", "Duration fetch failed for " + item.getName() + ": " + errorMessage);
                                 if (currentId.equals(tvDistance.getTag())) {
-                                    tvDistance.setText("- mnt");
+                                    // Fallback to legacy distance if available
+                                    String fallback = (item.getDistance() != null && !item.getDistance().isEmpty()) ?
+                                            item.getDistance() : "? mnt";
+                                    tvDistance.setText(fallback);
+                                    tvDistance.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.md_error));
                                 }
                             }
                         }
