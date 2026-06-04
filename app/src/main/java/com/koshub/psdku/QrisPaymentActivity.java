@@ -39,7 +39,7 @@ public class QrisPaymentActivity extends AppCompatActivity {
     private long gatewayTransactionId;
     private Booking currentBooking;
     
-    private TextView tvTotalBayar, tvStatus, tvScanInstruction, tvManualCheck;
+    private TextView tvTotalBayar, tvStatus, tvScanInstruction, tvManualCheck, tvPaymentMethod;
     private TextView tvTransactionId, tvGatewayStatus;
     private Button btnCopyLink;
     private ImageView ivQris;
@@ -91,6 +91,7 @@ public class QrisPaymentActivity extends AppCompatActivity {
         tvStatus = findViewById(R.id.tvStatus);
         tvScanInstruction = findViewById(R.id.tvScanInstruction);
         tvManualCheck = findViewById(R.id.tvManualCheck);
+        tvPaymentMethod = findViewById(R.id.tvPaymentMethod);
         tvTransactionId = findViewById(R.id.tvTransactionId);
         tvGatewayStatus = findViewById(R.id.tvGatewayStatus);
         btnCopyLink = findViewById(R.id.btnCopyLink);
@@ -122,6 +123,7 @@ public class QrisPaymentActivity extends AppCompatActivity {
             @Override
             public void onSuccess(Booking booking) {
                 currentBooking = booking;
+                loadDefaultPaymentMethod();
                 
                 // REUSE PENDING PAYMENT
                 if (booking.getGatewayTransactionId() != 0 && 
@@ -154,6 +156,35 @@ public class QrisPaymentActivity extends AppCompatActivity {
             public void onError(String message) {
                 handleError(message);
             }
+        });
+    }
+
+    private void loadDefaultPaymentMethod() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        com.koshub.psdku.repositories.PaymentMethodRepository.getInstance().listenPaymentMethods(uid, new com.koshub.psdku.repositories.PaymentMethodRepository.PaymentMethodListCallback() {
+            @Override
+            public void onSuccess(java.util.List<com.koshub.psdku.models.PaymentMethod> methods) {
+                com.koshub.psdku.models.PaymentMethod def = null;
+                for (com.koshub.psdku.models.PaymentMethod m : methods) {
+                    if (m.isDefault()) {
+                        def = m;
+                        break;
+                    }
+                }
+
+                if (def != null && tvPaymentMethod != null) {
+                    String label = "Metode: " + def.getProviderName();
+                    if (!DatabaseConstants.PAYMENT_METHOD_QRIS.equals(def.getType())) {
+                        label += " (Refund/Preferensi)";
+                    }
+                    tvPaymentMethod.setText(label);
+                }
+            }
+
+            @Override
+            public void onError(String message) {}
         });
     }
 

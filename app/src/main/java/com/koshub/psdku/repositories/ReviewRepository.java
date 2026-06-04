@@ -45,6 +45,31 @@ public class ReviewRepository {
         void onError(String message);
     }
 
+    public interface ReviewCallback {
+        void onSuccess(Review review);
+        void onError(String message);
+    }
+
+    public void getUserReviewForKos(String kosId, String studentId, ReviewCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_REVIEWS)
+                .whereEqualTo(DatabaseConstants.FIELD_KOS_ID, kosId)
+                .whereEqualTo(DatabaseConstants.FIELD_STUDENT_ID, studentId)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        Review r = queryDocumentSnapshots.getDocuments().get(0).toObject(Review.class);
+                        callback.onSuccess(r);
+                    } else {
+                        callback.onSuccess(null);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "getUserReviewForKos error: " + e.getMessage());
+                    callback.onError("Gagal mengecek ulasan anda.");
+                });
+    }
+
     public void canReviewBooking(String bookingId, SimpleCallback callback) {
         String uid = auth.getUid();
         if (uid == null) {
@@ -95,15 +120,18 @@ public class ReviewRepository {
 
         review.setStudentId(uid);
         
-        // Handle ID: Use bookingId if exists to prevent duplicates for same stay, 
-        // otherwise auto-generate via Firestore.
-        String docId = review.getBookingId();
+        // Handle ID: priority review.getId() > review.getBookingId() > auto-gen
+        String docId = review.getId();
+        if (docId == null || docId.isEmpty()) {
+            docId = review.getBookingId();
+        }
+        
         if (docId == null || docId.isEmpty()) {
             docId = db.collection(DatabaseConstants.COLLECTION_REVIEWS).document().getId();
+            review.setCreatedAt(System.currentTimeMillis());
         }
         
         review.setId(docId);
-        review.setCreatedAt(System.currentTimeMillis());
         review.setUpdatedAt(System.currentTimeMillis());
 
         // Ensure studentName is set from current user if missing

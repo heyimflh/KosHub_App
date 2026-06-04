@@ -591,7 +591,13 @@ public class OwnerDashboardActivity extends AppCompatActivity {
     }
 
     private void setupQuickActions() {
-        actionTambahKos.setOnClickListener(v -> showAddKosDialog());
+        // MODIFIED: Redirect to OwnerManagementActivity for validated Kos creation (Google Places)
+        actionTambahKos.setOnClickListener(v -> {
+            Intent intent = new Intent(this, OwnerManagementActivity.class);
+            intent.putExtra("SHOW_ADD_DIALOG", true);
+            startActivity(intent);
+        });
+        
         actionTambahKamar.setOnClickListener(v -> showAddRoomDialog());
         actionKelolaPenyewa.setOnClickListener(v -> {
             Intent intent = new Intent(this, OwnerBookingActivity.class);
@@ -658,62 +664,9 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         actionBuatPromo.setOnClickListener(v -> showCreatePromoDialog());
     }
 
-    private void showAddKosDialog() {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_kos, null);
-        imgPreview = dialogView.findViewById(R.id.imgKosPreview);
-        Button btnSelectImage = dialogView.findViewById(R.id.btnSelectImage);
-        
-        btnSelectImage.setOnClickListener(v -> imagePickerLauncher.launch("image/*"));
-
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("Tambah Kos Baru")
-                .setView(dialogView)
-                .setPositiveButton("Simpan", null)
-                .setNegativeButton("Batal", null)
-                .create();
-
-        dialog.setOnShowListener(d -> {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-                EditText etName = dialogView.findViewById(R.id.etKosName);
-                EditText etAddress = dialogView.findViewById(R.id.etKosAddress);
-                EditText etPrice = dialogView.findViewById(R.id.etKosPrice);
-                Spinner spCategory = dialogView.findViewById(R.id.spKosCategory);
-
-                String name = etName.getText().toString().trim();
-                String address = etAddress.getText().toString().trim();
-                String priceStr = etPrice.getText().toString().trim();
-                String category = spCategory.getSelectedItem().toString().toLowerCase();
-
-                if (name.isEmpty() || address.isEmpty() || priceStr.isEmpty()) {
-                    showToast("Harap isi semua field wajib");
-                    return;
-                }
-
-                double price = Double.parseDouble(priceStr);
-                Kos newKos = new Kos("", name, address, "Rp " + priceStr, (int)price, "0 mnt", 0, "0.0", category, new ArrayList<>(), 0, false, "0 Kamar", 0.0, 0.0);
-                newKos.setPrice(price);
-
-                kosRepository.createKos(newKos, new KosRepository.SimpleCallback() {
-                    @Override
-                    public void onSuccess() {
-                        if (selectedImageUri != null) {
-                            uploadKosImage(newKos.getId());
-                        } else {
-                            showToast("Kos berhasil ditambahkan");
-                            refreshData();
-                        }
-                        dialog.dismiss();
-                    }
-
-                    @Override
-                    public void onError(String message) {
-                        showToast("Gagal: " + message);
-                    }
-                });
-            });
-        });
-        dialog.show();
-    }
+    // REMOVED: showAddKosDialog() has been removed because it allowed manual address entry
+    // without Google Places validation, resulting in invalid coordinates (0.0, 0.0).
+    // All Kos creation MUST go through OwnerManagementActivity.
 
     private void uploadKosImage(String kosId) {
         showToast("Sedang mengupload foto...");

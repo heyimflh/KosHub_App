@@ -17,12 +17,16 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.List;
 import com.bumptech.glide.Glide;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.koshub.psdku.models.Booking;
+import com.koshub.psdku.models.StudentDocument;
 import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.AuthRepository;
 import com.koshub.psdku.repositories.FavoriteRepository;
 import com.koshub.psdku.repositories.ReviewRepository;
+import com.koshub.psdku.repositories.StudentDocumentRepository;
 import com.koshub.psdku.utils.CurrencyHelper;
 import com.koshub.psdku.utils.DatabaseConstants;
 import com.koshub.psdku.services.FirebaseService;
@@ -58,6 +62,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
     private View menuSecurity;
     private View menuPayment;
     private View menuDocument;
+    private TextView tvMenuDocumentSub;
     private View menuHelp;
     private View menuSettings;
 
@@ -75,6 +80,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
     private TextView btnEmptySearch;
 
     private boolean hasBookingHistory = true;
+    private ListenerRegistration docSummaryListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +94,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
         setupQuickStats();
         setupMenuListeners();
         setupHistorySection();
+        listenToDocumentStatus();
         setupLogout();
         setupBottomNav();
     }
@@ -111,6 +118,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
         menuSecurity = findViewById(R.id.menuSecurity);
         menuPayment = findViewById(R.id.menuPayment);
         menuDocument = findViewById(R.id.menuDocument);
+        tvMenuDocumentSub = findViewById(R.id.tvMenuDocumentSub);
         menuHelp = findViewById(R.id.menuHelp);
         menuSettings = findViewById(R.id.menuSettings);
 
@@ -134,7 +142,7 @@ public class ProfileHistoryActivity extends AppCompatActivity {
         progressProfileCompletion.setProgress(85);
         btnEditProfile.setOnClickListener(v -> profilePickerLauncher.launch("image/*"));
         btnCompleteProfile.setOnClickListener(v ->
-                showToast("📋 Lengkapi data profil untuk verifikasi"));
+                showToast("\uD83D\uDCCB Lengkapi data profil untuk verifikasi"));
     }
 
     private void setupQuickStats() {
@@ -213,7 +221,6 @@ public class ProfileHistoryActivity extends AppCompatActivity {
     }
 
     private void setupMenuListeners() {
-        View.OnClickListener comingSoon = v -> showToast("Fitur ini akan segera hadir");
         menuPersonal.setOnClickListener(v -> showEditProfileBottomSheet());
         menuHistory.setOnClickListener(v -> {
             Intent intent = new Intent(this, RentalHistoryActivity.class);
@@ -224,8 +231,14 @@ public class ProfileHistoryActivity extends AppCompatActivity {
             NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
         });
         menuSecurity.setOnClickListener(v -> showSecurityBottomSheet());
-        menuPayment.setOnClickListener(comingSoon);
-        menuDocument.setOnClickListener(comingSoon);
+        menuPayment.setOnClickListener(v -> {
+            Intent intent = new Intent(this, StudentPaymentMethodsActivity.class);
+            startActivity(intent);
+        });
+        menuDocument.setOnClickListener(v -> {
+            Intent intent = new Intent(this, StudentDocumentsActivity.class);
+            startActivity(intent);
+        });
         menuHelp.setOnClickListener(v -> {
             Intent intent = new Intent(this, HelpFaqActivity.class);
             intent.putExtra("role", "student");
@@ -292,6 +305,40 @@ public class ProfileHistoryActivity extends AppCompatActivity {
 
     private void setupBottomNav() {
         NavigationHelper.setupBottomNav(this, NavigationHelper.Tab.PROFILE);
+    }
+
+    private void listenToDocumentStatus() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        docSummaryListener = StudentDocumentRepository.getInstance().listenDocuments(uid, new StudentDocumentRepository.DocumentListCallback() {
+            @Override
+            public void onSuccess(List<StudentDocument> documents) {
+                int count = 0;
+                boolean allVerified = true;
+                boolean hasMandatory = false;
+
+                for (StudentDocument d : documents) {
+                    if (DatabaseConstants.DOC_TYPE_KTP.equals(d.getType()) || DatabaseConstants.DOC_TYPE_KTM.equals(d.getType())) {
+                        count++;
+                        hasMandatory = true;
+                        if (!DatabaseConstants.DOC_STATUS_VERIFIED.equals(d.getStatus())) {
+                            allVerified = false;
+                        }
+                    }
+                }
+
+                if (tvMenuDocumentSub != null) {
+                    if (!hasMandatory) tvMenuDocumentSub.setText("0/2 dokumen wajib");
+                    else if (allVerified && count >= 2) tvMenuDocumentSub.setText("Terverifikasi");
+                    else if (count > 0) tvMenuDocumentSub.setText(count + "/2 dokumen wajib (Menunggu)");
+                    else tvMenuDocumentSub.setText("0/2 dokumen wajib");
+                }
+            }
+
+            @Override
+            public void onError(String message) {}
+        });
     }
 
     private void uploadProfileImage(Uri uri) {
@@ -620,5 +667,11 @@ public class ProfileHistoryActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Batal", null)
                 .show();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (docSummaryListener != null) docSummaryListener.remove();
     }
 }

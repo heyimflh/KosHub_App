@@ -23,7 +23,7 @@ public class ReviewFormActivity extends AppCompatActivity {
     private View btnSubmit;
     private TextView tvKosName;
     private String bookingId;
-    private String kosId, kosName;
+    private String kosId, kosName, reviewId;
     private Booking currentBooking;
 
     @Override
@@ -34,6 +34,7 @@ public class ReviewFormActivity extends AppCompatActivity {
         bookingId = getIntent().getStringExtra("BOOKING_ID");
         kosId = getIntent().getStringExtra("KOS_ID");
         kosName = getIntent().getStringExtra("KOS_NAME");
+        reviewId = getIntent().getStringExtra("REVIEW_ID");
 
         if (bookingId == null && kosId == null) {
             Toast.makeText(this, "Data tidak valid", Toast.LENGTH_SHORT).show();
@@ -49,6 +50,22 @@ public class ReviewFormActivity extends AppCompatActivity {
             tvKosName.setText(kosName);
             btnSubmit.setEnabled(true);
         }
+
+        if (reviewId != null) {
+            loadExistingReview();
+        }
+    }
+
+    private void loadExistingReview() {
+        FirebaseService.getFirestore().collection(DatabaseConstants.COLLECTION_REVIEWS).document(reviewId).get()
+                .addOnSuccessListener(doc -> {
+                    Review r = doc.toObject(Review.class);
+                    if (r != null) {
+                        ratingBar.setRating((float) r.getRating());
+                        etComment.setText(r.getComment());
+                        ((TextView)btnSubmit).setText("Update Ulasan");
+                    }
+                });
     }
 
     private void initViews() {
@@ -102,6 +119,9 @@ public class ReviewFormActivity extends AppCompatActivity {
         }
 
         Review review = new Review();
+        if (reviewId != null) {
+            review.setId(reviewId);
+        }
         review.setBookingId(bookingId);
         
         if (currentBooking != null) {

@@ -5,6 +5,7 @@ import android.net.Uri;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.storage.FirebaseStorage;
@@ -95,13 +96,10 @@ public class KosRepository {
                         Kos kos = doc.toObject(Kos.class);
                         kos.setId(doc.getId());
 
-                        // FILTER: Skip kos dengan koordinat invalid
-                        if (!kos.hasValidCoordinates()) {
-                            android.util.Log.w(TAG, "Skipping kos with invalid coordinates: " + kos.getName());
-                            continue;
+                        // FILTER: Skip kos dengan koordinat invalid atau data Google Places tidak lengkap
+                        if (isValidGooglePlaceKos(kos)) {
+                            list.add(kos);
                         }
-
-                        list.add(kos);
                     }
                     callback.onSuccess(list);
                 })
@@ -133,6 +131,35 @@ public class KosRepository {
         });
     }
 
+    /**
+     * Realtime listener for all kos items.
+     * Use this for student home screen to auto-update property list.
+     */
+    public ListenerRegistration listenAllKosItems(KosItemListCallback callback) {
+        return db.collection(DatabaseConstants.COLLECTION_KOS)
+                .orderBy(DatabaseConstants.FIELD_CREATED_AT, Query.Direction.DESCENDING)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (value != null) {
+                        List<Kos> kosList = new ArrayList<>();
+                        for (QueryDocumentSnapshot doc : value) {
+                            Kos kos = doc.toObject(Kos.class);
+                            kos.setId(doc.getId());
+
+                            // FILTER: Skip kos dengan koordinat invalid atau alamat tidak lengkap
+                            if (isValidGooglePlaceKos(kos)) {
+                                kosList.add(kos);
+                            }
+                        }
+                        callback.onSuccess(KosMapper.toKosItemList(kosList));
+                    }
+                });
+    }
+
     public void getKosById(String kosId, KosCallback callback) {
         db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId).get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -158,6 +185,31 @@ public class KosRepository {
                 });
     }
 
+    /**
+     * Realtime listener for a single kos item.
+     */
+    public ListenerRegistration listenKosById(String kosId, KosCallback callback) {
+        return db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (value != null && value.exists()) {
+                        Kos kos = value.toObject(Kos.class);
+                        if (kos != null) {
+                            kos.setId(value.getId());
+                            callback.onSuccess(kos);
+                        } else {
+                            callback.onError("Failed to parse data");
+                        }
+                    } else {
+                        callback.onError("Kos not found");
+                    }
+                });
+    }
+
     public void getKosByOwner(String ownerId, KosListCallback callback) {
         db.collection(DatabaseConstants.COLLECTION_KOS)
                 .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, ownerId)
@@ -168,13 +220,10 @@ public class KosRepository {
                         Kos kos = doc.toObject(Kos.class);
                         kos.setId(doc.getId());
 
-                        // FILTER: Skip kos dengan koordinat invalid
-                        if (!kos.hasValidCoordinates()) {
-                            android.util.Log.w(TAG, "Skipping kos with invalid coordinates: " + kos.getName());
-                            continue;
+                        // FILTER: Skip kos dengan koordinat invalid atau data Google Places tidak lengkap
+                        if (isValidGooglePlaceKos(kos)) {
+                            list.add(kos);
                         }
-
-                        list.add(kos);
                     }
                     callback.onSuccess(list);
                 })
@@ -193,6 +242,13 @@ public class KosRepository {
             callback.onError("Not authenticated");
             return;
         }
+
+        // Strict Address Validation
+        if (!isValidGooglePlaceKos(kos)) {
+            callback.onError("Alamat kos tidak valid. Silakan pilih alamat dari Google Maps.");
+            return;
+        }
+
         kos.setOwnerId(auth.getUid());
         kos.setCreatedAt(System.currentTimeMillis());
         kos.setUpdatedAt(System.currentTimeMillis());
@@ -213,6 +269,12 @@ public class KosRepository {
     }
 
     public void updateKos(Kos kos, SimpleCallback callback) {
+        // Strict Address Validation
+        if (!isValidGooglePlaceKos(kos)) {
+            callback.onError("Alamat kos tidak valid. Silakan pilih alamat dari Google Maps.");
+            return;
+        }
+
         kos.setUpdatedAt(System.currentTimeMillis());
         db.collection(DatabaseConstants.COLLECTION_KOS).document(kos.getId()).set(kos)
                 .addOnSuccessListener(aVoid -> callback.onSuccess())
@@ -598,5 +660,31 @@ public class KosRepository {
                     db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId)
                             .update(DatabaseConstants.FIELD_AVAILABLE_ROOMS, count);
                 });
+    }
+
+    /**
+     * Validasi alamat kos secara ketat menggunakan data Google Places.
+     * Wajib memiliki placeId dan koordinat yang valid.
+     */
+    private boolean isValidGooglePlaceKos(Kos kos) {
+        if (kos == null) return false;
+
+        String address = kos.getAddress();
+        String placeId = kos.getPlaceId();
+        double lat = kos.getLatitude();
+        double lng = kos.getLongitude();
+
+        // Check null/empty
+        if (address == null || address.trim().isEmpty()) return false;
+        if (placeId == null || placeId.trim().isEmpty()) return false;
+
+        // Check coordinates (0.0 is strictly forbidden for real addresses)
+        if (lat == 0.0 && lng == 0.0) return false;
+
+        // Check coordinate ranges
+        if (lat < -90 || lat > 90) return false;
+        if (lng < -180 || lng > 180) return false;
+
+        return true;
     }
 }

@@ -18,7 +18,9 @@ import com.koshub.psdku.utils.UploadValidator;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +48,11 @@ public class CloudinaryRepository {
 
     public interface SimpleUploadCallback {
         void onSuccess(String imageUrl);
+        void onError(String message);
+    }
+
+    public interface MultiUploadCallback {
+        void onSuccess(List<String> imageUrls);
         void onError(String message);
     }
 
@@ -183,7 +190,8 @@ public class CloudinaryRepository {
             @Override
             public void onSuccess(String imageUrl) {
                 db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId)
-                        .update(DatabaseConstants.FIELD_IMAGE_URLS, FieldValue.arrayUnion(imageUrl),
+                        .update(DatabaseConstants.FIELD_IMAGE_URL, imageUrl,
+                                DatabaseConstants.FIELD_IMAGE_URLS, FieldValue.arrayUnion(imageUrl),
                                 DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
                         .addOnSuccessListener(aVoid -> callback.onSuccess(imageUrl))
                         .addOnFailureListener(e -> callback.onError("Firestore update failed: " + e.getMessage()));
@@ -194,6 +202,77 @@ public class CloudinaryRepository {
                 callback.onError(message);
             }
         });
+    }
+
+    /**
+     * Sequential upload for multiple images.
+     */
+    public void uploadMultipleKosImages(Context context, List<Uri> imageUris, List<String> existingUrls, String kosId, MultiUploadCallback callback) {
+        if (imageUris == null || imageUris.isEmpty()) {
+            // If no new images, just sync existing ones if provided
+            if (existingUrls != null) {
+                updateKosImageUrlsInFirestore(kosId, existingUrls, true, callback);
+            } else {
+                callback.onSuccess(new ArrayList<>());
+            }
+            return;
+        }
+
+        String uid = auth.getUid();
+        if (uid == null) {
+            callback.onError("User not authenticated");
+            return;
+        }
+
+        List<String> uploadedUrls = new ArrayList<>();
+        if (existingUrls != null) uploadedUrls.addAll(existingUrls);
+        
+        uploadSequentially(context, imageUris, 0, uploadedUrls, uid, kosId, callback);
+    }
+
+    private void uploadSequentially(Context context, List<Uri> uris, int index, List<String> results, String uid, String kosId, MultiUploadCallback callback) {
+        if (index >= uris.size()) {
+            // All images uploaded, update Firestore (Overwrite mode because we merged)
+            updateKosImageUrlsInFirestore(kosId, results, true, callback);
+            return;
+        }
+
+        String folder = CloudinaryConfig.BASE_FOLDER + "/kos/" + uid + "/" + kosId;
+        uploadImage(context, uris.get(index), folder, new SimpleUploadCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                results.add(imageUrl);
+                uploadSequentially(context, uris, index + 1, results, uid, kosId, callback);
+            }
+
+            @Override
+            public void onError(String message) {
+                callback.onError("Upload ke-" + (index + 1) + " gagal: " + message);
+            }
+        });
+    }
+
+    private void updateKosImageUrlsInFirestore(String kosId, List<String> urls, boolean isOverwrite, MultiUploadCallback callback) {
+        Map<String, Object> updates = new HashMap<>();
+        
+        if (isOverwrite) {
+            updates.put(DatabaseConstants.FIELD_IMAGE_URLS, urls);
+        } else {
+            updates.put(DatabaseConstants.FIELD_IMAGE_URLS, FieldValue.arrayUnion(urls.toArray()));
+        }
+
+        if (!urls.isEmpty()) {
+            updates.put(DatabaseConstants.FIELD_IMAGE_URL, urls.get(0)); // Set first as main cover
+        } else {
+            updates.put(DatabaseConstants.FIELD_IMAGE_URL, ""); 
+        }
+
+        updates.put(DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis());
+
+        db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> callback.onSuccess(urls))
+                .addOnFailureListener(e -> callback.onError("Gagal update data kos: " + e.getMessage()));
     }
 
     public void uploadRoomImage(Context context, Uri imageUri, String kosId, String roomId, SimpleUploadCallback callback) {

@@ -1,25 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="32dp">
+    android:padding="20dp">
+
+    <ImageView
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_marginBottom="12dp"
+        android:src="@drawable/ic_star_outline"
+        app:tint="@color/md_outline_variant"
+        android:contentDescription="No reviews icon" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="⭐"
-        android:textSize="48sp"
-        android:layout_marginBottom="16dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="sans-serif-black"
+        android:fontFamily="sans-serif-medium"
         android:text="@string/empty_review_title"
-        android:textColor="@color/text_primary"
-        android:textSize="16sp"
+        android:textColor="#17231D"
+        android:textSize="18sp"
         android:textStyle="bold" />
 
     <TextView
@@ -28,6 +30,6 @@
         android:layout_marginTop="4dp"
         android:gravity="center"
         android:text="@string/empty_review_sub"
-        android:textColor="@color/text_secondary"
+        android:textColor="#6F7F75"
         android:textSize="14sp" />
 </LinearLayout>

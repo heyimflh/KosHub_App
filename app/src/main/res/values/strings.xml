@@ -197,5 +197,19 @@
     <string name="payment_total_format">Total: Rp %,.0f</string>
     <string name="payment_btn_cancel">Batal</string>
     <string name="payment_waiting_status">Menunggu pembayaran...</string>
+
+    <!-- ETA and Maps -->
+    <string name="eta_calculating">Hitung</string>
+    <string name="eta_invalid">Cek Maps</string>
+    <string name="eta_short_format">± %d mnt</string>
+    <string name="eta_detail_format">± %d menit jalan kaki</string>
+    <string name="btn_open_maps">Buka Maps</string>
+
+    <!-- Structured Data Form -->
+    <string name="mgmt_structured_data_title">Data Terstruktur (Otomatis Deskripsi)</string>
+    <string name="mgmt_btn_room_features">🛏️ Fasilitas Kamar</string>
+    <string name="mgmt_btn_access_features">🚶 Akses Lokasi</string>
+    <string name="mgmt_btn_security_features">🛡️ Keamanan</string>
+    <string name="mgmt_btn_rules">📜 Aturan Kos</string>
 </resources>
 

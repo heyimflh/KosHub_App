@@ -36,6 +36,16 @@ public class KosMapper {
             category = category.substring(0, 1).toUpperCase() + category.substring(1);
         }
 
+        // Use RoomAvailabilityHelper for sisaKamar text
+        String sisaKamar = RoomAvailabilityHelper.formatAvailabilityDetail(kos.getAvailableRooms());
+
+        // UNIFIED MAPPING: Merge all feature lists into facilities for consistency
+        List<String> combinedFacilities = new ArrayList<>();
+        if (kos.getFacilities() != null) combinedFacilities.addAll(kos.getFacilities());
+        if (kos.getRoomFeatures() != null) combinedFacilities.addAll(kos.getRoomFeatures());
+        if (kos.getAccessFeatures() != null) combinedFacilities.addAll(kos.getAccessFeatures());
+        if (kos.getSecurityFeatures() != null) combinedFacilities.addAll(kos.getSecurityFeatures());
+
         KosItem item = new KosItem(
                 kos.getName(),
                 kos.getAddress(),
@@ -45,21 +55,39 @@ public class KosMapper {
                 distanceMinutes,
                 ratingText,
                 category,
-                kos.getFacilities() != null ? kos.getFacilities() : new ArrayList<>(),
+                combinedFacilities,
                 kos.getImageRes(),
                 kos.isPremium(),
-                kos.getSisaKamar() != null ? kos.getSisaKamar() : (kos.getAvailableRooms() > 0 ? "Sisa " + kos.getAvailableRooms() + " Kamar" : "Penuh"),
+                sisaKamar,
+                kos.getAvailableRooms(),
                 kos.getLatitude(),
                 kos.getLongitude()
         );
         
         item.setId(kos.getId());
         item.setOwnerId(kos.getOwnerId());
+        item.setPlaceId(kos.getPlaceId());
         item.setRatingAverage(kos.getRatingAverage());
         item.setRatingCount(kos.getRatingCount());
+        item.setSecurityFeatures(kos.getSecurityFeatures());
+        item.setAccessFeatures(kos.getAccessFeatures());
+        item.setRoomFeatures(kos.getRoomFeatures());
+        item.setRules(kos.getRules());
 
+        // Dynamic Image System: Handle Gallery and Cover
+        List<String> gallery = new ArrayList<>();
         if (kos.getImageUrls() != null && !kos.getImageUrls().isEmpty()) {
-            item.setImageUrl(kos.getImageUrls().get(0));
+            gallery.addAll(kos.getImageUrls());
+        } else if (kos.getImageUrl() != null && !kos.getImageUrl().isEmpty()) {
+            gallery.add(kos.getImageUrl());
+        }
+        item.setImageUrls(gallery);
+
+        // Set main cover image for cards
+        if (!gallery.isEmpty()) {
+            item.setImageUrl(gallery.get(0));
+        } else {
+            item.setImageUrl(kos.getImageUrl());
         }
 
         return item;

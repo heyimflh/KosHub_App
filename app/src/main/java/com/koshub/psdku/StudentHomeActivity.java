@@ -54,6 +54,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     private ValueAnimator skeletonAnimator;
     private SkeletonAdapter skeletonAdapter = new SkeletonAdapter();
     private KosRepository kosRepository;
+    private ListenerRegistration kosListener;
     private ListenerRegistration notificationListener;
 
     @Override
@@ -129,21 +130,34 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     private void initData() {
         setLoading(true);
         if (layoutErrorState != null) layoutErrorState.setVisibility(View.GONE);
-        
-        kosRepository.getAllKosItems(new KosRepository.KosItemListCallback() {
+
+        // Remove old listener if exists
+        if (kosListener != null) {
+            kosListener.remove();
+        }
+
+        kosListener = kosRepository.listenAllKosItems(new KosRepository.KosItemListCallback() {
             @Override
             public void onSuccess(List<KosItem> items) {
                 setLoading(false);
                 if (layoutErrorState != null) layoutErrorState.setVisibility(View.GONE);
-                
+
                 allKosList.clear();
                 allKosList.addAll(items);
-                filteredList.clear();
-                filteredList.addAll(items);
+
+                // Preserve search/filter if user is currently typing
+                String currentSearch = etSearch != null ? etSearch.getText().toString() : "";
+                if (!currentSearch.isEmpty()) {
+                    filterBySearch(currentSearch);
+                } else {
+                    filteredList.clear();
+                    filteredList.addAll(items);
+                    if (adapter != null) adapter.notifyDataSetChanged();
+                    updateResultCount();
+                }
+
                 NavigationHelper.cachedKosList = new ArrayList<>(allKosList);
-                if (adapter != null) adapter.notifyDataSetChanged();
-                updateResultCount();
-                
+
                 if (allKosList.isEmpty()) {
                     if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.VISIBLE);
                 } else {
@@ -482,10 +496,13 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
+        if (kosListener != null) {
+            kosListener.remove();
+        }
         if (notificationListener != null) {
             notificationListener.remove();
         }
+        super.onDestroy();
     }
 
     @Override

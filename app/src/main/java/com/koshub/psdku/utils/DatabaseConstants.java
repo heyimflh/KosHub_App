@@ -18,11 +18,29 @@ public class DatabaseConstants {
     public static final String COLLECTION_REVIEWS = "reviews";
     public static final String COLLECTION_NOTIFICATIONS = "notifications";
     public static final String COLLECTION_PAYMENTS = "payments";
+    public static final String COLLECTION_PAYMENT_METHODS = "paymentMethods";
+    public static final String COLLECTION_STUDENT_DOCUMENTS = "studentDocuments";
     public static final String COLLECTION_FCM_TOKENS = "fcmTokens";
 
     // Roles
     public static final String ROLE_STUDENT = "student";
     public static final String ROLE_OWNER = "owner";
+
+    // Payment Method Types
+    public static final String PAYMENT_METHOD_QRIS = "qris";
+    public static final String PAYMENT_METHOD_BANK = "bank";
+    public static final String PAYMENT_METHOD_EWALLET = "ewallet";
+
+    // Student Document Types
+    public static final String DOC_TYPE_KTP = "ktp";
+    public static final String DOC_TYPE_KTM = "ktm";
+    public static final String DOC_TYPE_SUPPORTING = "supporting";
+
+    // Student Document Status
+    public static final String DOC_STATUS_NOT_UPLOADED = "not_uploaded";
+    public static final String DOC_STATUS_PENDING = "pending";
+    public static final String DOC_STATUS_VERIFIED = "verified";
+    public static final String DOC_STATUS_REJECTED = "rejected";
 
     // Kos Categories
     public static final String CATEGORY_PUTRA = "putra";
@@ -111,6 +129,7 @@ public class DatabaseConstants {
     public static final String FIELD_UNIVERSITY = "university";
     public static final String FIELD_NIM = "nim";
     public static final String FIELD_DOC_KTP = "docKtp";
+    public static final String FIELD_DOC_KTM = "docKtm";
     public static final String FIELD_DOC_SKU = "docSku";
     public static final String FIELD_IS_VERIFIED = "isVerified";
     public static final String FIELD_BANK_NAME = "bankName";

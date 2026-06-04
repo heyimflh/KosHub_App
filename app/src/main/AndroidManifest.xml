@@ -205,6 +205,20 @@
             android:exported="false"
             android:theme="@style/Theme.KosHub" />
 
+        <activity
+            android:name=".StudentPaymentMethodsActivity"
+            android:exported="false"
+            tools:replace="android:exported"
+            android:label="Metode Pembayaran"
+            android:theme="@style/Theme.KosHub.Material" />
+
+        <activity
+            android:name=".StudentDocumentsActivity"
+            android:exported="false"
+            tools:replace="android:exported"
+            android:label="Dokumen Saya"
+            android:theme="@style/Theme.KosHub.Material" />
+
         <service
             android:name=".services.KosHubMessagingService"
             android:exported="false">

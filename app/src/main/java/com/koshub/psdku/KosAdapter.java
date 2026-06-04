@@ -104,20 +104,23 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
             tvBadgePremium.setVisibility(item.isPremium() ? View.VISIBLE : View.GONE);
 
             // Sisa kamar badge
-            if (item.getSisaKamar() != null && !item.getSisaKamar().isEmpty()) {
-                tvBadgeSisa.setText(item.getSisaKamar());
-                tvBadgeSisa.setVisibility(View.VISIBLE);
+            String availabilityText = com.koshub.psdku.utils.RoomAvailabilityHelper.formatAvailabilityShort(item.getAvailableRooms());
+            tvBadgeSisa.setText(availabilityText);
+            tvBadgeSisa.setVisibility(View.VISIBLE);
+            
+            if (item.getAvailableRooms() == 0) {
+                tvBadgeSisa.setBackgroundResource(R.drawable.bg_badge_red);
             } else {
-                tvBadgeSisa.setVisibility(View.GONE);
+                tvBadgeSisa.setBackgroundResource(R.drawable.bg_badge_green);
             }
 
             // Real-time Walking Duration to Campus
             String cachedDuration = item.getDurationText();
             if (cachedDuration != null && !cachedDuration.isEmpty() && !cachedDuration.equals("...")) {
                 tvDistance.setText(cachedDuration);
-                tvDistance.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.text_primary));
+                tvDistance.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.brand_green));
             } else {
-                tvDistance.setText("⏳ ..."); // Add loading indicator
+                tvDistance.setText(R.string.eta_calculating);
                 tvDistance.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.text_secondary));
 
                 final String currentId = (item.getId() != null) ? item.getId() : item.getName();
@@ -129,12 +132,18 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
                         item.getLongitude(),
                         new KosLocationUtils.DurationCallback() {
                             @Override
-                            public void onSuccess(String durationText, int durationMinutes) {
-                                item.setDurationText(durationText);
+                            public void onSuccess(String durationText, int durationMinutes, String distanceText) {
+                                // For adapter, we prefer the "8 mnt" or "± 8 mnt" format
+                                String displayedText = durationText;
+                                if (!displayedText.contains("mnt")) {
+                                    displayedText = KosLocationUtils.formatEtaShort(itemView.getContext(), durationMinutes);
+                                }
+                                
+                                item.setDurationText(displayedText);
                                 item.setDurationMinutes(durationMinutes);
                                 if (currentId.equals(tvDistance.getTag())) {
-                                    tvDistance.setText(durationText);
-                                    tvDistance.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.text_primary));
+                                    tvDistance.setText(displayedText);
+                                    tvDistance.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.brand_green));
                                 }
                             }
 
@@ -142,11 +151,8 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
                             public void onFailure(String errorMessage) {
                                 android.util.Log.e("KosAdapter", "Duration fetch failed for " + item.getName() + ": " + errorMessage);
                                 if (currentId.equals(tvDistance.getTag())) {
-                                    // Fallback to legacy distance if available
-                                    String fallback = (item.getDistance() != null && !item.getDistance().isEmpty()) ?
-                                            item.getDistance() : "? mnt";
-                                    tvDistance.setText(fallback);
-                                    tvDistance.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.md_error));
+                                    tvDistance.setText(errorMessage); // "Cek Maps"
+                                    tvDistance.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.text_secondary));
                                 }
                             }
                         }
@@ -169,23 +175,17 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
             icFavorite.setImageResource(item.isFavorite() ?
                     R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
 
-            // Facility chips
+            // Dynamic Facility Chips (Max 3 + Empty State)
             chipContainer.removeAllViews();
-            for (String facility : item.getFacilities()) {
-                TextView chip = new TextView(itemView.getContext());
-                chip.setText(facility);
-                chip.setTextSize(11);
-                chip.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.home_text_secondary));
-                chip.setBackgroundResource(R.drawable.bg_chip_facility);
-                chip.setPadding(dpToPx(8), dpToPx(3), dpToPx(8), dpToPx(3));
-                chip.setTypeface(null, android.graphics.Typeface.NORMAL);
-
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT);
-                params.setMarginEnd(dpToPx(6));
-                chip.setLayoutParams(params);
-                chipContainer.addView(chip);
+            List<String> featuredFacilities = com.koshub.psdku.utils.KosFacilityHelper.getFeaturedFacilities(item.getFacilities());
+            
+            if (featuredFacilities.isEmpty()) {
+                // Show empty state chip
+                addFacilityChip("Fasilitas belum ditambahkan", true);
+            } else {
+                for (String facility : featuredFacilities) {
+                    addFacilityChip(facility, false);
+                }
             }
 
             itemView.setOnClickListener(v -> {
@@ -225,6 +225,30 @@ public class KosAdapter extends RecyclerView.Adapter<KosAdapter.KosViewHolder> {
                 }
                 return false;
             });
+        }
+
+        private void addFacilityChip(String text, boolean isEmptyState) {
+            TextView chip = new TextView(itemView.getContext());
+            chip.setText(text);
+            chip.setTextSize(12);
+            
+            if (isEmptyState) {
+                chip.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.home_text_muted));
+                chip.setAlpha(0.7f);
+            } else {
+                chip.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.home_text_secondary));
+            }
+            
+            chip.setBackgroundResource(R.drawable.bg_chip_facility);
+            chip.setPadding(dpToPx(10), dpToPx(5), dpToPx(10), dpToPx(5));
+            chip.setTypeface(null, android.graphics.Typeface.NORMAL);
+
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            params.setMarginEnd(dpToPx(6));
+            chip.setLayoutParams(params);
+            chipContainer.addView(chip);
         }
 
         private int dpToPx(int dp) {

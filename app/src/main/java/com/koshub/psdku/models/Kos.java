@@ -25,7 +25,12 @@ public class Kos implements Serializable {
     private int ratingCount;
     private String category; // "putra", "putri", "campur"
     private List<String> facilities;
+    private List<String> securityFeatures;
+    private List<String> accessFeatures;
+    private List<String> roomFeatures;
+    private List<String> rules;
     private int imageRes; // Local resource for dummy data
+    private String imageUrl; // Legacy field for single image
     private List<String> imageUrls;
     private boolean isPremium;
     private String sisaKamar; // Deprecated: use availableRooms
@@ -123,8 +128,23 @@ public class Kos implements Serializable {
     public List<String> getFacilities() { return facilities; }
     public void setFacilities(List<String> facilities) { this.facilities = facilities; }
 
+    public List<String> getSecurityFeatures() { return securityFeatures; }
+    public void setSecurityFeatures(List<String> securityFeatures) { this.securityFeatures = securityFeatures; }
+
+    public List<String> getAccessFeatures() { return accessFeatures; }
+    public void setAccessFeatures(List<String> accessFeatures) { this.accessFeatures = accessFeatures; }
+
+    public List<String> getRoomFeatures() { return roomFeatures; }
+    public void setRoomFeatures(List<String> roomFeatures) { this.roomFeatures = roomFeatures; }
+
+    public List<String> getRules() { return rules; }
+    public void setRules(List<String> rules) { this.rules = rules; }
+
     public int getImageRes() { return imageRes; }
     public void setImageRes(int imageRes) { this.imageRes = imageRes; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public List<String> getImageUrls() { return imageUrls; }
     public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }

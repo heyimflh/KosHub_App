@@ -37,6 +37,7 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.KosRepository;
 import com.koshub.psdku.utils.KosLocationUtils;
@@ -54,6 +55,8 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity implements
 
     private MapView mapView;
     private GoogleMap googleMap;
+    private ListenerRegistration kosListener;
+    private boolean isInitialLoad = true;
     private List<KosItem> allKosList;
     private List<KosItem> currentFilteredList;
     private KosItem selectedKos;
@@ -222,12 +225,12 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity implements
                 tvDistance.setText("Menghitung...");
                 KosLocationUtils.fetchWalkingDuration(this, item.getLatitude(), item.getLongitude(), new KosLocationUtils.DurationCallback() {
                     @Override
-                    public void onSuccess(String durationText, int durationMinutes) {
-                        tvDistance.setText(durationText + " ke kampus");
+                    public void onSuccess(String durationText, int durationMinutes, String distanceText) {
+                        tvDistance.setText(distanceText + " • " + durationText + " ke kampus");
                     }
                     @Override
                     public void onFailure(String errorMessage) {
-                        tvDistance.setText(item.getDistance());
+                        tvDistance.setText(errorMessage); // "Estimasi belum tersedia"
                     }
                 });
                 return true; // We handled the click
@@ -240,14 +243,37 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity implements
     }
 
     private void loadKosMarkers() {
-        KosRepository.getInstance().getAllKosItems(new KosRepository.KosItemListCallback() {
+        if (kosListener != null) {
+            kosListener.remove();
+        }
+
+        kosListener = KosRepository.getInstance().listenAllKosItems(new KosRepository.KosItemListCallback() {
             @Override
             public void onSuccess(List<KosItem> items) {
                 allKosList = items;
                 NavigationHelper.cachedKosList = new ArrayList<>(items);
                 currentFilteredList = new ArrayList<>(items);
+                
+                // Jika sedang ada kos yang terpilih di card, pastikan datanya sinkron
+                if (selectedKos != null) {
+                    for (KosItem item : items) {
+                        if (item.getId().equals(selectedKos.getId())) {
+                            selectedKos = item;
+                            // Update UI card jika sedang terlihat
+                            if (routeCard != null && routeCard.getVisibility() == View.VISIBLE) {
+                                updatePropertyCard(item);
+                            }
+                            break;
+                        }
+                    }
+                }
+
                 addKosMarkers();
-                highlightTargetKos();
+                
+                if (isInitialLoad) {
+                    highlightTargetKos();
+                    isInitialLoad = false;
+                }
             }
 
             @Override
@@ -274,12 +300,12 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity implements
                     tvDistance.setText("Menghitung...");
                     KosLocationUtils.fetchWalkingDuration(this, item.getLatitude(), item.getLongitude(), new KosLocationUtils.DurationCallback() {
                         @Override
-                        public void onSuccess(String durationText, int durationMinutes) {
-                            tvDistance.setText(durationText + " ke kampus");
+                        public void onSuccess(String durationText, int durationMinutes, String distanceText) {
+                            tvDistance.setText(distanceText + " • " + durationText + " ke kampus");
                         }
                         @Override
                         public void onFailure(String errorMessage) {
-                            tvDistance.setText(item.getDistance());
+                            tvDistance.setText(errorMessage); // "Estimasi belum tersedia"
                         }
                     });
                     break;
@@ -580,6 +606,9 @@ public class MapViewRouteNavigationActivity extends AppCompatActivity implements
 
     @Override
     protected void onDestroy() {
+        if (kosListener != null) {
+            kosListener.remove();
+        }
         super.onDestroy();
         if (mapView != null) mapView.onDestroy();
     }

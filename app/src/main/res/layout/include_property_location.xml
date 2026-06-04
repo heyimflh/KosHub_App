@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
@@ -13,50 +14,39 @@
         android:fontFamily="sans-serif-medium"
         android:text="@string/detail_section_lokasi"
         android:textColor="@color/md_on_surface"
-        android:textSize="20sp"
+        android:textSize="18sp"
         android:textStyle="bold" />
 
-    <!-- Map Card with Overlay -->
-    <FrameLayout
+    <!-- Location Card -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_card_white_border_xl"
-        android:clipChildren="false"
-        android:clipToPadding="false">
+        android:orientation="vertical">
 
-        <!-- Google Maps MapView -->
+        <!-- Google Maps MapView (Fixed Height) -->
         <com.google.android.gms.maps.MapView
             android:id="@+id/mapViewDetail"
             android:layout_width="match_parent"
-            android:layout_height="220dp" />
+            android:layout_height="180dp" />
 
-        <!-- Route Overlay Card -->
+        <!-- Route Information Area -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:layout_margin="16dp"
-            android:background="@drawable/bg_route_card"
-            android:elevation="4dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="12dp">
+            android:padding="16dp">
 
-            <!-- Walk Icon Circle -->
-            <FrameLayout
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/bg_icon_circle_primary_container">
+            <!-- Icon -->
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_directions_walk"
+                app:tint="@color/md_primary"
+                android:contentDescription="@null" />
 
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_directions_walk"
-                    android:contentDescription="Walk" />
-            </FrameLayout>
-
-            <!-- Route Text -->
+            <!-- Route Summary -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -65,35 +55,43 @@
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/tvDetailRouteTitle"
+                    android:id="@+id/tvDetailRouteTime"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="sans-serif-medium"
-                    android:text="@string/detail_route_title"
                     android:textColor="@color/md_on_surface"
-                    android:textSize="14sp" />
+                    android:textSize="16sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    tools:text="± 8 menit jalan kaki" />
 
                 <TextView
                     android:id="@+id/tvDetailRouteDistance"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/detail_route_distance"
                     android:textColor="@color/md_on_surface_variant"
-                    android:textSize="14sp" />
+                    android:textSize="14sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    tools:text="0.5 km ke Kampus" />
             </LinearLayout>
 
-            <!-- Time -->
+            <!-- Action Button -->
             <TextView
-                android:id="@+id/tvDetailRouteTime"
+                android:id="@+id/btnOpenMaps"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif-medium"
-                android:text="@string/detail_route_time"
+                android:background="@drawable/bg_chip_facility"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp"
+                android:text="@string/btn_open_maps"
                 android:textColor="@color/md_primary"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:textSize="14sp"
+                android:fontFamily="sans-serif-medium"
+                android:clickable="true"
+                android:focusable="true" />
         </LinearLayout>
 
-    </FrameLayout>
+    </LinearLayout>
 
 </LinearLayout>

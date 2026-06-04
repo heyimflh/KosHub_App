@@ -24,6 +24,15 @@
         android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="#2E7D32"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/tvPaymentMethod"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Metode: QRIS"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
         android:layout_marginBottom="24dp"/>
 
     <FrameLayout

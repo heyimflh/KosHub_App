@@ -3,44 +3,22 @@
     android:layout_width="match_parent"
     android:layout_height="350dp">
 
-    <ImageView
-        android:id="@+id/imgHero"
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/vpGallery"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:background="@color/md_surface_container"
-        android:contentDescription="Hero image kos" />
+        android:background="@color/md_surface_container" />
 
     <!-- Carousel Indicator Dots -->
     <LinearLayout
+        android:id="@+id/layoutDots"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="16dp"
-        android:orientation="horizontal">
-
-        <View
-            android:layout_width="8dp"
-            android:layout_height="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/bg_dot_active" />
-
-        <View
-            android:layout_width="8dp"
-            android:layout_height="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/bg_dot_inactive" />
-
-        <View
-            android:layout_width="8dp"
-            android:layout_height="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/bg_dot_inactive" />
-
-        <View
-            android:layout_width="8dp"
-            android:layout_height="8dp"
-            android:background="@drawable/bg_dot_inactive" />
+        android:orientation="horizontal"
+        android:visibility="gone">
+        <!-- Dots will be added programmatically -->
     </LinearLayout>
 
 </FrameLayout>

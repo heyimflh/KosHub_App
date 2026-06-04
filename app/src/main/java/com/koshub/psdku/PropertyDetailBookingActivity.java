@@ -18,6 +18,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -26,18 +27,24 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.koshub.psdku.adapters.PropertyImageAdapter;
 import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.Chat;
 import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.ChatRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.FavoriteRepository;
+import com.koshub.psdku.repositories.KosRepository;
 import com.koshub.psdku.repositories.ReviewRepository;
+import com.koshub.psdku.utils.AutoKosDescriptionBuilder;
 import com.koshub.psdku.utils.KosLocationUtils;
+import com.koshub.psdku.utils.KosMapper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -49,11 +56,13 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private ImageButton btnChat;
     private TextView btnWaitlistBottom;
     private TextView btnBookingBottom;
-    private ImageView imgHero;
+    private ViewPager2 vpGallery;
+    private LinearLayout layoutDots;
     
     private TextView tvDetailTitle, tvDetailLocation, tvDetailDescription;
-    private TextView tvDetailPriceValue, tvDetailBadgeCategory, tvDetailBadgeSisa;
+    private TextView tvDetailPriceValue, tvDetailBadgeCategory, tvDetailBadgeSisa, tvDetailBottomSisa;
     private TextView tvDetailRouteDistance, tvDetailRouteTime;
+    private View btnOpenMaps;
     private TextView tvDetailRating, tvDetailRatingCount;
     private ChipGroup amenityChipGroup;
     private LinearLayout reviewContainer;
@@ -62,6 +71,10 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private GoogleMap googleMap;
 
     private KosItem currentItem;
+    private com.koshub.psdku.models.Kos latestKosData;
+    private ListenerRegistration kosListener;
+    private Double currentDistanceKm;
+    private Integer currentEtaMinutes;
     private boolean isFavorited = false;
     private Handler handler;
 
@@ -101,7 +114,8 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         btnChat = findViewById(R.id.btnChat);
         btnWaitlistBottom = findViewById(R.id.btnWaitlistBottom);
         btnBookingBottom = findViewById(R.id.btnBookingBottom);
-        imgHero = findViewById(R.id.imgHero);
+        vpGallery = findViewById(R.id.vpGallery);
+        layoutDots = findViewById(R.id.layoutDots);
         
         tvDetailTitle = findViewById(R.id.tvDetailTitle);
         tvDetailLocation = findViewById(R.id.tvDetailLocation);
@@ -109,8 +123,10 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         tvDetailPriceValue = findViewById(R.id.tvDetailPriceValue);
         tvDetailBadgeCategory = findViewById(R.id.tvDetailBadgeCategory);
         tvDetailBadgeSisa = findViewById(R.id.tvDetailBadgeSisa);
+        tvDetailBottomSisa = findViewById(R.id.tvDetailBottomSisa);
         tvDetailRouteDistance = findViewById(R.id.tvDetailRouteDistance);
         tvDetailRouteTime = findViewById(R.id.tvDetailRouteTime);
+        btnOpenMaps = findViewById(R.id.btnOpenMaps);
         tvDetailRating = findViewById(R.id.tvDetailRating);
         tvDetailRatingCount = findViewById(R.id.tvDetailRatingCount);
         
@@ -130,6 +146,10 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         });
 
         btnChat.setOnClickListener(v -> openChatWithOwner());
+
+        if (btnOpenMaps != null) {
+            btnOpenMaps.setOnClickListener(v -> openGoogleMaps());
+        }
 
         btnBookingBottom.setOnClickListener(v -> showBookingConfirmationDialog());
         btnWaitlistBottom.setOnClickListener(v -> showBookingConfirmationDialog());
@@ -248,62 +268,26 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private void populateData() {
         if (currentItem == null) return;
 
-        // Fetch latest data from Firestore to ensure accurate rating/stats
-        com.koshub.psdku.repositories.KosRepository.getInstance().getKosById(currentItem.getId(), new com.koshub.psdku.repositories.KosRepository.KosCallback() {
+        // Fetch latest data from Firestore realtime
+        kosListener = KosRepository.getInstance().listenKosById(currentItem.getId(), new KosRepository.KosCallback() {
             @Override
             public void onSuccess(com.koshub.psdku.models.Kos kos) {
-                com.koshub.psdku.KosItem updatedItem = com.koshub.psdku.utils.KosMapper.toKosItem(kos);
-                if (updatedItem != null) {
-                    currentItem.setRatingAverage(updatedItem.getRatingAverage());
-                    currentItem.setRatingCount(updatedItem.getRatingCount());
-                    updateRatingViews();
-                }
+                latestKosData = kos;
+                bindKosDetail(kos);
             }
 
             @Override
             public void onError(String message) {
-                updateRatingViews(); // Fallback to current
+                // Fallback UI if listening fails
+                android.util.Log.e("PropertyDetail", "Failed to listen kos: " + message);
             }
         });
 
-        // Basic Info
-        if (currentItem.getImageUrl() != null && !currentItem.getImageUrl().isEmpty()) {
-            String optimizedUrl = CloudinaryRepository.getInstance().getOptimizedUrl(currentItem.getImageUrl(), 800, 500, false);
-            Glide.with(this)
-                    .load(optimizedUrl)
-                    .placeholder(currentItem.getImageRes() != 0 ? currentItem.getImageRes() : R.drawable.bg_map_placeholder)
-                    .error(currentItem.getImageRes() != 0 ? currentItem.getImageRes() : R.drawable.bg_map_placeholder)
-                    .into(imgHero);
-        } else {
-            imgHero.setImageResource(currentItem.getImageRes());
-        }
-
-        tvDetailTitle.setText(currentItem.getName());
-        tvDetailLocation.setText(currentItem.getAddress());
-        tvDetailBadgeCategory.setText(currentItem.getCategory());
-        
-        if (currentItem.getSisaKamar() != null) {
-            tvDetailBadgeSisa.setText(currentItem.getSisaKamar());
-            tvDetailBadgeSisa.setVisibility(View.VISIBLE);
-        } else {
-            tvDetailBadgeSisa.setVisibility(View.GONE);
-        }
-
-        // Price formatting
-        tvDetailPriceValue.setText(formatPrice(currentItem.getPriceValue()));
-
-        // Rating
-        updateRatingViews();
-
-        // Description
-        tvDetailDescription.setText(generateDescription(currentItem));
-
-        // Route Info
-        tvDetailRouteDistance.setText(currentItem.getDistance());
-        tvDetailRouteTime.setText(String.format(Locale.getDefault(), "%d mnt", currentItem.getDistanceMinutes()));
+        // Basic Info (from Intent while waiting for Firestore)
+        setupImageGallery(currentItem.getImageUrls(), currentItem.getImageRes());
 
         // Amenities
-        populateAmenities(currentItem.getFacilities());
+        populateAmenities(currentItem.getFacilities(), currentItem.getRoomFeatures(), currentItem.getAccessFeatures(), currentItem.getSecurityFeatures());
 
         // Reviews
         loadRealReviews();
@@ -314,21 +298,196 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         // Favorite status
         checkFavoriteStatus();
 
-        // Map & Route
-        initDetailMap(currentItem.getLatitude(), currentItem.getLongitude(), currentItem.getName());
+        // Route Info & Map
+        updateLocationAndRoute();
+    }
+
+    private void bindKosDetail(com.koshub.psdku.models.Kos kos) {
+        if (kos == null) return;
         
-        tvDetailRouteTime.setText("Menghitung...");
-        KosLocationUtils.fetchWalkingDuration(this, currentItem.getLatitude(), currentItem.getLongitude(), new KosLocationUtils.DurationCallback() {
+        // Map Kos to gallery images list
+        List<String> gallery = new ArrayList<>();
+        if (kos.getImageUrls() != null && !kos.getImageUrls().isEmpty()) {
+            gallery.addAll(kos.getImageUrls());
+        } else if (kos.getImageUrl() != null && !kos.getImageUrl().isEmpty()) {
+            gallery.add(kos.getImageUrl());
+        }
+
+        boolean locationChanged = false;
+        if (latestKosData != null) {
+            locationChanged = kos.getLatitude() != latestKosData.getLatitude() || 
+                             kos.getLongitude() != latestKosData.getLongitude();
+        }
+        
+        latestKosData = kos;
+
+        // Update Title, Address, Category
+        tvDetailTitle.setText(kos.getName());
+        tvDetailLocation.setText(kos.getAddress());
+        
+        String category = kos.getCategory();
+        if (category != null && !category.isEmpty()) {
+            category = category.substring(0, 1).toUpperCase() + category.substring(1);
+        }
+        tvDetailBadgeCategory.setText(category);
+
+        // Availability UI
+        updateAvailabilityUI(kos.getAvailableRooms());
+
+        // Price
+        tvDetailPriceValue.setText(formatPrice((int) kos.getPrice()));
+
+        // Gallery Update
+        setupImageGallery(gallery, kos.getImageRes());
+
+        // Rating
+        if (tvDetailRating != null) {
+            tvDetailRating.setText(kos.getRatingAverage() > 0
+                    ? String.format(Locale.getDefault(), "%.1f", kos.getRatingAverage())
+                    : "—");
+        }
+        if (tvDetailRatingCount != null) {
+            tvDetailRatingCount.setText(kos.getRatingCount() > 0
+                    ? String.format(Locale.getDefault(), "(%d Ulasan)", kos.getRatingCount())
+                    : "(Belum ada ulasan)");
+        }
+
+        // Amenities
+        populateAmenities(kos.getFacilities(), kos.getRoomFeatures(), kos.getAccessFeatures(), kos.getSecurityFeatures());
+
+        // Map refresh if coordinates changed or first time
+        if (KosLocationUtils.isValidCoordinate(kos.getLatitude(), kos.getLongitude())) {
+            if (mapViewDetail != null && (mapViewDetail.getVisibility() == View.GONE || locationChanged)) {
+                mapViewDetail.setVisibility(View.VISIBLE);
+                initDetailMap(kos.getLatitude(), kos.getLongitude(), kos.getName());
+                
+                if (locationChanged) {
+                    updateLocationAndRoute();
+                }
+            }
+        } else {
+            if (mapViewDetail != null) mapViewDetail.setVisibility(View.GONE);
+        }
+
+        // Trigger Auto Description
+        updateAutoDescription();
+    }
+
+    private void updateAvailabilityUI(int availableRooms) {
+        // Top Badge
+        String detailText = com.koshub.psdku.utils.RoomAvailabilityHelper.formatAvailabilityDetail(availableRooms);
+        tvDetailBadgeSisa.setText(detailText);
+        tvDetailBadgeSisa.setVisibility(View.VISIBLE);
+
+        if (availableRooms == 0) {
+            tvDetailBadgeSisa.setBackgroundResource(R.drawable.bg_badge_red);
+        } else {
+            tvDetailBadgeSisa.setBackgroundResource(R.drawable.bg_badge_sisa);
+        }
+
+        // Bottom Bar
+        if (tvDetailBottomSisa != null) {
+            String bottomText = com.koshub.psdku.utils.RoomAvailabilityHelper.formatAvailabilityBottom(availableRooms);
+            tvDetailBottomSisa.setText(bottomText);
+        }
+
+        // Button States
+        if (availableRooms == 0) {
+            btnBookingBottom.setEnabled(false);
+            btnBookingBottom.setAlpha(0.5f);
+            btnBookingBottom.setBackgroundResource(R.drawable.bg_outline_button);
+            btnBookingBottom.setTextColor(ContextCompat.getColor(this, R.color.md_on_surface_variant));
+            
+            btnWaitlistBottom.setVisibility(View.VISIBLE);
+            btnWaitlistBottom.setText("Kabari Saya (Waitlist)");
+        } else {
+            btnBookingBottom.setEnabled(true);
+            btnBookingBottom.setAlpha(1.0f);
+            btnBookingBottom.setBackgroundResource(R.drawable.bg_primary_button);
+            btnBookingBottom.setTextColor(ContextCompat.getColor(this, R.color.md_on_primary));
+            
+            // If rooms available, waitlist is optional or can be hidden if preferred
+            btnWaitlistBottom.setText(R.string.detail_btn_waitlist);
+        }
+    }
+
+    private void updateLocationAndRoute() {
+        if (latestKosData == null && currentItem == null) return;
+
+        double lat = latestKosData != null ? latestKosData.getLatitude() : currentItem.getLatitude();
+        double lng = latestKosData != null ? latestKosData.getLongitude() : currentItem.getLongitude();
+        String name = latestKosData != null ? latestKosData.getName() : currentItem.getName();
+
+        // Route Info
+        if (tvDetailRouteDistance != null) tvDetailRouteDistance.setText(R.string.eta_calculating);
+        if (tvDetailRouteTime != null) tvDetailRouteTime.setText("...");
+
+        // Map
+        if (KosLocationUtils.isValidCoordinate(lat, lng)) {
+            initDetailMap(lat, lng, name);
+        } else {
+            if (mapViewDetail != null) mapViewDetail.setVisibility(View.GONE);
+        }
+        
+        KosLocationUtils.fetchWalkingDuration(this, lat, lng, new KosLocationUtils.DurationCallback() {
             @Override
-            public void onSuccess(String durationText, int durationMinutes) {
-                tvDetailRouteTime.setText(durationText);
+            public void onSuccess(String durationText, int durationMinutes, String distanceText) {
+                currentEtaMinutes = durationMinutes;
+                // Extract km from distanceText "0.5 km" -> 0.5
+                try {
+                    String clean = distanceText.replace("km", "").replace(",", ".").trim();
+                    currentDistanceKm = Double.parseDouble(clean);
+                } catch (Exception e) {
+                    currentDistanceKm = KosLocationUtils.calculateDistanceKm(lat, lng, KosLocationUtils.CAMPUS_LAT, KosLocationUtils.CAMPUS_LNG);
+                }
+
+                String detailEta = KosLocationUtils.formatEtaDetail(PropertyDetailBookingActivity.this, durationMinutes);
+                if (tvDetailRouteTime != null) tvDetailRouteTime.setText(detailEta);
+                if (tvDetailRouteDistance != null) tvDetailRouteDistance.setText(distanceText + " ke Kampus UNS PSDKU");
+                
+                updateAutoDescription();
             }
 
             @Override
             public void onFailure(String errorMessage) {
-                tvDetailRouteTime.setText("- mnt");
+                if (tvDetailRouteTime != null) tvDetailRouteTime.setText(errorMessage); // "Cek Maps"
+                if (tvDetailRouteDistance != null) tvDetailRouteDistance.setText("Lokasi tidak valid");
+                updateAutoDescription();
             }
         });
+    }
+
+    private void updateAutoDescription() {
+        if (latestKosData == null) return;
+        
+        String autoDescription = AutoKosDescriptionBuilder.build(latestKosData, currentDistanceKm, currentEtaMinutes);
+        if (tvDetailDescription != null) {
+            tvDetailDescription.setText(autoDescription);
+        }
+    }
+
+    private void openGoogleMaps() {
+        if (currentItem == null) return;
+        double lat = currentItem.getLatitude();
+        double lng = currentItem.getLongitude();
+        
+        if (!KosLocationUtils.isValidCoordinate(lat, lng)) {
+            showCustomToast("Lokasi tidak valid");
+            return;
+        }
+
+        String uri = String.format(Locale.ENGLISH, "google.navigation:q=%f,%f&mode=w", lat, lng);
+        Intent mapIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri));
+        mapIntent.setPackage("com.google.android.apps.maps");
+
+        if (mapIntent.resolveActivity(getPackageManager()) != null) {
+            startActivity(mapIntent);
+        } else {
+            // Fallback to browser
+            String browserUri = String.format(Locale.ENGLISH, "https://www.google.com/maps/dir/?api=1&destination=%f,%f&travelmode=walking", lat, lng);
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(browserUri));
+            startActivity(browserIntent);
+        }
     }
 
     private void initDetailMap(double kosLat, double kosLng, String kosName) {
@@ -365,20 +524,7 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         });
     }
 
-    private void updateRatingViews() {
-        if (tvDetailRating != null) {
-            double avg = currentItem.getRatingAverage();
-            tvDetailRating.setText(avg > 0
-                    ? String.format(Locale.getDefault(), "%.1f", avg)
-                    : "—");
-        }
-        if (tvDetailRatingCount != null) {
-            int count = currentItem.getRatingCount();
-            tvDetailRatingCount.setText(count > 0
-                    ? String.format(Locale.getDefault(), "(%d Ulasan)", count)
-                    : "(Belum ada ulasan)");
-        }
-    }
+
 
     private void loadRealReviews() {
         if (currentItem == null || currentItem.getId() == null) return;
@@ -403,19 +549,51 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
             return;
         }
 
-        // Simplification: Show review prompt to any logged-in user
-        if (layoutReviewPrompt != null) {
-            layoutReviewPrompt.setVisibility(View.VISIBLE);
-            View btn = layoutReviewPrompt.findViewById(R.id.btnWriteReviewPrompt);
-            if (btn != null) {
-                btn.setOnClickListener(v -> {
-                    Intent intent = new Intent(PropertyDetailBookingActivity.this, ReviewFormActivity.class);
-                    intent.putExtra("KOS_ID", currentItem.getId());
-                    intent.putExtra("KOS_NAME", currentItem.getName());
-                    NavigationTransitionHelper.navigateDetailWithIntent(PropertyDetailBookingActivity.this, intent);
-                });
+        String uid = FirebaseAuth.getInstance().getUid();
+        ReviewRepository.getInstance().getUserReviewForKos(currentItem.getId(), uid, new ReviewRepository.ReviewCallback() {
+            @Override
+            public void onSuccess(com.koshub.psdku.models.Review myReview) {
+                if (layoutReviewPrompt == null) return;
+                layoutReviewPrompt.setVisibility(View.VISIBLE);
+
+                TextView tvTitle = layoutReviewPrompt.findViewById(R.id.tvReviewPromptTitle);
+                TextView tvSub = layoutReviewPrompt.findViewById(R.id.tvReviewPromptSub);
+                TextView btn = layoutReviewPrompt.findViewById(R.id.btnWriteReviewPrompt);
+                ImageView ivIcon = layoutReviewPrompt.findViewById(R.id.ivReviewPromptIcon);
+
+                if (myReview != null) {
+                    // User already reviewed
+                    if (tvTitle != null) tvTitle.setText("Ulasanmu dikirim");
+                    if (tvSub != null) tvSub.setText("Kamu memberi rating " + (int)myReview.getRating() + " bintang");
+                    if (btn != null) btn.setText("Edit Ulasan");
+                    if (ivIcon != null) ivIcon.setImageResource(R.drawable.ic_star_filled);
+                } else {
+                    // No review yet
+                    if (tvTitle != null) tvTitle.setText("Bagikan pengalamanmu");
+                    if (tvSub != null) tvSub.setText("Bantu mahasiswa lain memilih kos yang tepat.");
+                    if (btn != null) btn.setText("Tulis Ulasan");
+                    if (ivIcon != null) ivIcon.setImageResource(R.drawable.ic_chat_review);
+                }
+
+                if (btn != null) {
+                    btn.setOnClickListener(v -> {
+                        Intent intent = new Intent(PropertyDetailBookingActivity.this, ReviewFormActivity.class);
+                        intent.putExtra("KOS_ID", currentItem.getId());
+                        intent.putExtra("KOS_NAME", currentItem.getName());
+                        if (myReview != null) {
+                            intent.putExtra("REVIEW_ID", myReview.getId());
+                        }
+                        NavigationTransitionHelper.navigateDetailWithIntent(PropertyDetailBookingActivity.this, intent);
+                    });
+                }
             }
-        }
+
+            @Override
+            public void onError(String message) {
+                // Fallback to simple logic if check fails
+                if (layoutReviewPrompt != null) layoutReviewPrompt.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     private void populateReviewsReal(List<com.koshub.psdku.models.Review> reviews) {
@@ -448,6 +626,54 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         }
     }
 
+    private void setupImageGallery(List<String> images, int fallbackRes) {
+        if (vpGallery == null) return;
+
+        List<String> galleryImages = new ArrayList<>();
+        if (images != null && !images.isEmpty()) {
+            galleryImages.addAll(images);
+        } else {
+            // Add empty string to trigger placeholder in adapter if no images at all
+            galleryImages.add("");
+        }
+
+        PropertyImageAdapter adapter = new PropertyImageAdapter(galleryImages, fallbackRes);
+        vpGallery.setAdapter(adapter);
+
+        // Dynamic Indicators
+        if (layoutDots != null) {
+            layoutDots.removeAllViews();
+            if (galleryImages.size() > 1) {
+                layoutDots.setVisibility(View.VISIBLE);
+                vpGallery.setUserInputEnabled(true);
+                
+                ImageView[] dots = new ImageView[galleryImages.size()];
+                for (int i = 0; i < galleryImages.size(); i++) {
+                    dots[i] = new ImageView(this);
+                    dots[i].setImageResource(i == 0 ? R.drawable.bg_dot_active : R.drawable.bg_dot_inactive);
+                    
+                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                            dpToPx(8), dpToPx(8)
+                    );
+                    params.setMargins(dpToPx(4), 0, dpToPx(4), 0);
+                    layoutDots.addView(dots[i], params);
+                }
+
+                vpGallery.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+                    @Override
+                    public void onPageSelected(int position) {
+                        for (int i = 0; i < galleryImages.size(); i++) {
+                            dots[i].setImageResource(i == position ? R.drawable.bg_dot_active : R.drawable.bg_dot_inactive);
+                        }
+                    }
+                });
+            } else {
+                layoutDots.setVisibility(View.GONE);
+                vpGallery.setUserInputEnabled(false);
+            }
+        }
+    }
+
     private String formatPrice(int value) {
         if (value >= 1000000) {
             double million = value / 1000000.0;
@@ -461,34 +687,39 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         return "Rp " + value;
     }
 
-    private String generateDescription(KosItem item) {
-        StringBuilder facilitiesStr = new StringBuilder();
-        List<String> facilities = item.getFacilities();
-        for (int i = 0; i < facilities.size(); i++) {
-            facilitiesStr.append(facilities.get(i));
-            if (i < facilities.size() - 1) {
-                facilitiesStr.append(", ");
+
+
+    private void populateAmenities(List<String> facilities, List<String> roomFeatures, List<String> accessFeatures, List<String> securityFeatures) {
+        amenityChipGroup.removeAllViews();
+        
+        List<String> allFeatures = new ArrayList<>();
+        if (facilities != null) allFeatures.addAll(facilities);
+        if (roomFeatures != null) allFeatures.addAll(roomFeatures);
+        if (accessFeatures != null) allFeatures.addAll(accessFeatures);
+        if (securityFeatures != null) allFeatures.addAll(securityFeatures);
+
+        if (allFeatures.isEmpty()) return;
+        
+        // Remove duplicates and empty strings
+        List<String> cleanFeatures = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (String f : allFeatures) {
+            if (f != null && !f.trim().isEmpty()) {
+                if (seen.add(f.toLowerCase())) {
+                    cleanFeatures.add(f);
+                }
             }
         }
 
-        return "Kos " + item.getCategory().toLowerCase() + " dengan fasilitas lengkap di " + item.getAddress() + 
-               ". Sangat strategis, hanya berjarak " + item.getDistance() + " dari kampus. " +
-               "Dilengkapi dengan " + facilitiesStr.toString() + ". " +
-               "Lingkungan bersih, aman dengan CCTV, dan sangat kondusif untuk belajar.";
-    }
-
-    private void populateAmenities(List<String> facilities) {
-        amenityChipGroup.removeAllViews();
-        if (facilities == null) return;
-        for (String facility : facilities) {
+        for (String feature : cleanFeatures) {
             Chip chip = new Chip(this);
-            chip.setText(facility);
+            chip.setText(feature);
             chip.setChipBackgroundColorResource(R.color.md_surface_container_low);
             chip.setTextColor(getResources().getColor(R.color.md_on_surface_variant));
             chip.setChipStrokeWidth(1f);
             chip.setChipStrokeColorResource(R.color.md_outline_variant);
             
-            int iconRes = getIconForFacility(facility);
+            int iconRes = getIconForFacility(feature);
             if (iconRes != 0) {
                 chip.setChipIconResource(iconRes);
                 chip.setChipIconTintResource(R.color.md_primary);
@@ -507,10 +738,19 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         if (f.contains("kasur") || f.contains("bed")) return R.drawable.ic_bed;
         if (f.contains("meja") || f.contains("desk")) return R.drawable.ic_desk;
         if (f.contains("lemari") || f.contains("closet") || f.contains("wardrobe")) return R.drawable.ic_closet;
-        if (f.contains("parkir")) return R.drawable.ic_parking;
+        if (f.contains("parkir") || f.contains("motor")) return R.drawable.ic_parking;
         if (f.contains("dapur") || f.contains("kitchen")) return R.drawable.ic_kitchen;
         if (f.contains("laundry")) return R.drawable.ic_laundry;
         if (f.contains("water heater") || f.contains("air panas")) return R.drawable.ic_water_heater;
+
+        // New mappings for structured data
+        if (f.contains("cctv") || f.contains("keamanan") || f.contains("penjaga") || f.contains("gerbang")) return R.drawable.ic_owp_security;
+        if (f.contains("kunci")) return R.drawable.ic_key;
+        if (f.contains("kampus") || f.contains("mahasiswa") || f.contains("sekolah")) return R.drawable.ic_school;
+        if (f.contains("makan") || f.contains("warung")) return R.drawable.ic_kitchen;
+        if (f.contains("masjid")) return R.drawable.ic_map_school;
+        if (f.contains("jam malam") || f.contains("akses 24 jam")) return R.drawable.ic_lock;
+
         return 0;
     }
 
@@ -565,6 +805,9 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (kosListener != null) {
+            kosListener.remove();
+        }
         if (mapViewDetail != null) mapViewDetail.onDestroy();
     }
 

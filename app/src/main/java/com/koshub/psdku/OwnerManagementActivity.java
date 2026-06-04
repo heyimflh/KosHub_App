@@ -16,6 +16,10 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.google.android.gms.maps.model.LatLng;
@@ -27,6 +31,7 @@ import com.google.android.libraries.places.widget.AutocompleteActivity;
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.koshub.psdku.adapters.ImagePreviewAdapter;
 import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.Kos;
 import com.koshub.psdku.models.OwnerKosStats;
@@ -38,7 +43,9 @@ import com.koshub.psdku.utils.DatabaseConstants;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class OwnerManagementActivity extends AppCompatActivity {
 
@@ -48,8 +55,8 @@ public class OwnerManagementActivity extends AppCompatActivity {
     private BookingRepository bookingRepository;
     private FirebaseAuth auth;
     private List<Kos> ownerKosList;
-    private Uri selectedImageUri;
-    private ImageView imgPreview;
+    private final List<Object> selectedImages = new ArrayList<>();
+    private ImagePreviewAdapter imagePreviewAdapter;
 
     private android.widget.LinearLayout roomListContainer;
     private android.widget.LinearLayout bookingListContainer;
@@ -64,13 +71,26 @@ public class OwnerManagementActivity extends AppCompatActivity {
     private double selectedLongitude = 0.0;
     private String selectedPlaceId = "";
     private EditText etAddressRef;
+    private TextView tvAddressHelperRef;
+
+    private final String[] securityOptions = {"CCTV", "akses gerbang", "penjaga kos", "kunci pribadi"};
+    private final String[] accessOptions = {"dekat kampus", "dekat warung makan", "dekat minimarket", "dekat masjid", "akses motor mudah"};
+    private final String[] roomOptions = {"kamar mandi dalam", "kamar mandi luar", "kasur", "lemari", "meja belajar", "kipas", "AC"};
+    private final String[] ruleOptions = {"khusus mahasiswa", "boleh bulanan", "tidak boleh membawa hewan", "jam malam", "bebas jam malam"};
 
     private final ActivityResultLauncher<String> imagePickerLauncher = registerForActivityResult(
-            new ActivityResultContracts.GetContent(),
-            uri -> {
-                if (uri != null) {
-                    selectedImageUri = uri;
-                    if (imgPreview != null) Glide.with(this).load(uri).into(imgPreview);
+            new ActivityResultContracts.GetMultipleContents(),
+            uris -> {
+                if (uris != null && !uris.isEmpty()) {
+                    for (Uri uri : uris) {
+                        if (selectedImages.size() < 5) {
+                            selectedImages.add(uri);
+                        } else {
+                            showToast("Maksimal 5 gambar");
+                            break;
+                        }
+                    }
+                    if (imagePreviewAdapter != null) imagePreviewAdapter.notifyDataSetChanged();
                 }
             }
     );
@@ -103,6 +123,12 @@ public class OwnerManagementActivity extends AppCompatActivity {
         setupBookingSection();
         setupTenantSection();
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.KOS);
+
+        // Check if redirected from dashboard to add new kos
+        if (getIntent().getBooleanExtra("SHOW_ADD_DIALOG", false)) {
+            getIntent().removeExtra("SHOW_ADD_DIALOG");
+            showAddKosDialog();
+        }
     }
 
     @Override
@@ -398,8 +424,45 @@ public class OwnerManagementActivity extends AppCompatActivity {
 
     private void showAddKosDialog() {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_kos, null);
-        imgPreview = dialogView.findViewById(R.id.imgKosPreview);
+        RecyclerView rvPreviews = dialogView.findViewById(R.id.rvImagePreviews);
         Button btnSelectImage = dialogView.findViewById(R.id.btnSelectImage);
+
+        selectedImages.clear();
+        imagePreviewAdapter = new ImagePreviewAdapter(selectedImages, position -> {
+            selectedImages.remove(position);
+            imagePreviewAdapter.notifyDataSetChanged();
+        });
+        rvPreviews.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        rvPreviews.setAdapter(imagePreviewAdapter);
+
+        List<String> roomFeatures = new ArrayList<>();
+        List<String> accessFeatures = new ArrayList<>();
+        List<String> securityFeatures = new ArrayList<>();
+        List<String> rules = new ArrayList<>();
+
+        dialogView.findViewById(R.id.btnEditRoomFeatures).setOnClickListener(v ->
+                showFeatureSelectionDialog("Fasilitas Kamar", roomOptions, roomFeatures, selected -> {
+                    roomFeatures.clear();
+                    roomFeatures.addAll(selected);
+                }));
+
+        dialogView.findViewById(R.id.btnEditAccessFeatures).setOnClickListener(v ->
+                showFeatureSelectionDialog("Akses Lokasi", accessOptions, accessFeatures, selected -> {
+                    accessFeatures.clear();
+                    accessFeatures.addAll(selected);
+                }));
+
+        dialogView.findViewById(R.id.btnEditSecurityFeatures).setOnClickListener(v ->
+                showFeatureSelectionDialog("Keamanan", securityOptions, securityFeatures, selected -> {
+                    securityFeatures.clear();
+                    securityFeatures.addAll(selected);
+                }));
+
+        dialogView.findViewById(R.id.btnEditRules).setOnClickListener(v ->
+                showFeatureSelectionDialog("Aturan Kos", ruleOptions, rules, selected -> {
+                    rules.clear();
+                    rules.addAll(selected);
+                }));
 
         // Reset location fields for new entry
         selectedLatitude = 0.0;
@@ -408,7 +471,11 @@ public class OwnerManagementActivity extends AppCompatActivity {
 
         etAddressRef = dialogView.findViewById(R.id.etKosAddress);
         etAddressRef.setFocusable(false);
+        etAddressRef.setFocusableInTouchMode(false);
+        etAddressRef.setCursorVisible(false);
         etAddressRef.setOnClickListener(v -> startAutocompletePicker());
+
+        tvAddressHelperRef = dialogView.findViewById(R.id.tvAddressHelper);
 
         btnSelectImage.setOnClickListener(v -> imagePickerLauncher.launch("image/*"));
 
@@ -435,21 +502,40 @@ public class OwnerManagementActivity extends AppCompatActivity {
                     return;
                 }
 
-                if (selectedLatitude == 0.0 && selectedLongitude == 0.0) {
-                    showToast("Silakan pilih alamat dari daftar saran Google Maps");
+                // Strict validation for Google Places data
+                if (selectedLatitude == 0.0 || selectedLongitude == 0.0 || selectedPlaceId.isEmpty()) {
+                    showToast("Silakan pilih alamat kos dari Google Maps terlebih dahulu.");
                     return;
                 }
 
-                double price = Double.parseDouble(priceStr);
+                double price;
+                try {
+                    price = Double.parseDouble(priceStr);
+                } catch (NumberFormatException e) {
+                    showToast("Harga tidak valid");
+                    return;
+                }
+
                 Kos newKos = new Kos("", name, address, "Rp " + priceStr, (int)price, "...", 0, "0.0", category, new ArrayList<>(), 0, false, "0 Kamar", selectedLatitude, selectedLongitude);
                 newKos.setPrice(price);
                 newKos.setPlaceId(selectedPlaceId);
+                newKos.setRoomFeatures(roomFeatures);
+                newKos.setAccessFeatures(accessFeatures);
+                newKos.setSecurityFeatures(securityFeatures);
+                newKos.setRules(rules);
+                
+                // Consolidate features into primary facilities list for card consistency
+                List<String> combined = new ArrayList<>();
+                combined.addAll(roomFeatures);
+                combined.addAll(accessFeatures);
+                combined.addAll(securityFeatures);
+                newKos.setFacilities(combined);
 
                 kosRepository.createKos(newKos, new KosRepository.SimpleCallback() {
                     @Override
                     public void onSuccess() {
-                        if (selectedImageUri != null) {
-                            uploadKosImage(newKos.getId());
+                        if (!selectedImages.isEmpty()) {
+                            uploadMultipleKosImages(newKos.getId());
                         } else {
                             showToast("Kos berhasil ditambahkan");
                             loadData();
@@ -467,14 +553,25 @@ public class OwnerManagementActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void uploadKosImage(String kosId) {
-        showToast("Sedang mengupload foto kos...");
-        cloudinaryRepository.uploadKosImage(this, selectedImageUri, kosId, new CloudinaryRepository.SimpleUploadCallback() {
+    private void uploadMultipleKosImages(String kosId) {
+        showToast("Sedang mengupload foto-foto kos...");
+        
+        List<Uri> newUris = new ArrayList<>();
+        List<String> existingUrls = new ArrayList<>();
+        for (Object item : selectedImages) {
+            if (item instanceof Uri) {
+                newUris.add((Uri) item);
+            } else if (item instanceof String) {
+                existingUrls.add((String) item);
+            }
+        }
+
+        cloudinaryRepository.uploadMultipleKosImages(this, newUris, existingUrls, kosId, new CloudinaryRepository.MultiUploadCallback() {
             @Override
-            public void onSuccess(String imageUrl) {
+            public void onSuccess(List<String> imageUrls) {
                 runOnUiThread(() -> {
                     showToast("Kos & Foto berhasil disimpan");
-                    selectedImageUri = null;
+                    selectedImages.clear();
                     loadData();
                 });
             }
@@ -483,11 +580,15 @@ public class OwnerManagementActivity extends AppCompatActivity {
             public void onError(String message) {
                 runOnUiThread(() -> {
                     showToast("Kos disimpan, tapi upload foto gagal: " + message);
-                    selectedImageUri = null;
+                    selectedImages.clear();
                     loadData();
                 });
             }
         });
+    }
+
+    private void finishKosImageUpdate(String kosId, List<String> finalUrls) {
+        // Not used anymore as Repository handles the update
     }
 
     private void showAddRoomDialog() {
@@ -938,11 +1039,54 @@ public class OwnerManagementActivity extends AppCompatActivity {
 
     private void showEditKosDialog(Kos kos) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_kos, null);
-        imgPreview = dialogView.findViewById(R.id.imgKosPreview);
+        RecyclerView rvPreviews = dialogView.findViewById(R.id.rvImagePreviews);
         Button btnSelectImage = dialogView.findViewById(R.id.btnSelectImage);
         EditText etName = dialogView.findViewById(R.id.etKosName);
         EditText etPrice = dialogView.findViewById(R.id.etKosPrice);
         Spinner spCategory = dialogView.findViewById(R.id.spKosCategory);
+
+        selectedImages.clear();
+        if (kos.getImageUrls() != null && !kos.getImageUrls().isEmpty()) {
+            selectedImages.addAll(kos.getImageUrls());
+        } else if (kos.getImageUrl() != null && !kos.getImageUrl().isEmpty()) {
+            selectedImages.add(kos.getImageUrl());
+        }
+
+        imagePreviewAdapter = new ImagePreviewAdapter(selectedImages, position -> {
+            selectedImages.remove(position);
+            imagePreviewAdapter.notifyDataSetChanged();
+        });
+        rvPreviews.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        rvPreviews.setAdapter(imagePreviewAdapter);
+
+        List<String> roomFeatures = new ArrayList<>(kos.getRoomFeatures() != null ? kos.getRoomFeatures() : new ArrayList<>());
+        List<String> accessFeatures = new ArrayList<>(kos.getAccessFeatures() != null ? kos.getAccessFeatures() : new ArrayList<>());
+        List<String> securityFeatures = new ArrayList<>(kos.getSecurityFeatures() != null ? kos.getSecurityFeatures() : new ArrayList<>());
+        List<String> rules = new ArrayList<>(kos.getRules() != null ? kos.getRules() : new ArrayList<>());
+
+        dialogView.findViewById(R.id.btnEditRoomFeatures).setOnClickListener(v ->
+                showFeatureSelectionDialog("Fasilitas Kamar", roomOptions, roomFeatures, selected -> {
+                    roomFeatures.clear();
+                    roomFeatures.addAll(selected);
+                }));
+
+        dialogView.findViewById(R.id.btnEditAccessFeatures).setOnClickListener(v ->
+                showFeatureSelectionDialog("Akses Lokasi", accessOptions, accessFeatures, selected -> {
+                    accessFeatures.clear();
+                    accessFeatures.addAll(selected);
+                }));
+
+        dialogView.findViewById(R.id.btnEditSecurityFeatures).setOnClickListener(v ->
+                showFeatureSelectionDialog("Keamanan", securityOptions, securityFeatures, selected -> {
+                    securityFeatures.clear();
+                    securityFeatures.addAll(selected);
+                }));
+
+        dialogView.findViewById(R.id.btnEditRules).setOnClickListener(v ->
+                showFeatureSelectionDialog("Aturan Kos", ruleOptions, rules, selected -> {
+                    rules.clear();
+                    rules.addAll(selected);
+                }));
 
         // Pre-fill existing data
         etName.setText(kos.getName());
@@ -955,14 +1099,17 @@ public class OwnerManagementActivity extends AppCompatActivity {
         etAddressRef = dialogView.findViewById(R.id.etKosAddress);
         etAddressRef.setText(kos.getAddress());
         etAddressRef.setFocusable(false);
+        etAddressRef.setFocusableInTouchMode(false);
+        etAddressRef.setCursorVisible(false);
         etAddressRef.setOnClickListener(v -> startAutocompletePicker());
 
-        etPrice.setText(String.valueOf((long) kos.getPrice()));
-
-        // Load existing image preview
-        if (kos.getImageUrls() != null && !kos.getImageUrls().isEmpty()) {
-            Glide.with(this).load(kos.getImageUrls().get(0)).into(imgPreview);
+        tvAddressHelperRef = dialogView.findViewById(R.id.tvAddressHelper);
+        if (!selectedPlaceId.isEmpty()) {
+            tvAddressHelperRef.setText("Lokasi Google Maps berhasil dipilih.");
+            tvAddressHelperRef.setTextColor(ContextCompat.getColor(this, R.color.brand_green));
         }
+
+        etPrice.setText(String.valueOf((long) kos.getPrice()));
 
         btnSelectImage.setOnClickListener(v -> imagePickerLauncher.launch("image/*"));
 
@@ -1001,8 +1148,9 @@ public class OwnerManagementActivity extends AppCompatActivity {
                     return;
                 }
 
-                if (selectedLatitude == 0.0 && selectedLongitude == 0.0) {
-                    showToast("Silakan pilih alamat dari daftar saran Google Maps");
+                // Strict validation for Google Places data
+                if (selectedLatitude == 0.0 || selectedLongitude == 0.0 || selectedPlaceId.isEmpty()) {
+                    showToast("Silakan pilih alamat kos dari Google Maps terlebih dahulu.");
                     return;
                 }
 
@@ -1022,35 +1170,23 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 kos.setLatitude(selectedLatitude);
                 kos.setLongitude(selectedLongitude);
                 kos.setPlaceId(selectedPlaceId);
+                kos.setRoomFeatures(roomFeatures);
+                kos.setAccessFeatures(accessFeatures);
+                kos.setSecurityFeatures(securityFeatures);
+                kos.setRules(rules);
+
+                // Consolidate features into primary facilities list for card consistency
+                List<String> combined = new ArrayList<>();
+                if (kos.getFacilities() != null) combined.addAll(kos.getFacilities());
+                for (String f : roomFeatures) if (!combined.contains(f)) combined.add(f);
+                for (String f : accessFeatures) if (!combined.contains(f)) combined.add(f);
+                for (String f : securityFeatures) if (!combined.contains(f)) combined.add(f);
+                kos.setFacilities(combined);
 
                 kosRepository.updateKos(kos, new KosRepository.SimpleCallback() {
                     @Override
                     public void onSuccess() {
-                        if (selectedImageUri != null) {
-                            showToast("Menyimpan foto...");
-                            cloudinaryRepository.uploadKosImage(OwnerManagementActivity.this, selectedImageUri, kos.getId(), new CloudinaryRepository.SimpleUploadCallback() {
-                                @Override
-                                public void onSuccess(String imageUrl) {
-                                    runOnUiThread(() -> {
-                                        showToast("Kos & foto berhasil diperbarui");
-                                        selectedImageUri = null;
-                                        loadData();
-                                    });
-                                }
-
-                                @Override
-                                public void onError(String message) {
-                                    runOnUiThread(() -> {
-                                        showToast("Data disimpan, tapi update foto gagal");
-                                        selectedImageUri = null;
-                                        loadData();
-                                    });
-                                }
-                            });
-                        } else {
-                            showToast("Kos berhasil diperbarui");
-                            loadData();
-                        }
+                        uploadMultipleKosImages(kos.getId());
                         dialog.dismiss();
                     }
 
@@ -1725,10 +1861,39 @@ public class OwnerManagementActivity extends AppCompatActivity {
                 if (etAddressRef != null) {
                     etAddressRef.setText(place.getAddress());
                 }
+
+                if (tvAddressHelperRef != null) {
+                    tvAddressHelperRef.setText("Lokasi Google Maps berhasil dipilih.");
+                    tvAddressHelperRef.setTextColor(ContextCompat.getColor(this, R.color.brand_green));
+                }
             } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
                 com.google.android.gms.common.api.Status status = Autocomplete.getStatusFromIntent(data);
                 showToast("Error: " + status.getStatusMessage());
             }
         }
+    }
+
+    private void showFeatureSelectionDialog(String title, String[] options, List<String> currentSelections, java.util.function.Consumer<List<String>> callback) {
+        boolean[] checkedItems = new boolean[options.length];
+        for (int i = 0; i < options.length; i++) {
+            if (currentSelections.contains(options[i])) {
+                checkedItems[i] = true;
+            }
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMultiChoiceItems(options, checkedItems, (dialog, which, isChecked) -> {
+                    checkedItems[which] = isChecked;
+                })
+                .setPositiveButton("Simpan", (dialog, which) -> {
+                    List<String> result = new ArrayList<>();
+                    for (int i = 0; i < options.length; i++) {
+                        if (checkedItems[i]) result.add(options[i]);
+                    }
+                    callback.accept(result);
+                })
+                .setNegativeButton("Batal", null)
+                .show();
     }
 }
