@@ -76,7 +76,8 @@ public class DatabaseConstants {
     public static final String COMPLAINT_REJECTED = "rejected";
 
     // Transaction
-    public static final String TRANSACTION_TYPE_BOOKING_PAYMENT = "booking_payment";
+    public static final String TRANSACTION_TYPE_RENT_PAYMENT = "rent_payment";
+    public static final String TRANSACTION_TYPE_BOOKING_PAYMENT = "rent_payment";
     public static final String TRANSACTION_PENDING = "pending";
     public static final String TRANSACTION_AVAILABLE = "available";
     public static final String TRANSACTION_WITHDRAWN = "withdrawn";

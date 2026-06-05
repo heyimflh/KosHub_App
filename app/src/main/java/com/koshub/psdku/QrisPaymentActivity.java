@@ -373,17 +373,24 @@ public class QrisPaymentActivity extends AppCompatActivity {
                 tvStatus.setTextColor(ContextCompat.getColor(this, R.color.md_primary));
             });
             
+            double amountToRecord = resolvePaymentAmount(currentBooking);
+            
             BookingRepository.getInstance().updateBookingToPaid(bookingId, gatewayTransactionId, new BookingRepository.SimpleCallback() {
                 @Override
                 public void onSuccess() {
-                    FinanceRepository.getInstance().createTransactionAfterPayment(currentBooking, gatewayTransactionId, currentBooking.getTotalPrice(), new FinanceRepository.SimpleCallback() {
+                    FinanceRepository.getInstance().createTransactionAfterPayment(currentBooking, gatewayTransactionId, amountToRecord, new FinanceRepository.SimpleCallback() {
                         @Override
                         public void onSuccess() {
+                            Log.d(TAG, "Finance transaction created successfully.");
                             openSuccessActivity();
                         }
 
                         @Override
                         public void onError(String message) {
+                            Log.e(TAG, "Finance transaction creation failed: " + message);
+                            runOnUiThread(() -> Toast.makeText(QrisPaymentActivity.this, 
+                                "Pembayaran berhasil, tetapi pencatatan keuangan belum tersinkron. Silakan refresh atau hubungi admin.", 
+                                Toast.LENGTH_LONG).show());
                             openSuccessActivity();
                         }
                     });
@@ -391,6 +398,7 @@ public class QrisPaymentActivity extends AppCompatActivity {
 
                 @Override
                 public void onError(String message) {
+                    Log.e(TAG, "Failed to update booking to paid: " + message);
                     runOnUiThread(() -> Toast.makeText(QrisPaymentActivity.this, "Gagal mengupdate status: " + message, Toast.LENGTH_LONG).show());
                     openSuccessActivity();
                 }

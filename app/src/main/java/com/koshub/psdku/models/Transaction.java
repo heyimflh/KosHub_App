@@ -20,6 +20,11 @@ public class Transaction implements Serializable {
     private long availableAt;
     private String withdrawalId;
 
+    // Gateway info
+    private String gateway;
+    private long gatewayTransactionId;
+    private long paidAtMillis;
+
     public Transaction() {
         // Required for Firebase
     }
@@ -62,4 +67,13 @@ public class Transaction implements Serializable {
 
     public String getWithdrawalId() { return withdrawalId; }
     public void setWithdrawalId(String withdrawalId) { this.withdrawalId = withdrawalId; }
+
+    public String getGateway() { return gateway; }
+    public void setGateway(String gateway) { this.gateway = gateway; }
+
+    public long getGatewayTransactionId() { return gatewayTransactionId; }
+    public void setGatewayTransactionId(long gatewayTransactionId) { this.gatewayTransactionId = gatewayTransactionId; }
+
+    public long getPaidAtMillis() { return paidAtMillis; }
+    public void setPaidAtMillis(long paidAtMillis) { this.paidAtMillis = paidAtMillis; }
 }

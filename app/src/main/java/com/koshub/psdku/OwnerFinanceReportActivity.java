@@ -1,6 +1,7 @@
 package com.koshub.psdku;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
@@ -12,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.koshub.psdku.models.Withdrawal;
 import com.koshub.psdku.repositories.FinanceRepository;
 import com.koshub.psdku.utils.CurrencyHelper;
@@ -30,6 +32,7 @@ import android.view.Gravity;
  * OwnerFinanceReportActivity - Laporan Keuangan Pemilik Kos
  */
 public class OwnerFinanceReportActivity extends AppCompatActivity {
+    private static final String TAG = "OwnerFinanceReport";
 
     private TextView tvTotalIncomeHeader, tvWalletAvailable, tvWalletPending;
     private TextView tvTargetAchieved, tvTargetLabelValue;
@@ -45,6 +48,8 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
     private String currentFilter = "month"; // default bulan ini
     private List<com.koshub.psdku.models.Transaction> allTransactions = new ArrayList<>();
     private List<com.koshub.psdku.models.Withdrawal> allWithdrawals = new ArrayList<>();
+    private ListenerRegistration transactionListener;
+    private ListenerRegistration withdrawalListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,8 +132,26 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
     }
 
     private void loadFinanceData() {
+        Log.d(TAG, "loadFinanceData called");
         String uid = FirebaseAuth.getInstance().getUid();
-        if (uid == null) return;
+        if (uid == null) {
+            showToast("Silakan login ulang.");
+            finish();
+            return;
+        }
+
+        // Perform reconciliation first to ensure all paid bookings have transactions
+        FinanceRepository.getInstance().reconcilePaidBookingsToTransactions(uid, new FinanceRepository.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "Reconciliation success");
+            }
+
+            @Override
+            public void onError(String message) {
+                Log.e(TAG, "Reconciliation error: " + message);
+            }
+        });
 
         // Load target bulanan dari Firestore
         FirebaseFirestore.getInstance().collection(DatabaseConstants.COLLECTION_USERS)
@@ -143,29 +166,39 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
                     applyFilterAndUpdateUI();
                 });
 
-        // Load ALL transactions (no time filter - filter will be applied in memory)
-        FinanceRepository.getInstance().getTransactionsByOwner(uid, new FinanceRepository.TransactionListCallback() {
+        // Realtime Transactions
+        if (transactionListener != null) {
+            transactionListener.remove();
+        }
+        transactionListener = FinanceRepository.getInstance().listenTransactionsByOwner(uid, new FinanceRepository.TransactionListCallback() {
             @Override
             public void onSuccess(List<com.koshub.psdku.models.Transaction> transactions) {
-                allTransactions = transactions;
+                Log.d(TAG, "Transactions loaded: " + (transactions != null ? transactions.size() : 0));
+                allTransactions = transactions != null ? transactions : new ArrayList<>();
                 applyFilterAndUpdateUI();
             }
             @Override
             public void onError(String message) {
+                Log.e(TAG, "Transactions listener error: " + message);
                 showToast("Gagal memuat transaksi: " + message);
             }
         });
 
-        // Load ALL withdrawals
-        FinanceRepository.getInstance().getWithdrawalsByOwner(uid, new FinanceRepository.WithdrawalListCallback() {
+        // Realtime Withdrawals
+        if (withdrawalListener != null) {
+            withdrawalListener.remove();
+        }
+        withdrawalListener = FinanceRepository.getInstance().listenWithdrawalsByOwner(uid, new FinanceRepository.WithdrawalListCallback() {
             @Override
             public void onSuccess(List<com.koshub.psdku.models.Withdrawal> withdrawals) {
-                allWithdrawals = withdrawals;
-                renderWithdrawals(withdrawals);
+                Log.d(TAG, "Withdrawals loaded: " + (withdrawals != null ? withdrawals.size() : 0));
+                allWithdrawals = withdrawals != null ? withdrawals : new ArrayList<>();
+                renderWithdrawals(allWithdrawals);
                 applyFilterAndUpdateUI();
             }
             @Override
             public void onError(String message) {
+                Log.e(TAG, "Withdrawals listener error: " + message);
                 showToast("Gagal memuat riwayat: " + message);
             }
         });
@@ -263,80 +296,88 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
     }
 
     private void applyFilterAndUpdateUI() {
-        long startTime = getFilterStartTime();
-        long now = System.currentTimeMillis();
+        try {
+            long startTime = getFilterStartTime();
+            long now = System.currentTimeMillis();
 
-        // Filter transactions by period
-        List<com.koshub.psdku.models.Transaction> filtered = new ArrayList<>();
-        for (com.koshub.psdku.models.Transaction t : allTransactions) {
-            if (t.getCreatedAt() >= startTime) {
-                filtered.add(t);
+            if (allTransactions == null) allTransactions = new ArrayList<>();
+            if (allWithdrawals == null) allWithdrawals = new ArrayList<>();
+
+            // Filter transactions by period
+            List<com.koshub.psdku.models.Transaction> filtered = new ArrayList<>();
+            for (com.koshub.psdku.models.Transaction t : allTransactions) {
+                if (t != null && t.getCreatedAt() >= startTime) {
+                    filtered.add(t);
+                }
             }
-        }
 
-        // Recalculate summary for filtered period
-        double totalIncome = 0, availableBalance = 0, pendingBalance = 0;
-        int lunasCount = 0, pendingCount = 0, lateCount = 0, cancelledCount = 0;
-        long sevenDays = 7L * 24 * 60 * 60 * 1000;
+            // Recalculate summary for filtered period
+            double totalIncome = 0, availableBalance = 0, pendingBalance = 0;
+            int lunasCount = 0, pendingCount = 0, lateCount = 0, cancelledCount = 0;
+            long sevenDays = 7L * 24 * 60 * 60 * 1000;
 
-        for (com.koshub.psdku.models.Transaction t : filtered) {
-            String status = t.getStatus() != null ? t.getStatus() : "";
-            switch (status) {
-                case "pending":
-                    pendingBalance += t.getAmount();
-                    pendingCount++;
-                    if (now - t.getCreatedAt() > sevenDays) lateCount++;
-                    break;
-                case "available":
-                    availableBalance += t.getAmount();
-                    totalIncome += t.getAmount();
-                    lunasCount++;
-                    break;
-                case "withdrawn":
-                    totalIncome += t.getAmount();
-                    lunasCount++;
-                    break;
-                case "cancelled":
-                    cancelledCount++;
-                    break;
+            for (com.koshub.psdku.models.Transaction t : filtered) {
+                if (t == null) continue;
+                String status = t.getStatus() != null ? t.getStatus() : "";
+                switch (status) {
+                    case "pending":
+                        pendingBalance += t.getAmount();
+                        pendingCount++;
+                        if (now - t.getCreatedAt() > sevenDays) lateCount++;
+                        break;
+                    case "available":
+                        availableBalance += t.getAmount();
+                        totalIncome += t.getAmount();
+                        lunasCount++;
+                        break;
+                    case "withdrawn":
+                        totalIncome += t.getAmount();
+                        lunasCount++;
+                        break;
+                    case "cancelled":
+                        cancelledCount++;
+                        break;
+                }
             }
-        }
 
-        // Filter withdrawals by period
-        double totalWithdrawnPeriod = 0;
-        for (com.koshub.psdku.models.Withdrawal w : allWithdrawals) {
-            if (w.getCreatedAt() >= startTime && "success".equals(w.getStatus())) {
-                totalWithdrawnPeriod += w.getAmount();
+            // Filter withdrawals by period
+            double totalWithdrawnPeriod = 0;
+            for (com.koshub.psdku.models.Withdrawal w : allWithdrawals) {
+                if (w != null && w.getCreatedAt() >= startTime && "success".equals(w.getStatus())) {
+                    totalWithdrawnPeriod += w.getAmount();
+                }
             }
+
+            double netIncome = totalIncome + pendingBalance - totalWithdrawnPeriod;
+            double totalRevenue = totalIncome + pendingBalance;
+
+            // Update UI
+            if (tvTotalIncomeHeader != null) tvTotalIncomeHeader.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(totalRevenue));
+            if (tvWalletAvailable != null) tvWalletAvailable.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(availableBalance));
+            if (tvWalletPending != null) tvWalletPending.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(pendingBalance));
+            if (tvPaymentInValue != null) tvPaymentInValue.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(totalIncome));
+            if (tvPaymentPendingValue != null) tvPaymentPendingValue.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(pendingBalance));
+            if (tvExpenseValue != null) tvExpenseValue.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(totalWithdrawnPeriod));
+            if (tvNetIncomeValue != null) tvNetIncomeValue.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(netIncome));
+            if (tvStatusLunasCount != null) tvStatusLunasCount.setText(String.valueOf(lunasCount));
+            if (tvStatusPendingCount != null) tvStatusPendingCount.setText(String.valueOf(pendingCount));
+            if (tvStatusLateCount != null) tvStatusLateCount.setText(String.valueOf(lateCount));
+            if (tvStatusCancelledCount != null) tvStatusCancelledCount.setText(String.valueOf(cancelledCount));
+
+            // Update growth indicator
+            updateGrowthIndicator(startTime, totalRevenue);
+
+            // Update target progress
+            updateTargetProgress(totalRevenue);
+
+            // Render recent transactions for this period
+            renderRecentTransactions(filtered);
+
+            // Update bar chart
+            updateBarChart(filtered);
+        } catch (Exception e) {
+            Log.e(TAG, "Error in applyFilterAndUpdateUI", e);
         }
-
-        double netIncome = totalIncome + pendingBalance - totalWithdrawnPeriod;
-        double totalRevenue = totalIncome + pendingBalance;
-
-        // Update UI
-        if (tvTotalIncomeHeader != null) tvTotalIncomeHeader.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(totalRevenue));
-        if (tvWalletAvailable != null) tvWalletAvailable.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(availableBalance));
-        if (tvWalletPending != null) tvWalletPending.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(pendingBalance));
-        if (tvPaymentInValue != null) tvPaymentInValue.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(totalIncome));
-        if (tvPaymentPendingValue != null) tvPaymentPendingValue.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(pendingBalance));
-        if (tvExpenseValue != null) tvExpenseValue.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(totalWithdrawnPeriod));
-        if (tvNetIncomeValue != null) tvNetIncomeValue.setText(com.koshub.psdku.utils.CurrencyHelper.formatRupiah(netIncome));
-        if (tvStatusLunasCount != null) tvStatusLunasCount.setText(String.valueOf(lunasCount));
-        if (tvStatusPendingCount != null) tvStatusPendingCount.setText(String.valueOf(pendingCount));
-        if (tvStatusLateCount != null) tvStatusLateCount.setText(String.valueOf(lateCount));
-        if (tvStatusCancelledCount != null) tvStatusCancelledCount.setText(String.valueOf(cancelledCount));
-
-        // Update growth indicator
-        updateGrowthIndicator(startTime, totalRevenue);
-
-        // Update target progress
-        updateTargetProgress(totalRevenue);
-
-        // Render recent transactions for this period
-        renderRecentTransactions(filtered);
-
-        // Update bar chart
-        updateBarChart(filtered);
     }
 
     private void updateGrowthIndicator(long currentPeriodStart, double currentRevenue) {
@@ -403,118 +444,124 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
     }
 
     private void renderRecentTransactions(List<com.koshub.psdku.models.Transaction> transactions) {
-        LinearLayout container = findViewById(R.id.tvDummyTransactionContainer);
-        if (container == null) return;
+        try {
+            LinearLayout container = findViewById(R.id.tvDummyTransactionContainer);
+            if (container == null) return;
 
-        // Always hide old dummy, show real container
-        container.setVisibility(View.VISIBLE);
-        container.removeAllViews();
+            // Always hide old dummy, show real container
+            container.setVisibility(View.VISIBLE);
+            container.removeAllViews();
 
-        if (transactions.isEmpty()) {
-            android.widget.TextView emptyView = new android.widget.TextView(this);
-            emptyView.setText("Tidak ada transaksi pada periode ini.");
-            emptyView.setTextColor(getResources().getColor(R.color.finance_text_muted));
-            emptyView.setTextSize(12);
-            emptyView.setGravity(android.view.Gravity.CENTER);
-            emptyView.setPadding(0, 32, 0, 32);
-            container.addView(emptyView);
-            // Update insight 2
-            if (tvInsight2 != null) tvInsight2.setText("✅ Tidak ada transaksi menunggu pada periode ini");
-            return;
-        }
-
-        // Show max 5 recent transactions
-        int count = Math.min(transactions.size(), 5);
-        int pendingCount = 0;
-
-        for (int i = 0; i < count; i++) {
-            com.koshub.psdku.models.Transaction t = transactions.get(i);
-            if ("pending".equals(t.getStatus())) pendingCount++;
-
-            // Transaction row
-            android.widget.LinearLayout row = new android.widget.LinearLayout(this);
-            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
-            android.widget.LinearLayout.LayoutParams rowParams = new android.widget.LinearLayout.LayoutParams(
-                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
-            rowParams.topMargin = 20;
-            row.setLayoutParams(rowParams);
-
-            // Left text section
-            android.widget.LinearLayout textSection = new android.widget.LinearLayout(this);
-            textSection.setOrientation(android.widget.LinearLayout.VERTICAL);
-            android.widget.LinearLayout.LayoutParams textParams = new android.widget.LinearLayout.LayoutParams(
-                0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            textSection.setLayoutParams(textParams);
-
-            android.widget.TextView tvKosName = new android.widget.TextView(this);
-            tvKosName.setText(t.getKosName() != null && !t.getKosName().isEmpty() ? t.getKosName() : "Pembayaran Sewa");
-            tvKosName.setTextColor(getResources().getColor(R.color.finance_text_primary));
-            tvKosName.setTextSize(13);
-            tvKosName.setTypeface(null, android.graphics.Typeface.BOLD);
-
-            android.widget.TextView tvDate = new android.widget.TextView(this);
-            tvDate.setText(com.koshub.psdku.utils.DateHelper.formatDate(t.getCreatedAt()));
-            tvDate.setTextColor(getResources().getColor(R.color.finance_text_muted));
-            tvDate.setTextSize(11);
-
-            textSection.addView(tvKosName);
-            textSection.addView(tvDate);
-
-            // Right amount + status
-            android.widget.LinearLayout rightSection = new android.widget.LinearLayout(this);
-            rightSection.setOrientation(android.widget.LinearLayout.VERTICAL);
-            rightSection.setGravity(android.view.Gravity.END);
-
-            android.widget.TextView tvAmount = new android.widget.TextView(this);
-            boolean isIncome = "available".equals(t.getStatus()) || "withdrawn".equals(t.getStatus());
-            boolean isPending = "pending".equals(t.getStatus());
-            String amountPrefix = isIncome ? "+" : (isPending ? "" : "-");
-            int amountColor = isIncome ? getResources().getColor(R.color.finance_income_green) :
-                              isPending ? getResources().getColor(R.color.finance_pending_orange) :
-                              getResources().getColor(R.color.finance_expense_red);
-
-            tvAmount.setText(amountPrefix + com.koshub.psdku.utils.CurrencyHelper.formatRupiah(t.getAmount()));
-            tvAmount.setTextColor(amountColor);
-            tvAmount.setTextSize(13);
-            tvAmount.setTypeface(null, android.graphics.Typeface.BOLD);
-
-            android.widget.TextView tvStatus = new android.widget.TextView(this);
-            String statusLabel = "available".equals(t.getStatus()) ? "Lunas" :
-                                 "pending".equals(t.getStatus()) ? "Pending" :
-                                 "withdrawn".equals(t.getStatus()) ? "Dicairkan" : "Dibatalkan";
-            tvStatus.setText(statusLabel);
-            tvStatus.setTextSize(9);
-            tvStatus.setTextColor(amountColor);
-
-            rightSection.addView(tvAmount);
-            rightSection.addView(tvStatus);
-
-            row.addView(textSection);
-            row.addView(rightSection);
-            container.addView(row);
-
-            // Divider (not last)
-            if (i < count - 1) {
-                View divider = new View(this);
-                android.widget.LinearLayout.LayoutParams divParams = new android.widget.LinearLayout.LayoutParams(
-                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 1);
-                divParams.topMargin = 12;
-                divider.setLayoutParams(divParams);
-                divider.setBackgroundColor(getResources().getColor(R.color.finance_divider));
-                container.addView(divider);
+            if (transactions == null || transactions.isEmpty()) {
+                android.widget.TextView emptyView = new android.widget.TextView(this);
+                emptyView.setText("Tidak ada transaksi pada periode ini.");
+                emptyView.setTextColor(getResources().getColor(R.color.finance_text_muted));
+                emptyView.setTextSize(12);
+                emptyView.setGravity(android.view.Gravity.CENTER);
+                emptyView.setPadding(0, 32, 0, 32);
+                container.addView(emptyView);
+                // Update insight 2
+                if (tvInsight2 != null) tvInsight2.setText("✅ Tidak ada transaksi menunggu pada periode ini");
+                return;
             }
-        }
 
-        // Update insight 2 (pending count)
-        if (tvInsight2 != null) {
-            int finalPending = pendingCount;
-            if (finalPending > 0) {
-                tvInsight2.setText("⏳ " + finalPending + " pembayaran masih menunggu konfirmasi");
-            } else {
-                tvInsight2.setText("✅ Semua pembayaran pada periode ini sudah lunas");
+            // Show max 5 recent transactions
+            int count = Math.min(transactions.size(), 5);
+            int pendingCount = 0;
+
+            for (int i = 0; i < count; i++) {
+                com.koshub.psdku.models.Transaction t = transactions.get(i);
+                if (t == null) continue;
+
+                if ("pending".equals(t.getStatus())) pendingCount++;
+
+                // Transaction row
+                android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+                row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+                row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                android.widget.LinearLayout.LayoutParams rowParams = new android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+                rowParams.topMargin = 20;
+                row.setLayoutParams(rowParams);
+
+                // Left text section
+                android.widget.LinearLayout textSection = new android.widget.LinearLayout(this);
+                textSection.setOrientation(android.widget.LinearLayout.VERTICAL);
+                android.widget.LinearLayout.LayoutParams textParams = new android.widget.LinearLayout.LayoutParams(
+                    0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+                textSection.setLayoutParams(textParams);
+
+                android.widget.TextView tvKosName = new android.widget.TextView(this);
+                tvKosName.setText(t.getKosName() != null && !t.getKosName().isEmpty() ? t.getKosName() : "Pembayaran Sewa");
+                tvKosName.setTextColor(getResources().getColor(R.color.finance_text_primary));
+                tvKosName.setTextSize(13);
+                tvKosName.setTypeface(null, android.graphics.Typeface.BOLD);
+
+                android.widget.TextView tvDate = new android.widget.TextView(this);
+                tvDate.setText(com.koshub.psdku.utils.DateHelper.formatDate(t.getCreatedAt()));
+                tvDate.setTextColor(getResources().getColor(R.color.finance_text_muted));
+                tvDate.setTextSize(11);
+
+                textSection.addView(tvKosName);
+                textSection.addView(tvDate);
+
+                // Right amount + status
+                android.widget.LinearLayout rightSection = new android.widget.LinearLayout(this);
+                rightSection.setOrientation(android.widget.LinearLayout.VERTICAL);
+                rightSection.setGravity(android.view.Gravity.END);
+
+                android.widget.TextView tvAmount = new android.widget.TextView(this);
+                boolean isIncome = "available".equals(t.getStatus()) || "withdrawn".equals(t.getStatus());
+                boolean isPending = "pending".equals(t.getStatus());
+                String amountPrefix = isIncome ? "+" : (isPending ? "" : "-");
+                int amountColor = isIncome ? getResources().getColor(R.color.finance_income_green) :
+                                  isPending ? getResources().getColor(R.color.finance_pending_orange) :
+                                  getResources().getColor(R.color.finance_expense_red);
+
+                tvAmount.setText(amountPrefix + com.koshub.psdku.utils.CurrencyHelper.formatRupiah(t.getAmount()));
+                tvAmount.setTextColor(amountColor);
+                tvAmount.setTextSize(13);
+                tvAmount.setTypeface(null, android.graphics.Typeface.BOLD);
+
+                android.widget.TextView tvStatus = new android.widget.TextView(this);
+                String statusLabel = "available".equals(t.getStatus()) ? "Lunas" :
+                                     "pending".equals(t.getStatus()) ? "Pending" :
+                                     "withdrawn".equals(t.getStatus()) ? "Dicairkan" : "Dibatalkan";
+                tvStatus.setText(statusLabel);
+                tvStatus.setTextSize(9);
+                tvStatus.setTextColor(amountColor);
+
+                rightSection.addView(tvAmount);
+                rightSection.addView(tvStatus);
+
+                row.addView(textSection);
+                row.addView(rightSection);
+                container.addView(row);
+
+                // Divider (not last)
+                if (i < count - 1) {
+                    View divider = new View(this);
+                    android.widget.LinearLayout.LayoutParams divParams = new android.widget.LinearLayout.LayoutParams(
+                        android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 1);
+                    divParams.topMargin = 12;
+                    divider.setLayoutParams(divParams);
+                    divider.setBackgroundColor(getResources().getColor(R.color.finance_divider));
+                    container.addView(divider);
+                }
             }
+
+            // Update insight 2 (pending count)
+            if (tvInsight2 != null) {
+                int finalPending = pendingCount;
+                if (finalPending > 0) {
+                    tvInsight2.setText("⏳ " + finalPending + " pembayaran masih menunggu konfirmasi");
+                } else {
+                    tvInsight2.setText("✅ Semua pembayaran pada periode ini sudah lunas");
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in renderRecentTransactions", e);
         }
     }
 
@@ -860,44 +907,52 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
     }
 
     private void renderWithdrawals(List<Withdrawal> withdrawals) {
-        withdrawalHistoryContainer.removeAllViews();
-        LayoutInflater inflater = LayoutInflater.from(this);
+        try {
+            if (withdrawalHistoryContainer == null) return;
+            withdrawalHistoryContainer.removeAllViews();
+            LayoutInflater inflater = LayoutInflater.from(this);
 
-        if (withdrawals.isEmpty()) {
-            TextView emptyText = new TextView(this);
-            emptyText.setText("Belum ada riwayat penarikan.");
-            emptyText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-            emptyText.setPadding(0, 20, 0, 20);
-            withdrawalHistoryContainer.addView(emptyText);
-            return;
-        }
-
-        // Limit to 5 for the overview
-        int count = Math.min(withdrawals.size(), 5);
-        for (int i = 0; i < count; i++) {
-            Withdrawal w = withdrawals.get(i);
-            View itemView = inflater.inflate(R.layout.item_withdrawal_history, withdrawalHistoryContainer, false);
-
-            TextView tvAmount = itemView.findViewById(R.id.tvWithdrawAmount);
-            TextView tvDate = itemView.findViewById(R.id.tvWithdrawDate);
-            TextView tvStatus = itemView.findViewById(R.id.tvWithdrawStatus);
-
-            tvAmount.setText(CurrencyHelper.formatRupiah(w.getAmount()));
-            tvDate.setText(DateHelper.formatDate(w.getCreatedAt()) + " • " + w.getBankName());
-            tvStatus.setText(formatStatus(w.getStatus()));
-            
-            // Set status background and text color based on status
-            setStatusStyle(tvStatus, w.getStatus());
-
-            withdrawalHistoryContainer.addView(itemView);
-
-            // Add divider if not last
-            if (i < count - 1) {
-                View divider = new View(this);
-                divider.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
-                divider.setBackgroundColor(getResources().getColor(R.color.finance_divider));
-                withdrawalHistoryContainer.addView(divider);
+            if (withdrawals == null || withdrawals.isEmpty()) {
+                TextView emptyText = new TextView(this);
+                emptyText.setText("Belum ada riwayat penarikan.");
+                emptyText.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+                emptyText.setPadding(0, 20, 0, 20);
+                withdrawalHistoryContainer.addView(emptyText);
+                return;
             }
+
+            // Limit to 5 for the overview
+            int count = Math.min(withdrawals.size(), 5);
+            for (int i = 0; i < count; i++) {
+                Withdrawal w = withdrawals.get(i);
+                if (w == null) continue;
+                View itemView = inflater.inflate(R.layout.item_withdrawal_history, withdrawalHistoryContainer, false);
+                if (itemView == null) continue;
+
+                TextView tvAmount = itemView.findViewById(R.id.tvWithdrawAmount);
+                TextView tvDate = itemView.findViewById(R.id.tvWithdrawDate);
+                TextView tvStatus = itemView.findViewById(R.id.tvWithdrawStatus);
+
+                if (tvAmount != null) tvAmount.setText(CurrencyHelper.formatRupiah(w.getAmount()));
+                if (tvDate != null) tvDate.setText(DateHelper.formatDate(w.getCreatedAt()) + " • " + w.getBankName());
+                if (tvStatus != null) {
+                    tvStatus.setText(formatStatus(w.getStatus()));
+                    // Set status background and text color based on status
+                    setStatusStyle(tvStatus, w.getStatus());
+                }
+
+                withdrawalHistoryContainer.addView(itemView);
+
+                // Add divider if not last
+                if (i < count - 1) {
+                    View divider = new View(this);
+                    divider.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
+                    divider.setBackgroundColor(getResources().getColor(R.color.finance_divider));
+                    withdrawalHistoryContainer.addView(divider);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error in renderWithdrawals", e);
         }
     }
 
@@ -930,6 +985,13 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
                 tv.setTextColor(getResources().getColor(R.color.finance_pending_orange));
                 break;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (transactionListener != null) transactionListener.remove();
+        if (withdrawalListener != null) withdrawalListener.remove();
+        super.onDestroy();
     }
 
     private void showToast(String message) {
