@@ -3,10 +3,16 @@ package com.koshub.psdku;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -35,7 +41,53 @@ public class FavoriteListActivity extends AppCompatActivity implements KosAdapte
         setContentView(R.layout.activity_favorite_list);
 
         initViews();
+        applyFavoriteInsets();
         loadFavorites();
+    }
+
+    private void applyFavoriteInsets() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        WindowInsetsControllerCompat controller =
+                new WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView());
+        controller.setAppearanceLightStatusBars(true);
+        controller.setAppearanceLightNavigationBars(true);
+
+        View root = findViewById(R.id.rootFavoriteList);
+        View statusBarSpacer = findViewById(R.id.statusBarSpacer);
+
+        final int rvBaseLeft = rvFavorites.getPaddingLeft();
+        final int rvBaseTop = rvFavorites.getPaddingTop();
+        final int rvBaseRight = rvFavorites.getPaddingRight();
+        final int rvBaseBottom = rvFavorites.getPaddingBottom();
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+            ViewGroup.LayoutParams spacerParams = statusBarSpacer.getLayoutParams();
+            if (spacerParams.height != bars.top) {
+                spacerParams.height = bars.top;
+                statusBarSpacer.setLayoutParams(spacerParams);
+            }
+
+            rvFavorites.setPadding(
+                    rvBaseLeft,
+                    rvBaseTop,
+                    rvBaseRight,
+                    rvBaseBottom + bars.bottom
+            );
+
+            layoutEmpty.setPadding(
+                    layoutEmpty.getPaddingLeft(),
+                    layoutEmpty.getPaddingTop(),
+                    layoutEmpty.getPaddingRight(),
+                    bars.bottom
+            );
+
+            return insets;
+        });
+
+        ViewCompat.requestApplyInsets(root);
     }
 
     private void initViews() {
@@ -141,7 +193,7 @@ public class FavoriteListActivity extends AppCompatActivity implements KosAdapte
 
     @Override
     public void onFavoriteClick(KosItem item, int position) {
-        FavoriteRepository.getInstance().toggleFavorite(item, new FavoriteRepository.SimpleCallback() {
+        FavoriteRepository.getInstance().setFavorite(item, item.isFavorite(), new FavoriteRepository.SimpleCallback() {
             @Override
             public void onSuccess(String message) {
                 Toast.makeText(FavoriteListActivity.this, message, Toast.LENGTH_SHORT).show();

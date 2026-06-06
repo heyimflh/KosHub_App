@@ -2,6 +2,7 @@ package com.koshub.psdku;
 
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
@@ -14,6 +15,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -40,6 +46,7 @@ public class StudentPaymentMethodsActivity extends AppCompatActivity {
     private TextView tvDefaultProvider, tvDefaultAccount;
     private ImageView ivDefaultIcon;
     private LinearLayout layoutEmpty;
+    private View btnAddMethod;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,6 +60,7 @@ public class StudentPaymentMethodsActivity extends AppCompatActivity {
         }
 
         initViews();
+        applyPaymentMethodsInsets();
         setupRecyclerView();
         loadData();
     }
@@ -66,7 +74,59 @@ public class StudentPaymentMethodsActivity extends AppCompatActivity {
         ivDefaultIcon = findViewById(R.id.ivDefaultIcon);
         layoutEmpty = findViewById(R.id.layoutEmptyMethods);
 
-        findViewById(R.id.btnAddMethod).setOnClickListener(v -> showAddEditSheet(null));
+        btnAddMethod = findViewById(R.id.btnAddMethod);
+        btnAddMethod.setOnClickListener(v -> showAddEditSheet(null));
+    }
+
+    private void applyPaymentMethodsInsets() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        WindowInsetsControllerCompat controller =
+                new WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView());
+        controller.setAppearanceLightStatusBars(true);
+        controller.setAppearanceLightNavigationBars(true);
+
+        View root = findViewById(R.id.rootStudentPaymentMethods);
+        View statusBarSpacer = findViewById(R.id.statusBarSpacer);
+        View scroll = findViewById(R.id.scrollPaymentMethods);
+
+        final int scrollLeft = scroll.getPaddingLeft();
+        final int scrollTop = scroll.getPaddingTop();
+        final int scrollRight = scroll.getPaddingRight();
+        final int scrollBottom = scroll.getPaddingBottom();
+
+        final ViewGroup.MarginLayoutParams buttonParams =
+                (ViewGroup.MarginLayoutParams) btnAddMethod.getLayoutParams();
+        final int buttonBaseBottomMargin = buttonParams.bottomMargin;
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+            ViewGroup.LayoutParams spacerParams = statusBarSpacer.getLayoutParams();
+            if (spacerParams.height != bars.top) {
+                spacerParams.height = bars.top;
+                statusBarSpacer.setLayoutParams(spacerParams);
+            }
+
+            scroll.setPadding(
+                    scrollLeft,
+                    scrollTop,
+                    scrollRight,
+                    scrollBottom
+            );
+
+            ViewGroup.MarginLayoutParams params =
+                    (ViewGroup.MarginLayoutParams) btnAddMethod.getLayoutParams();
+            int targetBottomMargin = buttonBaseBottomMargin + bars.bottom;
+            if (params.bottomMargin != targetBottomMargin) {
+                params.bottomMargin = targetBottomMargin;
+                btnAddMethod.setLayoutParams(params);
+            }
+
+            return insets;
+        });
+
+        ViewCompat.requestApplyInsets(root);
     }
 
     private void setupRecyclerView() {

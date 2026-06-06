@@ -13,7 +13,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="KosHub_PSDKU"
+        android:label="KosHub PSDKU"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.KosHub">
@@ -218,6 +218,12 @@
             tools:replace="android:exported"
             android:label="Dokumen Saya"
             android:theme="@style/Theme.KosHub.Material" />
+
+        <activity
+            android:name="com.google.android.libraries.places.widget.AutocompleteActivity"
+            android:theme="@style/Theme.KosHub.PlacesAutocomplete"
+            tools:node="merge"
+            tools:replace="android:theme" />
 
         <service
             android:name=".services.KosHubMessagingService"

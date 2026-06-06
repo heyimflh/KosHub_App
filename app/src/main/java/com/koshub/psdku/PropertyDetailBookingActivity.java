@@ -18,6 +18,11 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
@@ -43,7 +48,6 @@ import com.koshub.psdku.repositories.ReviewRepository;
 import com.koshub.psdku.utils.AutoKosDescriptionBuilder;
 import com.koshub.psdku.utils.KosLocationUtils;
 import com.koshub.psdku.utils.KosMapper;
-import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -107,14 +111,57 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         setupListeners();
         populateData();
 
-        SystemInsetsHelper.applySystemBars(
-            this,
-            findViewById(R.id.topPropertyNav),
-            findViewById(R.id.bottomBookingBar),
-            findViewById(R.id.scrollPropertyDetail),
-            false,
-            true
-        );
+        applyPropertyDetailInsets();
+    }
+
+    private void applyPropertyDetailInsets() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        WindowInsetsControllerCompat controller =
+                new WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView());
+
+        // Hero image berada di belakang status bar, jadi icon status bar harus light/putih.
+        controller.setAppearanceLightStatusBars(false);
+        controller.setAppearanceLightNavigationBars(true);
+
+        View root = findViewById(R.id.rootPropertyDetail);
+        View topNav = findViewById(R.id.topPropertyNav);
+        View bottomBar = findViewById(R.id.bottomBookingBar);
+        View scrollContent = findViewById(R.id.scrollPropertyDetail);
+
+        final int topNavBasePaddingTop = topNav.getPaddingTop();
+        final int topNavBasePaddingBottom = topNav.getPaddingBottom();
+        final int bottomBarBasePaddingBottom = bottomBar.getPaddingBottom();
+        final int scrollBasePaddingBottom = scrollContent.getPaddingBottom();
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+            topNav.setPadding(
+                    topNav.getPaddingLeft(),
+                    bars.top + topNavBasePaddingTop,
+                    topNav.getPaddingRight(),
+                    topNavBasePaddingBottom
+            );
+
+            bottomBar.setPadding(
+                    bottomBar.getPaddingLeft(),
+                    bottomBar.getPaddingTop(),
+                    bottomBar.getPaddingRight(),
+                    bottomBarBasePaddingBottom + bars.bottom
+            );
+
+            scrollContent.setPadding(
+                    scrollContent.getPaddingLeft(),
+                    scrollContent.getPaddingTop(),
+                    scrollContent.getPaddingRight(),
+                    scrollBasePaddingBottom + bars.bottom
+            );
+
+            return insets;
+        });
+
+        ViewCompat.requestApplyInsets(root);
     }
 
     private void initViews() {
@@ -211,16 +258,35 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
 
     private void toggleFavorite() {
         if (currentItem == null) return;
-        FavoriteRepository.getInstance().toggleFavorite(currentItem, new FavoriteRepository.SimpleCallback() {
+
+        boolean target = !isFavorited;
+        isFavorited = target;
+        currentItem.setFavorite(target);
+
+        // Update icon directly
+        if (isFavorited) {
+            btnFavorite.setImageResource(R.drawable.ic_favorite_filled);
+        } else {
+            btnFavorite.setImageResource(R.drawable.ic_favorite_border);
+        }
+
+        FavoriteRepository.getInstance().setFavorite(currentItem, target, new FavoriteRepository.SimpleCallback() {
             @Override
             public void onSuccess(String message) {
                 showCustomToast(message);
-                checkFavoriteStatus();
             }
 
             @Override
             public void onError(String message) {
                 showCustomToast(message);
+                // Revert on error
+                isFavorited = !target;
+                currentItem.setFavorite(!target);
+                if (isFavorited) {
+                    btnFavorite.setImageResource(R.drawable.ic_favorite_filled);
+                } else {
+                    btnFavorite.setImageResource(R.drawable.ic_favorite_border);
+                }
             }
         });
     }

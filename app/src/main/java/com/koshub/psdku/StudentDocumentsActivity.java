@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -15,6 +16,11 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
@@ -60,7 +66,47 @@ public class StudentDocumentsActivity extends AppCompatActivity {
         }
 
         initViews();
+        applyStudentDocumentsInsets();
         listenToDocuments();
+    }
+
+    private void applyStudentDocumentsInsets() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        WindowInsetsControllerCompat controller =
+                new WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView());
+        controller.setAppearanceLightStatusBars(true);
+        controller.setAppearanceLightNavigationBars(true);
+
+        View root = findViewById(R.id.rootStudentDocuments);
+        View statusBarSpacer = findViewById(R.id.statusBarSpacer);
+        View scroll = findViewById(R.id.scrollDocuments);
+
+        final int scrollLeft = scroll.getPaddingLeft();
+        final int scrollTop = scroll.getPaddingTop();
+        final int scrollRight = scroll.getPaddingRight();
+        final int scrollBottom = scroll.getPaddingBottom();
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+            ViewGroup.LayoutParams spacerParams = statusBarSpacer.getLayoutParams();
+            if (spacerParams.height != bars.top) {
+                spacerParams.height = bars.top;
+                statusBarSpacer.setLayoutParams(spacerParams);
+            }
+
+            scroll.setPadding(
+                    scrollLeft,
+                    scrollTop,
+                    scrollRight,
+                    scrollBottom + bars.bottom
+            );
+
+            return insets;
+        });
+
+        ViewCompat.requestApplyInsets(root);
     }
 
     private void initViews() {

@@ -14,6 +14,11 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -22,7 +27,6 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.koshub.psdku.models.AppNotification;
 import com.koshub.psdku.repositories.NotificationRepository;
 import com.koshub.psdku.utils.DatabaseConstants;
-import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -51,14 +55,41 @@ public class NotificationActivity extends AppCompatActivity {
         setupRecyclerView();
         loadNotifications();
 
-        SystemInsetsHelper.applySystemBars(
-            this,
-            findViewById(R.id.headerNotification),
-            null,
-            rvNotifications,
-            true,
-            true
-        );
+        applyNotificationInsets();
+    }
+
+    private void applyNotificationInsets() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        // Set light status bar and navigation bar
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        if (controller != null) {
+            controller.setAppearanceLightStatusBars(true);
+            controller.setAppearanceLightNavigationBars(true);
+        }
+
+        View rootNotification = findViewById(R.id.rootNotification);
+        View statusBarSpacer = findViewById(R.id.statusBarSpacer);
+
+        ViewCompat.setOnApplyWindowInsetsListener(rootNotification, (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+            // Adjust spacer height for status bar
+            ViewGroup.LayoutParams lp = statusBarSpacer.getLayoutParams();
+            lp.height = systemBars.top;
+            statusBarSpacer.setLayoutParams(lp);
+
+            // Adjust RecyclerView padding for navigation bar
+            rvNotifications.setPadding(
+                    rvNotifications.getPaddingLeft(),
+                    rvNotifications.getPaddingTop(),
+                    rvNotifications.getPaddingRight(),
+                    (int) (16 * getResources().getDisplayMetrics().density) + systemBars.bottom
+            );
+
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(rootNotification);
     }
 
     private void initViews() {

@@ -68,25 +68,31 @@ public class FavoriteRepository {
     }
 
     public void toggleFavorite(KosItem kos, SimpleCallback callback) {
+        if (kos == null) {
+            callback.onError("Data kos tidak valid.");
+            return;
+        }
+        setFavorite(kos, kos.isFavorite(), callback);
+    }
+
+    public void setFavorite(KosItem kos, boolean shouldFavorite, SimpleCallback callback) {
         String uid = auth.getUid();
         if (uid == null) {
             callback.onError("Kamu harus login terlebih dahulu.");
             return;
         }
 
+        if (kos == null || kos.getId() == null || kos.getId().isEmpty()) {
+            callback.onError("Data kos tidak valid.");
+            return;
+        }
+
         String favId = generateFavoriteId(uid, kos.getId());
-        db.collection(DatabaseConstants.COLLECTION_FAVORITES).document(favId).get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        removeFavorite(favId, callback);
-                    } else {
-                        addFavorite(uid, kos, callback);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "toggleFavorite check error: " + e.getMessage());
-                    callback.onError("Gagal memperbarui favorit.");
-                });
+        if (shouldFavorite) {
+            addFavorite(uid, kos, callback);
+        } else {
+            removeFavorite(favId, callback);
+        }
     }
 
     private void addFavorite(String uid, KosItem kos, SimpleCallback callback) {
@@ -105,6 +111,9 @@ public class FavoriteRepository {
                 .addOnSuccessListener(aVoid -> callback.onSuccess("Ditambahkan ke favorit"))
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "addFavorite error: " + e.getMessage());
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException) {
+                        Log.e(TAG, "Code: " + ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode());
+                    }
                     callback.onError("Gagal menambahkan ke favorit.");
                 });
     }
@@ -114,6 +123,9 @@ public class FavoriteRepository {
                 .addOnSuccessListener(aVoid -> callback.onSuccess("Dihapus dari favorit"))
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "removeFavorite error: " + e.getMessage());
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException) {
+                        Log.e(TAG, "Code: " + ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode());
+                    }
                     callback.onError("Gagal menghapus dari favorit.");
                 });
     }

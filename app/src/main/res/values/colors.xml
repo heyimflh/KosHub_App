@@ -182,4 +182,6 @@
     <color name="bg_gradient_start">#E5F5F0</color>
     <color name="bg_gradient_end">#FFFFFF</color>
     <color name="dot_inactive_onboarding">#D1E0DB</color>
+
+    <color name="launcher_icon_background">#F7FBF8</color>
 </resources>

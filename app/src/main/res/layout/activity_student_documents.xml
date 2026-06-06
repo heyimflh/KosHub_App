@@ -1,16 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootStudentDocuments"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background_screen"
     android:orientation="vertical">
 
+    <View
+        android:id="@+id/statusBarSpacer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/background_screen" />
+
     <include layout="@layout/include_simple_header" />
 
     <ScrollView
+        android:id="@+id/scrollDocuments"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <LinearLayout
             android:layout_width="match_parent"

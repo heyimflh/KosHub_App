@@ -3,11 +3,17 @@ package com.koshub.psdku;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -38,8 +44,54 @@ public class RentalHistoryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_rental_history);
 
         initViews();
+        applyRentalHistoryInsets();
         setupListeners();
         loadBookings();
+    }
+
+    private void applyRentalHistoryInsets() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        WindowInsetsControllerCompat controller =
+                new WindowInsetsControllerCompat(getWindow(), getWindow().getDecorView());
+        controller.setAppearanceLightStatusBars(true);
+        controller.setAppearanceLightNavigationBars(true);
+
+        View root = findViewById(R.id.rootRentalHistory);
+        View statusBarSpacer = findViewById(R.id.statusBarSpacer);
+
+        final int rvBaseLeft = rvHistory.getPaddingLeft();
+        final int rvBaseTop = rvHistory.getPaddingTop();
+        final int rvBaseRight = rvHistory.getPaddingRight();
+        final int rvBaseBottom = rvHistory.getPaddingBottom();
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+            ViewGroup.LayoutParams spacerParams = statusBarSpacer.getLayoutParams();
+            if (spacerParams.height != bars.top) {
+                spacerParams.height = bars.top;
+                statusBarSpacer.setLayoutParams(spacerParams);
+            }
+
+            rvHistory.setPadding(
+                    rvBaseLeft,
+                    rvBaseTop,
+                    rvBaseRight,
+                    rvBaseBottom + bars.bottom
+            );
+
+            layoutEmpty.setPadding(
+                    layoutEmpty.getPaddingLeft(),
+                    layoutEmpty.getPaddingTop(),
+                    layoutEmpty.getPaddingRight(),
+                    bars.bottom
+            );
+
+            return insets;
+        });
+
+        ViewCompat.requestApplyInsets(root);
     }
 
     private void initViews() {

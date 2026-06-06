@@ -25,7 +25,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.slider.RangeSlider;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.koshub.psdku.models.Favorite;
 import com.koshub.psdku.repositories.FCMTokenRepository;
 import com.koshub.psdku.repositories.FavoriteRepository;
 import com.koshub.psdku.repositories.KosRepository;
@@ -144,6 +146,8 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
 
                 allKosList.clear();
                 allKosList.addAll(items);
+
+                applyFavoriteStates();
 
                 // Preserve search/filter if user is currently typing
                 String currentSearch = etSearch != null ? etSearch.getText().toString() : "";
@@ -523,7 +527,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
 
     @Override
     public void onFavoriteClick(KosItem item, int position) {
-        FavoriteRepository.getInstance().toggleFavorite(item, new FavoriteRepository.SimpleCallback() {
+        FavoriteRepository.getInstance().setFavorite(item, item.isFavorite(), new FavoriteRepository.SimpleCallback() {
             @Override
             public void onSuccess(String message) {
                 showToast(message);
@@ -535,6 +539,38 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
                 // Revert state on error
                 item.setFavorite(!item.isFavorite());
                 adapter.notifyItemChanged(position);
+            }
+        });
+    }
+
+    private void applyFavoriteStates() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        FavoriteRepository.getInstance().getFavoritesByUser(uid, new FavoriteRepository.FavoriteListCallback() {
+            @Override
+            public void onSuccess(List<Favorite> favorites) {
+                java.util.Set<String> favoriteKosIds = new java.util.HashSet<>();
+                for (Favorite fav : favorites) {
+                    favoriteKosIds.add(fav.getKosId());
+                }
+
+                for (KosItem item : allKosList) {
+                    item.setFavorite(favoriteKosIds.contains(item.getId()));
+                }
+                
+                for (KosItem item : filteredList) {
+                    item.setFavorite(favoriteKosIds.contains(item.getId()));
+                }
+
+                if (adapter != null) {
+                    adapter.notifyDataSetChanged();
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                Log.e("KosHubFavorite", "Failed to sync favorites: " + message);
             }
         });
     }

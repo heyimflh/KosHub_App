@@ -208,11 +208,28 @@ service cloud.firestore {
 
     // FAVORITES
     match /favorites/{favoriteId} {
-      allow read, delete: if isSignedIn()
+      function isFavoriteOwnerById() {
+        return isSignedIn()
+          && favoriteId.matches(request.auth.uid + "_.*");
+      }
+
+      allow get: if isFavoriteOwnerById()
+        || (
+          isSignedIn()
+          && resource.data.userId == request.auth.uid
+        );
+
+      allow list: if isSignedIn()
         && resource.data.userId == request.auth.uid;
 
       allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid;
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.kosId is string
+        && request.resource.data.kosId.size() > 0
+        && favoriteId == request.auth.uid + "_" + request.resource.data.kosId;
+
+      allow delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
 
       allow update: if false;
     }
