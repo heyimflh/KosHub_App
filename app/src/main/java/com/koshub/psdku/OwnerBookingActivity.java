@@ -14,11 +14,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.koshub.psdku.models.Booking;
 import com.koshub.psdku.models.Room;
 import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.KosRepository;
+import com.koshub.psdku.utils.CurrencyHelper;
 import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.DateHelper;
+import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -49,6 +54,15 @@ public class OwnerBookingActivity extends AppCompatActivity {
         initViews();
         setupClickListeners();
         loadRealBookings();
+
+        SystemInsetsHelper.applySystemBars(
+            this,
+            findViewById(R.id.headerOwnerBooking),
+            findViewById(R.id.ownerBottomNav),
+            findViewById(R.id.scrollOwnerBooking),
+            false,
+            true
+        );
     }
 
     private void initViews() {
@@ -246,18 +260,42 @@ public class OwnerBookingActivity extends AppCompatActivity {
                 TextView tvStatus = itemView.findViewById(R.id.tvBookingStatus);
                 TextView tvKosRoom = itemView.findViewById(R.id.tvKosName);
                 TextView tvPrice = itemView.findViewById(R.id.tvPrice);
+                TextView tvInitial = itemView.findViewById(R.id.tvInitial);
+                TextView tvTenantStatus = itemView.findViewById(R.id.tvTenantStatus);
+                TextView tvCheckInDate = itemView.findViewById(R.id.tvCheckInDate);
+                TextView tvDuration = itemView.findViewById(R.id.tvDuration);
 
                 View btnAccept = itemView.findViewById(R.id.btnAccept);
                 View btnReject = itemView.findViewById(R.id.btnReject);
+                View btnDetail = itemView.findViewById(R.id.btnDetail);
 
-                tvName.setText(item.getStudentName() != null ? item.getStudentName() : "Mahasiswa");
+                String studentName = item.getStudentName() != null ? item.getStudentName() : "Mahasiswa";
+                tvName.setText(studentName);
                 tvStatus.setText(status.toUpperCase());
+
+                // Set Initial
+                if (tvInitial != null) {
+                    tvInitial.setText(studentName.substring(0, 1).toUpperCase());
+                }
+
+                // Set Tenant Status (default if not available)
+                if (tvTenantStatus != null) {
+                    tvTenantStatus.setText("Mahasiswa UNS");
+                }
                 
                 String kosName = item.getKosName() != null ? item.getKosName() : "Kos";
                 String roomName = item.getRoomName() != null ? item.getRoomName() : "Antrean";
                 tvKosRoom.setText(kosName + " • " + roomName);
                 
-                tvPrice.setText("Rp " + item.getTotalPrice());
+                tvPrice.setText(CurrencyHelper.formatRupiah(getEffectiveBookingAmount(item)));
+
+                // Set Dates and Duration
+                if (tvCheckInDate != null) {
+                    tvCheckInDate.setText(item.getCheckInDate() > 0 ? DateHelper.formatDate(item.getCheckInDate()) : "-");
+                }
+                if (tvDuration != null) {
+                    tvDuration.setText(item.getDurationMonth() > 0 ? item.getDurationMonth() + " bulan" : "-");
+                }
 
                 if (DatabaseConstants.BOOKING_PENDING.equals(status)) {
                     btnAccept.setVisibility(View.VISIBLE);
@@ -267,6 +305,27 @@ public class OwnerBookingActivity extends AppCompatActivity {
                 } else {
                     btnAccept.setVisibility(View.GONE);
                     btnReject.setVisibility(View.GONE);
+                }
+
+                if (btnDetail != null) {
+                    btnDetail.setOnClickListener(v -> {
+                        if (item.getId() == null || item.getId().isEmpty()) {
+                            showToast("ID Booking tidak ditemukan.");
+                            return;
+                        }
+                        showToast("Memuat detail booking...");
+                        BookingRepository.getInstance().getBookingById(item.getId(), new BookingRepository.BookingCallback() {
+                            @Override
+                            public void onSuccess(Booking freshBooking) {
+                                showBookingDetailDialog(freshBooking);
+                            }
+
+                            @Override
+                            public void onError(String message) {
+                                showToast("Gagal memuat detail: " + message);
+                            }
+                        });
+                    });
                 }
 
                 itemView.setOnClickListener(v -> openChatFromBooking(item));
@@ -279,6 +338,160 @@ public class OwnerBookingActivity extends AppCompatActivity {
             layoutEmptyState.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
             bookingListContainer.setVisibility(count == 0 ? View.GONE : View.VISIBLE);
         }
+    }
+
+    private void showBookingDetailDialog(Booking b) {
+        if (b == null) return;
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_booking_detail, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        TextView tvTenantName = dialogView.findViewById(R.id.tvDetailTenantName);
+        TextView tvTenantContact = dialogView.findViewById(R.id.tvDetailTenantContact);
+        TextView tvKosName = dialogView.findViewById(R.id.tvDetailKosName);
+        TextView tvRoom = dialogView.findViewById(R.id.tvDetailRoom);
+        TextView tvCheckIn = dialogView.findViewById(R.id.tvDetailCheckIn);
+        TextView tvDuration = dialogView.findViewById(R.id.tvDetailDuration);
+        TextView tvTotal = dialogView.findViewById(R.id.tvDetailTotal);
+        TextView tvPaymentStatus = dialogView.findViewById(R.id.tvDetailPaymentStatus);
+        TextView tvBookingStatus = dialogView.findViewById(R.id.tvDetailBookingStatus);
+
+        View btnAccept = dialogView.findViewById(R.id.btnDialogAccept);
+        View btnChat = dialogView.findViewById(R.id.btnDialogChat);
+        View btnClose = dialogView.findViewById(R.id.btnDialogClose);
+
+        tvTenantName.setText(b.getStudentName() != null ? b.getStudentName() : "Mahasiswa");
+        
+        String contact = (b.getStudentEmail() != null ? b.getStudentEmail() : "-");
+        tvTenantContact.setText(contact);
+        
+        tvKosName.setText(b.getKosName() != null ? b.getKosName() : "Kos");
+        
+        // Accurate Room Info Resolve
+        resolveRoomForBooking(b, tvRoom);
+        
+        tvCheckIn.setText(b.getCheckInDate() > 0 ? DateHelper.formatDate(b.getCheckInDate()) : "-");
+        tvDuration.setText(b.getDurationMonth() > 0 ? b.getDurationMonth() + " bulan" : "-");
+        
+        // Effective Amount
+        tvTotal.setText(CurrencyHelper.formatRupiah(getEffectiveBookingAmount(b)));
+
+        // Status Booking Label
+        tvBookingStatus.setText(getBookingStatusLabel(b.getStatus()));
+
+        // Status Pembayaran Label & Color
+        String pStatusLabel = getPaymentStatusLabel(b);
+        tvPaymentStatus.setText(pStatusLabel);
+        
+        if ("Sudah Bayar".equals(pStatusLabel)) {
+            tvPaymentStatus.setTextColor(ContextCompat.getColor(this, R.color.brand_green));
+        } else if ("Menunggu Pembayaran".equals(pStatusLabel)) {
+            tvPaymentStatus.setTextColor(ContextCompat.getColor(this, R.color.status_pending_text));
+        } else if ("Refund".equals(pStatusLabel)) {
+            tvPaymentStatus.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+        } else {
+            tvPaymentStatus.setTextColor(ContextCompat.getColor(this, R.color.profile_logout_text));
+        }
+
+        if (DatabaseConstants.BOOKING_PENDING.equals(b.getStatus())) {
+            btnAccept.setVisibility(View.VISIBLE);
+            btnAccept.setOnClickListener(v -> {
+                dialog.dismiss();
+                handleAccept(b);
+            });
+        } else {
+            btnAccept.setVisibility(View.GONE);
+        }
+
+        btnChat.setOnClickListener(v -> {
+            dialog.dismiss();
+            openChatFromBooking(b);
+        });
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+    private String getBookingStatusLabel(String status) {
+        if (status == null) return "Menunggu";
+        switch (status) {
+            case DatabaseConstants.BOOKING_PENDING:
+                return "Menunggu Konfirmasi";
+            case DatabaseConstants.BOOKING_ACCEPTED:
+                return "Diterima";
+            case DatabaseConstants.BOOKING_WAITING_PAYMENT:
+                return "Menunggu Pembayaran";
+            case DatabaseConstants.BOOKING_WAITING_CHECKIN:
+                return "Menunggu Check-in";
+            case DatabaseConstants.BOOKING_ACTIVE:
+                return "Aktif";
+            case DatabaseConstants.BOOKING_COMPLETED:
+                return "Selesai";
+            case DatabaseConstants.BOOKING_REJECTED:
+                return "Ditolak";
+            case DatabaseConstants.BOOKING_CANCELLED:
+                return "Dibatalkan";
+            default:
+                return status;
+        }
+    }
+
+    private String getPaymentStatusLabel(Booking b) {
+        if (b == null) return "Belum Bayar";
+
+        String bookingStatus = b.getStatus() == null ? "" : b.getStatus();
+        String paymentStatus = b.getPaymentStatus() == null ? "" : b.getPaymentStatus();
+
+        if (DatabaseConstants.BOOKING_REJECTED.equals(bookingStatus)) {
+            return "Tidak Dibayar / Ditolak";
+        }
+
+        if (DatabaseConstants.BOOKING_CANCELLED.equals(bookingStatus)) {
+            return "Dibatalkan";
+        }
+
+        if (DatabaseConstants.PAYMENT_PAID.equals(paymentStatus)) {
+            return "Sudah Bayar";
+        }
+
+        if (DatabaseConstants.PAYMENT_PENDING.equals(paymentStatus)
+                || DatabaseConstants.BOOKING_WAITING_PAYMENT.equals(bookingStatus)) {
+            return "Menunggu Pembayaran";
+        }
+
+        if (DatabaseConstants.PAYMENT_REFUNDED.equals(paymentStatus)) {
+            return "Refund";
+        }
+
+        return "Belum Bayar";
+    }
+
+    private double getEffectiveBookingAmount(Booking b) {
+        if (b == null) return 0.0;
+
+        if (b.getTotalBayar() != null && b.getTotalBayar() > 0) {
+            return b.getTotalBayar();
+        }
+
+        if (b.getTotalPrice() > 0) {
+            return b.getTotalPrice();
+        }
+
+        if (b.getPrice() != null) {
+            try {
+                String cleaned = b.getPrice()
+                        .replace("Rp", "")
+                        .replace(".", "")
+                        .replace(",", "")
+                        .trim();
+                return Double.parseDouble(cleaned);
+            } catch (Exception ignored) {}
+        }
+
+        return 0.0;
     }
 
     private void openChatFromBooking(Booking b) {
@@ -413,5 +626,125 @@ public class OwnerBookingActivity extends AppCompatActivity {
 
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Resolves room information for a booking with fallback and backfill.
+     */
+    private void resolveRoomForBooking(Booking b, TextView tvDetailRoom) {
+        if (b == null || tvDetailRoom == null) return;
+
+        String status = b.getSafeStatus();
+
+        // 1. Existing Room Name
+        if (b.getRoomName() != null && !b.getRoomName().trim().isEmpty()) {
+            tvDetailRoom.setText("Kamar: " + b.getRoomName());
+            return;
+        }
+
+        // 2. Status check for non-accepted bookings
+        if (DatabaseConstants.BOOKING_PENDING.equals(status)) {
+            tvDetailRoom.setText("Kamar: Antrean / belum ditentukan");
+            return;
+        }
+        if (DatabaseConstants.BOOKING_REJECTED.equals(status) || DatabaseConstants.BOOKING_CANCELLED.equals(status)) {
+            tvDetailRoom.setText("Kamar: Belum ditentukan");
+            return;
+        }
+
+        // 3. Resolve from RoomId if available
+        if (b.getRoomId() != null && !b.getRoomId().trim().isEmpty()) {
+            tvDetailRoom.setText("Kamar: Memuat...");
+            FirebaseFirestore.getInstance().collection(DatabaseConstants.COLLECTION_ROOMS)
+                    .document(b.getRoomId())
+                    .get()
+                    .addOnSuccessListener(documentSnapshot -> {
+                        if (documentSnapshot.exists()) {
+                            String resolvedName = documentSnapshot.getString("roomName");
+                            if (resolvedName == null) resolvedName = documentSnapshot.getString("name");
+                            if (resolvedName == null) resolvedName = documentSnapshot.getString("code");
+                            if (resolvedName == null) resolvedName = documentSnapshot.getString("roomCode");
+                            if (resolvedName == null) resolvedName = "Kamar Terpilih";
+
+                            tvDetailRoom.setText("Kamar: " + resolvedName);
+                            // Backfill
+                            backfillBookingRoomInfo(b.getId(), b.getRoomId(), resolvedName);
+                        } else {
+                            tvDetailRoom.setText("Kamar: Belum tercatat");
+                        }
+                    })
+                    .addOnFailureListener(e -> tvDetailRoom.setText("Kamar: Belum tercatat"));
+            return;
+        }
+
+        // 4. Resolve from Room query (bookingId relation)
+        tvDetailRoom.setText("Kamar: Mencari...");
+        FirebaseFirestore.getInstance().collection(DatabaseConstants.COLLECTION_ROOMS)
+                .whereEqualTo("bookingId", b.getId())
+                .limit(1)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        DocumentSnapshot doc = querySnapshot.getDocuments().get(0);
+                        String resolvedName = doc.getString("roomName");
+                        if (resolvedName == null) resolvedName = doc.getString("name");
+                        if (resolvedName == null) resolvedName = doc.getString("code");
+                        if (resolvedName == null) resolvedName = doc.getString("roomCode");
+                        if (resolvedName == null) resolvedName = "Kamar Terpilih";
+
+                        tvDetailRoom.setText("Kamar: " + resolvedName);
+                        // Backfill
+                        backfillBookingRoomInfo(b.getId(), doc.getId(), resolvedName);
+                    } else {
+                        // 5. Final Fallback: StudentId + KosId (only for active/paid)
+                        resolveRoomByStudentRelation(b, tvDetailRoom);
+                    }
+                })
+                .addOnFailureListener(e -> tvDetailRoom.setText("Kamar: Belum tercatat"));
+    }
+
+    private void resolveRoomByStudentRelation(Booking b, TextView tvDetailRoom) {
+        if (b.getStudentId() == null || b.getKosId() == null) {
+            tvDetailRoom.setText("Kamar: Belum tercatat");
+            return;
+        }
+
+        FirebaseFirestore.getInstance().collection(DatabaseConstants.COLLECTION_ROOMS)
+                .whereEqualTo("kosId", b.getKosId())
+                .whereEqualTo("studentId", b.getStudentId())
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.size() == 1) {
+                        DocumentSnapshot doc = querySnapshot.getDocuments().get(0);
+                        String resolvedName = doc.getString("roomName");
+                        if (resolvedName == null) resolvedName = doc.getString("name");
+                        if (resolvedName == null) resolvedName = doc.getString("code");
+                        if (resolvedName == null) resolvedName = doc.getString("roomCode");
+                        if (resolvedName == null) resolvedName = "Kamar Terpilih";
+
+                        tvDetailRoom.setText("Kamar: " + resolvedName);
+                        // Backfill
+                        backfillBookingRoomInfo(b.getId(), doc.getId(), resolvedName);
+                    } else if (querySnapshot.size() > 1) {
+                        tvDetailRoom.setText("Kamar: Perlu verifikasi");
+                    } else {
+                        tvDetailRoom.setText("Kamar: Belum tercatat");
+                    }
+                })
+                .addOnFailureListener(e -> tvDetailRoom.setText("Kamar: Belum tercatat"));
+    }
+
+    private void backfillBookingRoomInfo(String bookingId, String roomId, String roomName) {
+        if (bookingId == null || roomId == null || roomName == null) return;
+        
+        FirebaseFirestore.getInstance().collection(DatabaseConstants.COLLECTION_BOOKINGS)
+                .document(bookingId)
+                .update(
+                        "roomId", roomId,
+                        "roomName", roomName,
+                        "updatedAt", System.currentTimeMillis()
+                )
+                .addOnSuccessListener(aVoid -> android.util.Log.d("Backfill", "Successfully backfilled booking " + bookingId))
+                .addOnFailureListener(e -> android.util.Log.e("Backfill", "Failed to backfill: " + e.getMessage()));
     }
 }

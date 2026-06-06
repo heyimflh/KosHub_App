@@ -15,6 +15,7 @@ import com.koshub.psdku.repositories.FinanceRepository;
 import com.koshub.psdku.services.FirebaseService;
 import com.koshub.psdku.utils.CurrencyHelper;
 import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.SystemInsetsHelper;
 
 public class OwnerWithdrawActivity extends AppCompatActivity {
 
@@ -34,6 +35,15 @@ public class OwnerWithdrawActivity extends AppCompatActivity {
         loadBalance();
         loadBankDetails();
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.NONE);
+
+        SystemInsetsHelper.applySystemBars(
+            this,
+            findViewById(R.id.headerWithdraw),
+            findViewById(R.id.ownerBottomNav),
+            findViewById(R.id.scrollWithdraw),
+            false,
+            true
+        );
     }
 
     private void initViews() {

@@ -18,6 +18,12 @@ public class Room implements Serializable {
     private long createdAt;
     private long updatedAt;
 
+    // Relations
+    private String bookingId;
+    private String currentBookingId;
+    private String studentId;
+    private String studentName;
+
     // Maintenance fields
     private String maintenanceType;
     private String maintenanceNote;
@@ -69,6 +75,18 @@ public class Room implements Serializable {
 
     public long getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(long updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getBookingId() { return bookingId; }
+    public void setBookingId(String bookingId) { this.bookingId = bookingId; }
+
+    public String getCurrentBookingId() { return currentBookingId; }
+    public void setCurrentBookingId(String currentBookingId) { this.currentBookingId = currentBookingId; }
+
+    public String getStudentId() { return studentId; }
+    public void setStudentId(String studentId) { this.studentId = studentId; }
+
+    public String getStudentName() { return studentName; }
+    public void setStudentName(String studentName) { this.studentName = studentName; }
 
     // Maintenance Getters & Setters
     public String getMaintenanceType() { return maintenanceType; }

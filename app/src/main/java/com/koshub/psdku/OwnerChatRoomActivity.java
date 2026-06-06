@@ -29,6 +29,7 @@ import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.services.FirebaseService;
 import com.koshub.psdku.utils.DatabaseConstants;
 import com.koshub.psdku.NavigationTransitionHelper;
+import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +72,15 @@ public class OwnerChatRoomActivity extends AppCompatActivity {
         setupRecyclerView();
         setupListeners();
         determineRoleAndListen();
+
+        SystemInsetsHelper.applySystemBars(
+            this,
+            findViewById(R.id.headerChatRoom),
+            findViewById(R.id.bottomArea),
+            findViewById(R.id.rvMessages),
+            false,
+            true
+        );
     }
 
     private void initImagePicker() {

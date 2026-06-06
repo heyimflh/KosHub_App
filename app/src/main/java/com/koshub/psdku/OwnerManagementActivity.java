@@ -40,6 +40,7 @@ import com.koshub.psdku.repositories.BookingRepository;
 import com.koshub.psdku.repositories.CloudinaryRepository;
 import com.koshub.psdku.repositories.KosRepository;
 import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -129,6 +130,15 @@ public class OwnerManagementActivity extends AppCompatActivity {
             getIntent().removeExtra("SHOW_ADD_DIALOG");
             showAddKosDialog();
         }
+
+        SystemInsetsHelper.applySystemBars(
+            this,
+            findViewById(R.id.headerOwnerManagement),
+            findViewById(R.id.ownerBottomNav),
+            findViewById(R.id.scrollOwnerManagement),
+            false,
+            true
+        );
     }
 
     @Override
@@ -149,6 +159,13 @@ public class OwnerManagementActivity extends AppCompatActivity {
             @Override
             public void onSuccess(List<Kos> kosList) {
                 ownerKosList = kosList;
+                
+                // Update Badge
+                TextView tvKosAktifBadge = findViewById(R.id.tvKosAktifBadge);
+                if (tvKosAktifBadge != null) {
+                    tvKosAktifBadge.setText(kosList.size() + " Kos Aktif");
+                }
+
                 if (kosList.isEmpty()) {
                     emptyState.setVisibility(View.VISIBLE);
                     propertyCard.setVisibility(View.GONE);

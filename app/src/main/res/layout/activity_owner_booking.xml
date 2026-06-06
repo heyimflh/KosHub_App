@@ -3,13 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_screen"
-    android:fitsSystemWindows="true">
+    android:background="@color/background_screen">
 
     <!-- Bottom Navigation -->
     <include layout="@layout/layout_owner_bottom_nav" />
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollOwnerBooking"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/ownerBottomNav"
@@ -23,6 +23,7 @@
 
             <!-- Header Section -->
             <RelativeLayout
+                android:id="@+id/headerOwnerBooking"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_owner_header_gradient"

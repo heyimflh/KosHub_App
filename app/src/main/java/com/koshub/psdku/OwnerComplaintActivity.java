@@ -18,6 +18,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.koshub.psdku.models.Complaint;
 import com.koshub.psdku.repositories.ComplaintRepository;
 import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -40,6 +41,15 @@ public class OwnerComplaintActivity extends AppCompatActivity {
         initViews();
         loadComplaints();
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.NONE);
+
+        SystemInsetsHelper.applySystemBars(
+            this,
+            findViewById(R.id.headerComplaint),
+            findViewById(R.id.ownerBottomNav),
+            findViewById(R.id.scrollComplaint),
+            false,
+            true
+        );
     }
 
     private void initViews() {

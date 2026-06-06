@@ -8,6 +8,7 @@
 
     <!-- Header -->
     <RelativeLayout
+        android:id="@+id/headerWithdraw"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/brand_green"
@@ -37,6 +38,7 @@
         android:layout_weight="1">
 
         <ScrollView
+            android:id="@+id/scrollWithdraw"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_above="@id/ownerBottomNav">

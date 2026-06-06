@@ -29,6 +29,7 @@ import com.koshub.psdku.utils.DatabaseConstants;
 import com.koshub.psdku.services.FirebaseService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.util.Locale;
 
@@ -85,6 +86,15 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
         loadProfileData();
         setupListeners();
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.PROFILE);
+
+        SystemInsetsHelper.applySystemBars(
+            this,
+            findViewById(R.id.profileHeaderSection),
+            findViewById(R.id.ownerBottomNav),
+            findViewById(R.id.scrollProfile),
+            false,
+            true
+        );
     }
 
     private void initViews() {
@@ -286,7 +296,7 @@ public class OwnerProfileSettingsActivity extends AppCompatActivity {
             @Override
             public void onSuccess(FinanceSummary summary) {
                 if (tvOwnerRevenue != null) {
-                    tvOwnerRevenue.setText(CurrencyHelper.formatRupiah(summary.getTotalIncome()));
+                    tvOwnerRevenue.setText(CurrencyHelper.formatRupiahCompact(summary.getTotalIncome()));
                 }
             }
 

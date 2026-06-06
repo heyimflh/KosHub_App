@@ -82,9 +82,13 @@
     </ScrollView>
 
     <!-- Floating Top Navigation (overlay) -->
-    <include layout="@layout/include_property_top_nav" />
+    <include
+        android:id="@+id/topPropertyNav"
+        layout="@layout/include_property_top_nav" />
 
     <!-- Sticky Bottom Booking Bar (overlay) -->
-    <include layout="@layout/include_property_bottom_booking_bar" />
+    <include
+        android:id="@+id/bottomBookingBar"
+        layout="@layout/include_property_bottom_booking_bar" />
 
 </FrameLayout>

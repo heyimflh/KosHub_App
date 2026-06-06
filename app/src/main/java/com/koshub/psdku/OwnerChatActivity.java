@@ -17,6 +17,7 @@ import com.koshub.psdku.adapters.ChatListAdapter;
 import com.koshub.psdku.models.Chat;
 import com.koshub.psdku.repositories.ChatRepository;
 import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +46,15 @@ public class OwnerChatActivity extends AppCompatActivity implements ChatListAdap
         setupRecyclerView();
         listenToChats();
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.CHAT);
+
+        SystemInsetsHelper.applySystemBars(
+            this,
+            findViewById(R.id.headerChat),
+            findViewById(R.id.ownerBottomNav),
+            rvChatList,
+            false,
+            true
+        );
     }
 
     private void initViews() {

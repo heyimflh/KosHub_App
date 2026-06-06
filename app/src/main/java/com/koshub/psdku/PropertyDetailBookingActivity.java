@@ -43,6 +43,7 @@ import com.koshub.psdku.repositories.ReviewRepository;
 import com.koshub.psdku.utils.AutoKosDescriptionBuilder;
 import com.koshub.psdku.utils.KosLocationUtils;
 import com.koshub.psdku.utils.KosMapper;
+import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -105,6 +106,15 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         initViews();
         setupListeners();
         populateData();
+
+        SystemInsetsHelper.applySystemBars(
+            this,
+            findViewById(R.id.topPropertyNav),
+            findViewById(R.id.bottomBookingBar),
+            findViewById(R.id.scrollPropertyDetail),
+            false,
+            true
+        );
     }
 
     private void initViews() {

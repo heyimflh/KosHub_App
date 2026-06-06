@@ -10,6 +10,7 @@
 
     <!-- Scrollable Content -->
     <ScrollView
+        android:id="@+id/scrollFinance"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/ownerBottomNav"
@@ -24,6 +25,7 @@
 
             <!-- ===== A. HEADER ===== -->
             <LinearLayout
+                android:id="@+id/headerFinance"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_finance_header_gradient"

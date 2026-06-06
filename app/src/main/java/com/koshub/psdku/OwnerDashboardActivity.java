@@ -46,6 +46,7 @@ import com.koshub.psdku.repositories.KosRepository;
 import com.koshub.psdku.repositories.StorageRepository;
 import com.koshub.psdku.utils.CurrencyHelper;
 import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -169,7 +170,16 @@ public class OwnerDashboardActivity extends AppCompatActivity {
         setupBookings();
         setupProperty();
         setupRevenue();
-        setupBottomNav();
+        OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.DASHBOARD);
+
+        SystemInsetsHelper.applySystemBars(
+            this,
+            findViewById(R.id.navbarOwner),
+            findViewById(R.id.ownerBottomNav),
+            findViewById(R.id.scrollOwnerDashboard),
+            true,
+            true
+        );
 
         // Notification & Permissions
         NotificationHelper.createNotificationChannels(this);

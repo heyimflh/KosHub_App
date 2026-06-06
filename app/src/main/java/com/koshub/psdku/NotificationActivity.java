@@ -22,6 +22,7 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.koshub.psdku.models.AppNotification;
 import com.koshub.psdku.repositories.NotificationRepository;
 import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -49,6 +50,15 @@ public class NotificationActivity extends AppCompatActivity {
         initViews();
         setupRecyclerView();
         loadNotifications();
+
+        SystemInsetsHelper.applySystemBars(
+            this,
+            findViewById(R.id.headerNotification),
+            null,
+            rvNotifications,
+            true,
+            true
+        );
     }
 
     private void initViews() {

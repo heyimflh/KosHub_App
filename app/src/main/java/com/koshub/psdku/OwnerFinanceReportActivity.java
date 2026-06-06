@@ -19,6 +19,7 @@ import com.koshub.psdku.repositories.FinanceRepository;
 import com.koshub.psdku.utils.CurrencyHelper;
 import com.koshub.psdku.utils.DatabaseConstants;
 import com.koshub.psdku.utils.DateHelper;
+import com.koshub.psdku.utils.SystemInsetsHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,6 +28,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import android.view.Gravity;
+import android.widget.EditText;
+import androidx.appcompat.app.AlertDialog;
+import android.text.InputType;
 
 /**
  * OwnerFinanceReportActivity - Laporan Keuangan Pemilik Kos
@@ -59,6 +63,15 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
         initViews();
         setupListeners();
         OwnerBottomNavHelper.setup(this, OwnerBottomNavHelper.NavItem.NONE);
+
+        SystemInsetsHelper.applySystemBars(
+            this,
+            findViewById(R.id.headerFinance),
+            findViewById(R.id.ownerBottomNav),
+            findViewById(R.id.scrollFinance),
+            false,
+            true
+        );
     }
 
     @Override
@@ -129,6 +142,73 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
         if (btnExport != null) {
             btnExport.setOnClickListener(v -> generateAndDownloadPdf());
         }
+
+        // Target adjustment listeners
+        if (tvTargetAchieved != null) tvTargetAchieved.setOnClickListener(v -> showSetTargetDialog());
+        if (tvTargetLabelValue != null) tvTargetLabelValue.setOnClickListener(v -> showSetTargetDialog());
+        if (progressTarget != null) progressTarget.setOnClickListener(v -> showSetTargetDialog());
+    }
+
+    private void showSetTargetDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Atur Target Pendapatan");
+
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        input.setHint("Contoh: 15000000");
+        
+        if (ownerTarget > 0) {
+            input.setText(String.valueOf((long) ownerTarget));
+        }
+        
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.setMargins(48, 20, 48, 20);
+        input.setLayoutParams(params);
+        container.addView(input);
+        builder.setView(container);
+
+        builder.setPositiveButton("Simpan", (dialog, which) -> {
+            String valStr = input.getText().toString().trim();
+            if (valStr.isEmpty()) return;
+            try {
+                double newVal = Double.parseDouble(valStr);
+                if (newVal <= 0) {
+                    showToast("Target harus lebih dari 0");
+                    return;
+                }
+                
+                String uid = FirebaseAuth.getInstance().getUid();
+                FirebaseFirestore.getInstance().collection(DatabaseConstants.COLLECTION_USERS)
+                        .document(uid)
+                        .update(DatabaseConstants.FIELD_TARGET_BULANAN, newVal)
+                        .addOnSuccessListener(aVoid -> {
+                            ownerTarget = newVal;
+                            applyFilterAndUpdateUI();
+                            showToast("Target pendapatan diperbarui");
+                        });
+            } catch (NumberFormatException e) {
+                showToast("Input tidak valid");
+            }
+        });
+        
+        builder.setNeutralButton("Hapus Target", (dialog, which) -> {
+            String uid = FirebaseAuth.getInstance().getUid();
+            FirebaseFirestore.getInstance().collection(DatabaseConstants.COLLECTION_USERS)
+                    .document(uid)
+                    .update(DatabaseConstants.FIELD_TARGET_BULANAN, 0)
+                    .addOnSuccessListener(aVoid -> {
+                        ownerTarget = 0;
+                        applyFilterAndUpdateUI();
+                        showToast("Target pendapatan dihapus");
+                    });
+        });
+        
+        builder.setNegativeButton("Batal", (dialog, which) -> dialog.cancel());
+
+        builder.show();
     }
 
     private void loadFinanceData() {
@@ -139,6 +219,8 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
             finish();
             return;
         }
+
+        ownerTarget = 0; // Reset before loading
 
         // Perform reconciliation first to ensure all paid bookings have transactions
         FinanceRepository.getInstance().reconcilePaidBookingsToTransactions(uid, new FinanceRepository.SimpleCallback() {
@@ -256,9 +338,7 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
         if (tvPeriod != null) tvPeriod.setText(periodLabel);
 
         // Re-filter dan re-render data dari cache
-        if (!allTransactions.isEmpty() || !allWithdrawals.isEmpty()) {
-            applyFilterAndUpdateUI();
-        }
+        applyFilterAndUpdateUI();
     }
 
     private long getFilterStartTime() {
@@ -426,8 +506,9 @@ public class OwnerFinanceReportActivity extends AppCompatActivity {
         if (progressTarget != null) {
             if (target <= 0) {
                 progressTarget.setProgress(0);
-                if (tvTargetAchieved != null) tvTargetAchieved.setText("Atur target di pengaturan profil");
+                if (tvTargetAchieved != null) tvTargetAchieved.setText("Ketuk untuk atur target");
                 if (tvTargetLabelValue != null) tvTargetLabelValue.setText("Belum diatur");
+                if (tvInsight3 != null) tvInsight3.setText("🎯 Target pendapatan belum diatur");
             } else {
                 double pct = (totalRevenue / target) * 100;
                 int progress = (int) Math.min(pct, 100);

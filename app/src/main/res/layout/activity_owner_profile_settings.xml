@@ -3,13 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/owner_background"
-    android:fitsSystemWindows="true">
+    android:background="@color/owner_background">
 
     <!-- Bottom Navigation -->
     <include layout="@layout/layout_owner_bottom_nav" />
 
     <ScrollView
+        android:id="@+id/scrollProfile"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/ownerBottomNav"
@@ -307,12 +307,19 @@
                         android:padding="16dp">
                         <TextView
                             android:id="@+id/tvOwnerRevenue"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:maxLines="1"
+                            android:ellipsize="end"
                             android:text="Rp 0"
                             android:textColor="@color/owner_stat_revenue_accent"
-                            android:textSize="22sp"
-                            android:textStyle="bold" />
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            app:autoSizeTextType="uniform"
+                            app:autoSizeMinTextSize="14sp"
+                            app:autoSizeMaxTextSize="20sp"
+                            app:autoSizeStepGranularity="1sp" />
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"

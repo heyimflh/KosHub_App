@@ -226,6 +226,7 @@ public class BookingRepository {
                     paymentData.put("ownerId", b.getOwnerId());
                     paymentData.put("kosId", b.getKosId());
                     paymentData.put("roomId", b.getRoomId());
+                    paymentData.put("roomName", b.getRoomName());
                     paymentData.put("amount", totalBayar);
                     paymentData.put("status", DatabaseConstants.PAYMENT_PENDING);
                     paymentData.put("gateway", "custom_qris_alwaysdata");
@@ -426,7 +427,6 @@ public class BookingRepository {
         android.util.Log.d(TAG, "acceptBooking called: id=" + bookingId + ", roomId=" + roomId);
         
         if (bookingId == null || bookingId.trim().isEmpty()) {
-            android.util.Log.e(TAG, "acceptBooking: bookingId is null or empty");
             if (callback != null) callback.onError("ID Booking tidak valid.");
             return;
         }
@@ -438,17 +438,26 @@ public class BookingRepository {
         }
 
         DocumentReference bookingRef = db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId);
+        DocumentReference roomRef = db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId);
         
         db.runTransaction((Transaction.Function<Void>) transaction -> {
-            // 1. Fetch booking to verify owner and status
-            com.google.firebase.firestore.DocumentSnapshot bookingSnapshot = transaction.get(bookingRef);
+            DocumentSnapshot bookingSnapshot = transaction.get(bookingRef);
+            DocumentSnapshot roomSnapshot = transaction.get(roomRef);
+
             if (!bookingSnapshot.exists()) {
                 throw new com.google.firebase.firestore.FirebaseFirestoreException("Booking tidak ditemukan.", 
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.NOT_FOUND);
+            }
+            if (!roomSnapshot.exists()) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException("Kamar tidak ditemukan.", 
                         com.google.firebase.firestore.FirebaseFirestoreException.Code.NOT_FOUND);
             }
 
             String currentStatus = bookingSnapshot.getString("status");
             String ownerId = bookingSnapshot.getString("ownerId");
+            String bookingKosId = bookingSnapshot.getString("kosId");
+            String roomKosId = roomSnapshot.getString("kosId");
+            String roomStatus = roomSnapshot.getString("status");
 
             if (!user.getUid().equals(ownerId)) {
                 throw new com.google.firebase.firestore.FirebaseFirestoreException("Kamu tidak memiliki akses ke booking ini.", 
@@ -460,20 +469,55 @@ public class BookingRepository {
                         com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION);
             }
 
-            // 2. Update Booking Status and Audit
-            transaction.update(bookingRef, "status", DatabaseConstants.BOOKING_ACCEPTED);
-            transaction.update(bookingRef, "updatedAt", System.currentTimeMillis());
-            transaction.update(bookingRef, DatabaseConstants.FIELD_UPDATED_BY, user.getUid());
-            transaction.update(bookingRef, DatabaseConstants.FIELD_STATUS_HISTORY, FieldValue.arrayUnion("ACCEPTED at " + System.currentTimeMillis()));
-
-            // 3. Update Room Status
-            if (roomId != null && !roomId.trim().isEmpty()) {
-                android.util.Log.d(TAG, "acceptBooking: updating room " + roomId);
-                DocumentReference roomRef = db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId);
-                transaction.update(roomRef, DatabaseConstants.FIELD_STATUS, DatabaseConstants.ROOM_BOOKED);
-            } else {
-                android.util.Log.d(TAG, "acceptBooking: no roomId provided, skipping room update");
+            if (bookingKosId == null || !bookingKosId.equals(roomKosId)) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException("Kamar tidak sesuai dengan kos booking ini.", 
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION);
             }
+
+            if (!DatabaseConstants.ROOM_AVAILABLE.equals(roomStatus)) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException("Kamar ini sudah tidak tersedia.", 
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION);
+            }
+
+            String studentId = bookingSnapshot.getString("studentId");
+            String studentName = bookingSnapshot.getString("studentName");
+
+            String resolvedRoomName = roomSnapshot.getString("roomName");
+            if (resolvedRoomName == null || resolvedRoomName.trim().isEmpty()) {
+                resolvedRoomName = roomSnapshot.getString("name");
+            }
+            if (resolvedRoomName == null || resolvedRoomName.trim().isEmpty()) {
+                resolvedRoomName = roomSnapshot.getString("code");
+            }
+            if (resolvedRoomName == null || resolvedRoomName.trim().isEmpty()) {
+                resolvedRoomName = roomSnapshot.getString("roomCode");
+            }
+            if (resolvedRoomName == null || resolvedRoomName.trim().isEmpty()) {
+                resolvedRoomName = "Kamar dipilih";
+            }
+
+            long now = System.currentTimeMillis();
+
+            // 1. Update Booking
+            transaction.update(bookingRef,
+                    "status", DatabaseConstants.BOOKING_ACCEPTED,
+                    "roomId", roomId,
+                    "roomName", resolvedRoomName,
+                    "updatedAt", now,
+                    "updatedBy", user.getUid(),
+                    DatabaseConstants.FIELD_STATUS_HISTORY,
+                    FieldValue.arrayUnion("ACCEPTED_WITH_ROOM " + resolvedRoomName + " at " + now)
+            );
+
+            // 2. Update Room
+            transaction.update(roomRef,
+                    "status", DatabaseConstants.ROOM_BOOKED,
+                    "bookingId", bookingId,
+                    "currentBookingId", bookingId,
+                    "studentId", studentId,
+                    "studentName", studentName,
+                    "updatedAt", now
+            );
             
             return null;
         }).addOnSuccessListener(aVoid -> {
@@ -500,12 +544,7 @@ public class BookingRepository {
         })
           .addOnFailureListener(e -> {
               android.util.Log.e(TAG, "acceptBooking failed: " + e.getMessage());
-              if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
-                  ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                  if (callback != null) callback.onError("Akses ditolak. Kamu bukan pemilik data ini.");
-              } else {
-                  if (callback != null) callback.onError(e.getMessage());
-              }
+              if (callback != null) callback.onError(e.getMessage());
           });
     }
 
@@ -602,15 +641,29 @@ public class BookingRepository {
     }
 
     public void markKeyTaken(String bookingId, String roomId, SimpleCallback callback) {
-        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
-                .update("status", DatabaseConstants.BOOKING_ACTIVE, "updatedAt", System.currentTimeMillis())
-                .addOnSuccessListener(aVoid -> {
-                    // Trigger Notification for Owner
-                    db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
-                            .addOnSuccessListener(doc -> {
-                                String ownerId = doc.getString("ownerId");
-                                String studentId = doc.getString("studentId");
-                                String kosName = doc.getString("kosName");
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                .addOnSuccessListener(bookingDoc -> {
+                    if (!bookingDoc.exists()) {
+                        if (callback != null) callback.onError("Booking tidak ditemukan.");
+                        return;
+                    }
+
+                    String studentId = bookingDoc.getString("studentId");
+                    String studentName = bookingDoc.getString("studentName");
+                    String ownerId = bookingDoc.getString("ownerId");
+                    String kosName = bookingDoc.getString("kosName");
+
+                    long now = System.currentTimeMillis();
+
+                    // 1. Update Booking Status
+                    db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
+                            .update(
+                                    "status", DatabaseConstants.BOOKING_ACTIVE,
+                                    "updatedAt", now,
+                                    DatabaseConstants.FIELD_STATUS_HISTORY, FieldValue.arrayUnion("ACTIVE (Key Taken) at " + now)
+                            )
+                            .addOnSuccessListener(aVoid -> {
+                                // 2. Trigger Notification and Finance
                                 NotificationRepository.getInstance().createNotification(
                                         ownerId,
                                         studentId,
@@ -620,19 +673,37 @@ public class BookingRepository {
                                         DatabaseConstants.TARGET_FINANCE,
                                         bookingId
                                 );
-                            });
 
-                    FinanceRepository.getInstance().markTransactionAvailableByBooking(bookingId, null);
-                    if (roomId != null && !roomId.isEmpty()) {
-                        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)
-                                .update("status", DatabaseConstants.ROOM_OCCUPIED)
-                                .addOnSuccessListener(v -> callback.onSuccess())
-                                .addOnFailureListener(e -> callback.onSuccess());
-                    } else {
-                        callback.onSuccess();
-                    }
+                                FinanceRepository.getInstance().markTransactionAvailableByBooking(bookingId, null);
+
+                                // 3. Update Room Status and Relations
+                                if (roomId != null && !roomId.isEmpty()) {
+                                    db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)
+                                            .update(
+                                                    "status", DatabaseConstants.ROOM_OCCUPIED,
+                                                    "bookingId", bookingId,
+                                                    "currentBookingId", bookingId,
+                                                    "studentId", studentId,
+                                                    "studentName", studentName,
+                                                    "updatedAt", now
+                                            )
+                                            .addOnSuccessListener(v -> {
+                                                if (callback != null) callback.onSuccess();
+                                            })
+                                            .addOnFailureListener(e -> {
+                                                if (callback != null) callback.onSuccess(); // Non-critical failure
+                                            });
+                                } else {
+                                    if (callback != null) callback.onSuccess();
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+                                if (callback != null) callback.onError(e.getMessage());
+                            });
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
     }
 
     public void completeBooking(String bookingId, String roomId, SimpleCallback callback) {

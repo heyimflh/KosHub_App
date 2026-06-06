@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootOwnerManagement"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/mgmt_background">
@@ -9,6 +10,7 @@
 
     <!-- Scrollable Content -->
     <ScrollView
+        android:id="@+id/scrollOwnerManagement"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/ownerBottomNav"
@@ -22,6 +24,7 @@
 
             <!-- A. HEADER -->
             <LinearLayout
+                android:id="@+id/headerOwnerManagement"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_mgmt_header_gradient"
@@ -47,6 +50,7 @@
                     android:alpha="0.85"
                     android:textSize="13sp" />
                 <TextView
+                    android:id="@+id/tvKosAktifBadge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"

@@ -47,7 +47,7 @@
     <string name="finance_export_btn">Download Laporan</string>
     <string name="finance_insight_1">📈 Pendapatan bulan ini naik 12% dari bulan lalu</string>
     <string name="finance_insight_2">⏳ 3 pembayaran masih menunggu konfirmasi</string>
-    <string name="finance_insight_3">🎯 Target pendapatan sudah tercapai 83%</string>
+    <string name="finance_insight_3">🎯 Target pendapatan belum diatur</string>
     <string name="finance_nav_dashboard">Dashboard</string>
     <string name="finance_nav_kos">Kos Saya</string>
     <string name="finance_nav_booking">Booking</string>

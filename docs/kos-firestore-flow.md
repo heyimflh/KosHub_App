@@ -35,6 +35,3 @@ This document describes how real Kos data is managed and displayed using Cloud F
 ## 5. Security Note
 - Initial implementation includes client-side ownership checks (`ownerId == currentUID`).
 - Firestore security rules (see `docs/firestore-rules-draft.md`) must be applied in the Firebase Console to enforce these constraints at the database level.
-
-## 6. Development Tools
-- `DummyKosSeeder`: Can be used to populate a fresh Firestore instance with initial data for testing.
