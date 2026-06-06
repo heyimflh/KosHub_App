@@ -149,18 +149,10 @@ public class WaitingListQueueActivity extends AppCompatActivity {
                     @Override
                     public void onSuccess(List<Booking> bookings) {
                         // Filter only active bookings (exclude completed/cancelled/rejected)
-                        List<Booking> activeBookings = new java.util.ArrayList<>();
-                        for (Booking bk : bookings) {
-                            String st = bk.getSafeStatus();
-                            if (!DatabaseConstants.BOOKING_COMPLETED.equals(st) &&
-                                !DatabaseConstants.BOOKING_CANCELLED.equals(st) &&
-                                !DatabaseConstants.BOOKING_REJECTED.equals(st)) {
-                                activeBookings.add(bk);
-                            }
-                        }
+                        ActiveBookingLinkedList activeBookings = buildActiveBookingLinkedList(bookings);
+                        Booking latest = activeBookings.peekFirst();
 
-                        if (!activeBookings.isEmpty()) {
-                            Booking latest = activeBookings.get(0);
+                        if (latest != null) {
                             openChatFromBooking(latest);
                         } else {
                             showCustomToast("Belum ada booking untuk dikonsultasikan.");
@@ -196,17 +188,10 @@ public class WaitingListQueueActivity extends AppCompatActivity {
             public void onSuccess(List<Booking> bookings) {
                 try {
                     // Hanya tampilkan booking yang masih aktif (bukan completed/cancelled/rejected)
-                    List<Booking> activeBookings = new java.util.ArrayList<>();
-                    for (Booking bk : bookings) {
-                        String st = bk.getSafeStatus();
-                        if (!DatabaseConstants.BOOKING_COMPLETED.equals(st) &&
-                            !DatabaseConstants.BOOKING_CANCELLED.equals(st) &&
-                            !DatabaseConstants.BOOKING_REJECTED.equals(st)) {
-                            activeBookings.add(bk);
-                        }
-                    }
+                    ActiveBookingLinkedList activeBookings = buildActiveBookingLinkedList(bookings);
+                    Booking firstActiveBooking = activeBookings.peekFirst();
 
-                    if (activeBookings.isEmpty()) {
+                    if (firstActiveBooking == null) {
                         if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.VISIBLE);
                         findViewById(R.id.scrollWaitingList).setVisibility(View.GONE);
                         hideAllSections();
@@ -214,8 +199,7 @@ public class WaitingListQueueActivity extends AppCompatActivity {
                         if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
                         findViewById(R.id.scrollWaitingList).setVisibility(View.VISIBLE);
                         showAllSections();
-                        Booking b = activeBookings.get(0); // Show most recent active booking
-                        updateUIWithBooking(b);
+                        updateUIWithBooking(firstActiveBooking); // Show most recent active booking
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "Error updating UI with bookings", e);
@@ -526,5 +510,67 @@ public class WaitingListQueueActivity extends AppCompatActivity {
     private int dpToPx(int dp) {
         float density = getResources().getDisplayMetrics().density;
         return Math.round(dp * density);
+    }
+
+    /**
+     * Custom Singly Linked List untuk menyimpan antrean booking aktif secara sekuensial.
+     * Digunakan sebagai implementasi materi Struktur Data Linked List pada fitur Waiting List.
+     */
+    private static class ActiveBookingLinkedList {
+        private static class Node {
+            Booking data;
+            Node next;
+
+            Node(Booking data) {
+                this.data = data;
+            }
+        }
+
+        private Node head;
+        private Node tail;
+        private int size = 0;
+
+        void addLast(Booking booking) {
+            Node newNode = new Node(booking);
+            if (isEmpty()) {
+                head = newNode;
+                tail = newNode;
+            } else {
+                tail.next = newNode;
+                tail = newNode;
+            }
+            size++;
+        }
+
+        Booking peekFirst() {
+            return head != null ? head.data : null;
+        }
+
+        boolean isEmpty() {
+            return head == null;
+        }
+
+        int size() {
+            return size;
+        }
+    }
+
+    private ActiveBookingLinkedList buildActiveBookingLinkedList(List<Booking> bookings) {
+        ActiveBookingLinkedList list = new ActiveBookingLinkedList();
+        if (bookings == null) return list;
+        for (Booking b : bookings) {
+            if (isActiveBooking(b)) {
+                list.addLast(b);
+            }
+        }
+        return list;
+    }
+
+    private boolean isActiveBooking(Booking booking) {
+        if (booking == null) return false;
+        String status = booking.getSafeStatus();
+        return !DatabaseConstants.BOOKING_COMPLETED.equals(status) &&
+                !DatabaseConstants.BOOKING_CANCELLED.equals(status) &&
+                !DatabaseConstants.BOOKING_REJECTED.equals(status);
     }
 }

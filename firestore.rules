@@ -132,6 +132,35 @@ service cloud.firestore {
           request.resource.data.paymentStatus == "unpaid"
         );
 
+      // Helper functions for booking updates
+      function bookingOwnerBase() {
+        return resource.data.ownerId == request.auth.uid
+          && unchanged("ownerId")
+          && unchanged("studentId")
+          && unchanged("kosId")
+          && unchanged("totalPrice")
+          && unchanged("price");
+      }
+
+      function ownerGeneralBookingUpdate() {
+        return bookingOwnerBase()
+          && unchanged("roomId")
+          && unchanged("roomName")
+          && hasOnlyAllowedFields(["status", "updatedAt", "statusHistory", "updatedBy", "note"]);
+      }
+
+      function ownerAcceptBookingWithRoom() {
+        return bookingOwnerBase()
+          && resource.data.status == "pending"
+          && request.resource.data.status == "accepted"
+          && hasOnlyAllowedFields(["status", "roomId", "roomName", "updatedAt", "updatedBy", "statusHistory"]);
+      }
+
+      function ownerBackfillBookingRoomInfo() {
+        return bookingOwnerBase()
+          && hasOnlyAllowedFields(["roomId", "roomName", "updatedAt"]);
+      }
+
       allow update: if isSignedIn()
         && (
           // A. Student update (Demo Payment Flow)
@@ -151,14 +180,11 @@ service cloud.firestore {
                ])
           )
           ||
-          // B. Owner update (Accept/Reject/Manage)
+          // B, C, D. Owner updates
           (
-            resource.data.ownerId == request.auth.uid
-            && unchanged("ownerId")
-            && unchanged("studentId")
-            && unchanged("kosId")
-            && unchanged("roomId")
-            && hasOnlyAllowedFields(["status", "updatedAt", "statusHistory", "updatedBy", "note"])
+            ownerGeneralBookingUpdate() ||
+            ownerAcceptBookingWithRoom() ||
+            ownerBackfillBookingRoomInfo()
           )
         );
 
