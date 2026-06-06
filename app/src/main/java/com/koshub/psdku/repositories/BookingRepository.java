@@ -1,0 +1,744 @@
+package com.koshub.psdku.repositories;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.Transaction;
+import com.koshub.psdku.models.Booking;
+import com.koshub.psdku.models.Room;
+import com.koshub.psdku.repositories.NotificationRepository;
+import com.koshub.psdku.services.FirebaseService;
+import com.koshub.psdku.utils.DatabaseConstants;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Repository for Booking data.
+ * Handles room rental transactions via Firestore.
+ */
+public class BookingRepository {
+    private static final String TAG = "KosHubBooking";
+    private static BookingRepository instance;
+    private final FirebaseFirestore db;
+    private final FirebaseAuth auth;
+
+    private BookingRepository() {
+        this.db = FirebaseService.getFirestore();
+        this.auth = FirebaseService.getAuth();
+    }
+
+    public static synchronized BookingRepository getInstance() {
+        if (instance == null) {
+            instance = new BookingRepository();
+        }
+        return instance;
+    }
+
+    public interface BookingCallback {
+        void onSuccess(Booking booking);
+        void onError(String message);
+    }
+
+    public interface BookingListCallback {
+        void onSuccess(List<Booking> bookings);
+        void onError(String message);
+    }
+
+    public interface SimpleCallback {
+        void onSuccess();
+        void onError(String message);
+    }
+
+    public void getBookingById(String bookingId, BookingCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        try {
+                            Booking b = mapBookingSafely(documentSnapshot);
+                            callback.onSuccess(b);
+                        } catch (Exception e) {
+                            android.util.Log.e(TAG, "Error mapping booking: " + e.getMessage());
+                            callback.onError("Gagal memproses data booking.");
+                        }
+                    } else {
+                        callback.onError("Booking not found");
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public Booking mapBookingSafely(DocumentSnapshot doc) {
+        if (doc == null || !doc.exists()) return null;
+        
+        Booking b = new Booking();
+        b.setId(doc.getId());
+        
+        // Basic Info
+        b.setStudentId(getStringSafe(doc, "studentId", null));
+        b.setStudentName(getStringSafe(doc, "studentName", null));
+        b.setStudentEmail(getStringSafe(doc, "studentEmail", null));
+        b.setOwnerId(getStringSafe(doc, "ownerId", null));
+        b.setKosId(getStringSafe(doc, "kosId", null));
+        b.setKosName(getStringSafe(doc, "kosName", null));
+        b.setKosAddress(getStringSafe(doc, "kosAddress", null));
+        b.setRoomId(getStringSafe(doc, "roomId", null));
+        b.setRoomName(getStringSafe(doc, "roomName", null));
+        
+        // Status & Payment
+        b.setStatus(getStringSafe(doc, "status", "pending"));
+        b.setPaymentStatus(getStringSafe(doc, "paymentStatus", "unpaid"));
+        b.setGatewayTransactionId(getLongOrTimestampSafe(doc, "gatewayTransactionId", 0L));
+        b.setTotalBayar(getDoubleSafe(doc, "totalBayar", 0.0));
+        b.setQrisString(getStringSafe(doc, "qrisString", null));
+        b.setNote(getStringSafe(doc, "note", null));
+        b.setUpdatedBy(getStringSafe(doc, "updatedBy", null));
+        
+        // Timestamps (Safe Conversion)
+        b.setBookingDate(getLongOrTimestampSafe(doc, "bookingDate", 0L));
+        b.setCheckInDate(getLongOrTimestampSafe(doc, "checkInDate", 0L));
+        b.setCreatedAt(getLongOrTimestampSafe(doc, "createdAt", 0L));
+        b.setUpdatedAt(getLongOrTimestampSafe(doc, "updatedAt", 0L));
+        b.setPaidAt(getTimestampSafe(doc, "paidAt"));
+        b.setPaymentCreatedAt(getTimestampSafe(doc, "paymentCreatedAt"));
+        
+        // Numeric values
+        b.setDurationMonth((int) getLongOrTimestampSafe(doc, "durationMonth", 0L));
+        b.setTotalPrice(getDoubleSafe(doc, "totalPrice", 0.0));
+        
+        // Legacy/Compatibility
+        b.setPrice(getStringSafe(doc, "price", null));
+
+        // History
+        if (doc.contains(DatabaseConstants.FIELD_STATUS_HISTORY)) {
+            Object history = doc.get(DatabaseConstants.FIELD_STATUS_HISTORY);
+            if (history instanceof List) {
+                b.setStatusHistory((List<String>) history);
+            }
+        }
+
+        return b;
+    }
+
+    private long getLongOrTimestampSafe(DocumentSnapshot doc, String field, long defaultValue) {
+        if (!doc.contains(field) || doc.get(field) == null) return defaultValue;
+        Object val = doc.get(field);
+        
+        if (val instanceof com.google.firebase.Timestamp) {
+            return ((com.google.firebase.Timestamp) val).toDate().getTime();
+        }
+        if (val instanceof Number) {
+            return ((Number) val).longValue();
+        }
+        if (val instanceof String) {
+            try { return Long.parseLong((String) val); } catch (Exception e) { return defaultValue; }
+        }
+        return defaultValue;
+    }
+
+    private com.google.firebase.Timestamp getTimestampSafe(DocumentSnapshot doc, String field) {
+        if (!doc.contains(field) || doc.get(field) == null) return null;
+        Object val = doc.get(field);
+        
+        if (val instanceof com.google.firebase.Timestamp) {
+            return (com.google.firebase.Timestamp) val;
+        }
+        if (val instanceof Number) {
+            return new com.google.firebase.Timestamp(new java.util.Date(((Number) val).longValue()));
+        }
+        return null;
+    }
+
+    private String getStringSafe(DocumentSnapshot doc, String field, String defaultValue) {
+        if (!doc.contains(field)) return defaultValue;
+        Object val = doc.get(field);
+        return val == null ? defaultValue : String.valueOf(val);
+    }
+
+    private Long getLongSafe(DocumentSnapshot doc, String field, Long defaultValue) {
+        if (!doc.contains(field)) return defaultValue;
+        Object val = doc.get(field);
+        if (val == null) return defaultValue;
+        if (val instanceof Number) return ((Number) val).longValue();
+        if (val instanceof String) {
+            try {
+                return Long.parseLong((String) val);
+            } catch (Exception e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
+    private Double getDoubleSafe(DocumentSnapshot doc, String field, Double defaultValue) {
+        if (!doc.contains(field)) return defaultValue;
+        Object val = doc.get(field);
+        if (val == null) return defaultValue;
+        if (val instanceof Number) return ((Number) val).doubleValue();
+        if (val instanceof String) {
+            try {
+                return Double.parseDouble((String) val);
+            } catch (Exception e) {
+                return defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
+    public void savePaymentDraft(String bookingId, long idTransaksi, double totalBayar, String qrisString, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        if (callback != null) callback.onError("Booking not found");
+                        return;
+                    }
+
+                    Booking b = doc.toObject(Booking.class);
+                    if (b == null) {
+                        if (callback != null) callback.onError("Failed to parse booking");
+                        return;
+                    }
+
+                    // 1. Update Booking
+                    db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
+                            .update(
+                                    "paymentStatus", DatabaseConstants.PAYMENT_PENDING,
+                                    "status", DatabaseConstants.BOOKING_WAITING_PAYMENT,
+                                    "gatewayTransactionId", idTransaksi,
+                                    "totalBayar", totalBayar,
+                                    "qrisString", qrisString,
+                                    "paymentCreatedAt", FieldValue.serverTimestamp(),
+                                    "updatedAt", FieldValue.serverTimestamp()
+                            );
+
+                    // 2. Create/Update Payment Document
+                    String paymentDocId = bookingId + "_" + idTransaksi;
+                    java.util.Map<String, Object> paymentData = new java.util.HashMap<>();
+                    paymentData.put("bookingId", bookingId);
+                    paymentData.put("studentId", b.getStudentId());
+                    paymentData.put("ownerId", b.getOwnerId());
+                    paymentData.put("kosId", b.getKosId());
+                    paymentData.put("roomId", b.getRoomId());
+                    paymentData.put("roomName", b.getRoomName());
+                    paymentData.put("amount", totalBayar);
+                    paymentData.put("status", DatabaseConstants.PAYMENT_PENDING);
+                    paymentData.put("gateway", "custom_qris_alwaysdata");
+                    paymentData.put("gatewayTransactionId", idTransaksi);
+                    paymentData.put("qrisString", qrisString);
+                    paymentData.put("createdAt", FieldValue.serverTimestamp());
+                    paymentData.put("updatedAt", FieldValue.serverTimestamp());
+
+                    db.collection(DatabaseConstants.COLLECTION_PAYMENTS).document(paymentDocId)
+                            .set(paymentData)
+                            .addOnSuccessListener(aVoid -> {
+                                if (callback != null) callback.onSuccess();
+                            })
+                            .addOnFailureListener(e -> {
+                                if (callback != null) callback.onError(e.getMessage());
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+    }
+
+    public void updateBookingToPaid(String bookingId, long idTransaksi, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
+                .update(
+                        "paymentStatus", DatabaseConstants.PAYMENT_PAID,
+                        "status", DatabaseConstants.BOOKING_WAITING_CHECKIN,
+                        "gatewayTransactionId", idTransaksi,
+                        "paidAt", FieldValue.serverTimestamp(),
+                        "updatedAt", FieldValue.serverTimestamp(),
+                        DatabaseConstants.FIELD_STATUS_HISTORY, FieldValue.arrayUnion("PAID via AlwaysData ID " + idTransaksi + " at " + System.currentTimeMillis())
+                )
+                .addOnSuccessListener(aVoid -> {
+                    if (callback != null) callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+    }
+
+    public void createBooking(Booking booking, SimpleCallback callback) {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            callback.onError("User not authenticated");
+            return;
+        }
+
+        String studentId = user.getUid();
+        
+        // 1. Fetch student profile to get Name/Email
+        db.collection(DatabaseConstants.COLLECTION_USERS).document(studentId).get()
+                .addOnSuccessListener(studentDoc -> {
+                    if (!studentDoc.exists()) {
+                        callback.onError("Student profile not found.");
+                        return;
+                    }
+
+                    booking.setStudentId(studentId);
+                    booking.setStudentName(studentDoc.getString(DatabaseConstants.FIELD_NAME));
+                    booking.setStudentEmail(studentDoc.getString(DatabaseConstants.FIELD_EMAIL));
+                    
+                    booking.setStatus(DatabaseConstants.BOOKING_PENDING);
+                    booking.setPaymentStatus(DatabaseConstants.PAYMENT_UNPAID);
+                    booking.setBookingDate(System.currentTimeMillis());
+                    booking.setCreatedAt(System.currentTimeMillis());
+                    booking.setUpdatedAt(System.currentTimeMillis());
+
+                    // 2. Check for existing active/pending booking for the same Kos
+                    // Simple query to avoid composite index error
+                    db.collection(DatabaseConstants.COLLECTION_BOOKINGS)
+                            .whereEqualTo("studentId", studentId)
+                            .get()
+                            .addOnSuccessListener(queryDocumentSnapshots -> {
+                                boolean hasActive = false;
+                                for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                                    String status = doc.getString("status");
+                                    String kosId = doc.getString("kosId");
+                                    
+                                    if (booking.getKosId().equals(kosId) && (
+                                        DatabaseConstants.BOOKING_PENDING.equals(status) || 
+                                        DatabaseConstants.BOOKING_ACCEPTED.equals(status) ||
+                                        DatabaseConstants.BOOKING_ACTIVE.equals(status) ||
+                                        DatabaseConstants.BOOKING_WAITING_CHECKIN.equals(status))) {
+                                        hasActive = true;
+                                        break;
+                                    }
+                                }
+
+                                if (hasActive) {
+                                    callback.onError("Kamu sudah memiliki booking/antrean aktif untuk kos ini.");
+                                } else {
+                                    // 3. Save the booking
+                                    db.collection(DatabaseConstants.COLLECTION_BOOKINGS)
+                                            .add(booking)
+                                            .addOnSuccessListener(documentReference -> {
+                                                booking.setId(documentReference.getId());
+                                                
+                                                // Trigger Notification for Owner
+                                                NotificationRepository.getInstance().createNotification(
+                                                        booking.getOwnerId(),
+                                                        studentId,
+                                                        DatabaseConstants.NOTIF_BOOKING_NEW,
+                                                        "Ada booking baru masuk",
+                                                        booking.getStudentName() + " mengajukan booking untuk " + booking.getKosName(),
+                                                        DatabaseConstants.TARGET_OWNER_BOOKING,
+                                                        booking.getId()
+                                                );
+                                                
+                                                callback.onSuccess();
+                                            })
+                .addOnFailureListener(e -> {
+                    android.util.Log.e(TAG, "Save booking failed: " + e.getMessage());
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        android.util.Log.e(DatabaseConstants.LOG_TAG_SECURITY, "Permission denied creating booking: " + e.getMessage());
+                        callback.onError("Kamu tidak memiliki izin untuk membuat booking ini.");
+                    } else {
+                        callback.onError("Gagal menyimpan booking. Silakan coba lagi.");
+                    }
+                });
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+                                android.util.Log.e(TAG, "Duplicate check failed: " + e.getMessage());
+                                callback.onError("Gagal mengecek antrean aktif.");
+                            });
+                })
+                .addOnFailureListener(e -> callback.onError("Gagal memuat profil student."));
+    }
+
+    public void getBookingsByStudent(String studentId, BookingListCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS)
+                .whereEqualTo("studentId", studentId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Booking> list = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        try {
+                            Booking b = mapBookingSafely(doc);
+                            if (b != null) list.add(b);
+                        } catch (Exception e) {
+                            android.util.Log.e(TAG, "Error mapping booking list item Student: " + e.getMessage());
+                        }
+                    }
+                    // Manual sorting to avoid composite index error
+                    Collections.sort(list, (b1, b2) -> Long.compare(b2.getCreatedAt(), b1.getCreatedAt()));
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.e(TAG, "getBookingsByStudent error: " + e.getMessage());
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        android.util.Log.e(DatabaseConstants.LOG_TAG_SECURITY, "Permission denied fetching student bookings: " + e.getMessage());
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError("Gagal memuat data booking. Silakan coba lagi.");
+                    }
+                });
+    }
+
+    public void getBookingsByOwner(String ownerId, BookingListCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS)
+                .whereEqualTo("ownerId", ownerId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Booking> list = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        try {
+                            Booking b = mapBookingSafely(doc);
+                            if (b != null) list.add(b);
+                        } catch (Exception e) {
+                            android.util.Log.e(TAG, "Error mapping booking list item Owner: " + e.getMessage());
+                        }
+                    }
+                    // Manual sorting to avoid composite index error
+                    Collections.sort(list, (b1, b2) -> Long.compare(b2.getCreatedAt(), b1.getCreatedAt()));
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.e(TAG, "getBookingsByOwner error: " + e.getMessage());
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError("Gagal memuat data booking masuk. Silakan coba lagi.");
+                    }
+                });
+    }
+
+    public void updateBookingStatus(String bookingId, String newStatus, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
+                .update("status", newStatus, "updatedAt", System.currentTimeMillis(), "updatedBy", "owner")
+                .addOnSuccessListener(a -> { if (callback != null) callback.onSuccess(); })
+                .addOnFailureListener(e -> { if (callback != null) callback.onError(e.getMessage()); });
+    }
+
+    public void acceptBooking(String bookingId, String roomId, SimpleCallback callback) {
+        android.util.Log.d(TAG, "acceptBooking called: id=" + bookingId + ", roomId=" + roomId);
+        
+        if (bookingId == null || bookingId.trim().isEmpty()) {
+            if (callback != null) callback.onError("ID Booking tidak valid.");
+            return;
+        }
+
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            if (callback != null) callback.onError("Sesi berakhir. Silakan login ulang.");
+            return;
+        }
+
+        DocumentReference bookingRef = db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId);
+        DocumentReference roomRef = db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId);
+        
+        db.runTransaction((Transaction.Function<Void>) transaction -> {
+            DocumentSnapshot bookingSnapshot = transaction.get(bookingRef);
+            DocumentSnapshot roomSnapshot = transaction.get(roomRef);
+
+            if (!bookingSnapshot.exists()) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException("Booking tidak ditemukan.", 
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.NOT_FOUND);
+            }
+            if (!roomSnapshot.exists()) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException("Kamar tidak ditemukan.", 
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.NOT_FOUND);
+            }
+
+            String currentStatus = bookingSnapshot.getString("status");
+            String ownerId = bookingSnapshot.getString("ownerId");
+            String bookingKosId = bookingSnapshot.getString("kosId");
+            String roomKosId = roomSnapshot.getString("kosId");
+            String roomStatus = roomSnapshot.getString("status");
+
+            if (!user.getUid().equals(ownerId)) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException("Kamu tidak memiliki akses ke booking ini.", 
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED);
+            }
+
+            if (!DatabaseConstants.BOOKING_PENDING.equals(currentStatus)) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException("Booking sudah diproses.", 
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION);
+            }
+
+            if (bookingKosId == null || !bookingKosId.equals(roomKosId)) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException("Kamar tidak sesuai dengan kos booking ini.", 
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION);
+            }
+
+            if (!DatabaseConstants.ROOM_AVAILABLE.equals(roomStatus)) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException("Kamar ini sudah tidak tersedia.", 
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION);
+            }
+
+            String studentId = bookingSnapshot.getString("studentId");
+            String studentName = bookingSnapshot.getString("studentName");
+
+            String resolvedRoomName = roomSnapshot.getString("roomName");
+            if (resolvedRoomName == null || resolvedRoomName.trim().isEmpty()) {
+                resolvedRoomName = roomSnapshot.getString("name");
+            }
+            if (resolvedRoomName == null || resolvedRoomName.trim().isEmpty()) {
+                resolvedRoomName = roomSnapshot.getString("code");
+            }
+            if (resolvedRoomName == null || resolvedRoomName.trim().isEmpty()) {
+                resolvedRoomName = roomSnapshot.getString("roomCode");
+            }
+            if (resolvedRoomName == null || resolvedRoomName.trim().isEmpty()) {
+                resolvedRoomName = "Kamar dipilih";
+            }
+
+            long now = System.currentTimeMillis();
+
+            // 1. Update Booking
+            transaction.update(bookingRef,
+                    "status", DatabaseConstants.BOOKING_ACCEPTED,
+                    "roomId", roomId,
+                    "roomName", resolvedRoomName,
+                    "updatedAt", now,
+                    "updatedBy", user.getUid(),
+                    DatabaseConstants.FIELD_STATUS_HISTORY,
+                    FieldValue.arrayUnion("ACCEPTED_WITH_ROOM " + resolvedRoomName + " at " + now)
+            );
+
+            // 2. Update Room
+            transaction.update(roomRef,
+                    "status", DatabaseConstants.ROOM_BOOKED,
+                    "bookingId", bookingId,
+                    "currentBookingId", bookingId,
+                    "studentId", studentId,
+                    "studentName", studentName,
+                    "updatedAt", now
+            );
+            
+            return null;
+        }).addOnSuccessListener(aVoid -> {
+            android.util.Log.d(TAG, "acceptBooking: successfully accepted " + bookingId);
+            
+            // Trigger Notification for Student
+            db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                    .addOnSuccessListener(doc -> {
+                        String studentId = doc.getString("studentId");
+                        String kosName = doc.getString("kosName");
+                        NotificationRepository.getInstance().createNotification(
+                                studentId,
+                                user.getUid(),
+                                DatabaseConstants.NOTIF_BOOKING_ACCEPTED,
+                                "Booking kamu diterima",
+                                "Booking untuk " + kosName + " telah diterima owner.",
+                                DatabaseConstants.TARGET_WAITING_LIST,
+                                bookingId
+                        );
+                    });
+
+            FinanceRepository.getInstance().cancelTransactionByBooking(bookingId, null);
+            if (callback != null) callback.onSuccess();
+        })
+          .addOnFailureListener(e -> {
+              android.util.Log.e(TAG, "acceptBooking failed: " + e.getMessage());
+              if (callback != null) callback.onError(e.getMessage());
+          });
+    }
+
+    public void rejectBooking(String bookingId, String roomId, SimpleCallback callback) {
+        android.util.Log.d(TAG, "rejectBooking called: id=" + bookingId + ", roomId=" + roomId);
+
+        if (bookingId == null || bookingId.trim().isEmpty()) {
+            if (callback != null) callback.onError("ID Booking tidak valid.");
+            return;
+        }
+
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            if (callback != null) callback.onError("Sesi berakhir. Silakan login ulang.");
+            return;
+        }
+
+        DocumentReference bookingRef = db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId);
+
+        db.runTransaction((Transaction.Function<Void>) transaction -> {
+            com.google.firebase.firestore.DocumentSnapshot bookingSnapshot = transaction.get(bookingRef);
+            if (!bookingSnapshot.exists()) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException("Booking tidak ditemukan.", 
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.NOT_FOUND);
+            }
+
+            String currentStatus = bookingSnapshot.getString("status");
+            String ownerId = bookingSnapshot.getString("ownerId");
+
+            if (!user.getUid().equals(ownerId)) {
+                throw new com.google.firebase.firestore.FirebaseFirestoreException("Kamu tidak memiliki akses ke booking ini.", 
+                        com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED);
+            }
+
+            transaction.update(bookingRef, "status", DatabaseConstants.BOOKING_REJECTED);
+            transaction.update(bookingRef, "updatedAt", System.currentTimeMillis());
+            transaction.update(bookingRef, DatabaseConstants.FIELD_UPDATED_BY, user.getUid());
+            transaction.update(bookingRef, DatabaseConstants.FIELD_STATUS_HISTORY, FieldValue.arrayUnion("REJECTED at " + System.currentTimeMillis()));
+
+            if (roomId != null && !roomId.trim().isEmpty()) {
+                android.util.Log.d(TAG, "rejectBooking: updating room " + roomId);
+                DocumentReference roomRef = db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId);
+                transaction.update(roomRef, DatabaseConstants.FIELD_STATUS, DatabaseConstants.ROOM_AVAILABLE);
+            }
+            return null;
+        }).addOnSuccessListener(aVoid -> {
+            android.util.Log.d(TAG, "rejectBooking: successfully rejected " + bookingId);
+            
+            // Trigger Notification for Student
+            db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                    .addOnSuccessListener(doc -> {
+                        String studentId = doc.getString("studentId");
+                        String kosName = doc.getString("kosName");
+                        NotificationRepository.getInstance().createNotification(
+                                studentId,
+                                user.getUid(),
+                                DatabaseConstants.NOTIF_BOOKING_REJECTED,
+                                "Booking kamu ditolak",
+                                "Booking untuk " + kosName + " ditolak owner.",
+                                DatabaseConstants.TARGET_WAITING_LIST,
+                                bookingId
+                        );
+                    });
+
+            FinanceRepository.getInstance().cancelTransactionByBooking(bookingId, null);
+            if (callback != null) callback.onSuccess();
+        })
+          .addOnFailureListener(e -> {
+              android.util.Log.e(TAG, "rejectBooking failed: " + e.getMessage());
+              if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                  ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                  if (callback != null) callback.onError("Akses ditolak. Kamu bukan pemilik data ini.");
+              } else {
+                  if (callback != null) callback.onError(e.getMessage());
+              }
+          });
+    }
+
+    public void cancelBooking(String bookingId, String roomId, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
+                .update("status", DatabaseConstants.BOOKING_CANCELLED, "updatedAt", System.currentTimeMillis())
+                .addOnSuccessListener(aVoid -> {
+                    FinanceRepository.getInstance().cancelTransactionByBooking(bookingId, null);
+                    if (roomId != null && !roomId.isEmpty()) {
+                        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)
+                                .update("status", DatabaseConstants.ROOM_AVAILABLE)
+                                .addOnSuccessListener(v -> callback.onSuccess())
+                                .addOnFailureListener(e -> callback.onSuccess());
+                    } else {
+                        callback.onSuccess();
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void markKeyTaken(String bookingId, String roomId, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId).get()
+                .addOnSuccessListener(bookingDoc -> {
+                    if (!bookingDoc.exists()) {
+                        if (callback != null) callback.onError("Booking tidak ditemukan.");
+                        return;
+                    }
+
+                    String studentId = bookingDoc.getString("studentId");
+                    String studentName = bookingDoc.getString("studentName");
+                    String ownerId = bookingDoc.getString("ownerId");
+                    String kosName = bookingDoc.getString("kosName");
+
+                    long now = System.currentTimeMillis();
+
+                    // 1. Update Booking Status
+                    db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
+                            .update(
+                                    "status", DatabaseConstants.BOOKING_ACTIVE,
+                                    "updatedAt", now,
+                                    DatabaseConstants.FIELD_STATUS_HISTORY, FieldValue.arrayUnion("ACTIVE (Key Taken) at " + now)
+                            )
+                            .addOnSuccessListener(aVoid -> {
+                                // 2. Trigger Notification and Finance
+                                NotificationRepository.getInstance().createNotification(
+                                        ownerId,
+                                        studentId,
+                                        DatabaseConstants.NOTIF_FINANCE_AVAILABLE,
+                                        "Penyewa sudah mengambil kunci",
+                                        "Saldo booking " + kosName + " kini tersedia.",
+                                        DatabaseConstants.TARGET_FINANCE,
+                                        bookingId
+                                );
+
+                                FinanceRepository.getInstance().markTransactionAvailableByBooking(bookingId, null);
+
+                                // 3. Update Room Status and Relations
+                                if (roomId != null && !roomId.isEmpty()) {
+                                    db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)
+                                            .update(
+                                                    "status", DatabaseConstants.ROOM_OCCUPIED,
+                                                    "bookingId", bookingId,
+                                                    "currentBookingId", bookingId,
+                                                    "studentId", studentId,
+                                                    "studentName", studentName,
+                                                    "updatedAt", now
+                                            )
+                                            .addOnSuccessListener(v -> {
+                                                if (callback != null) callback.onSuccess();
+                                            })
+                                            .addOnFailureListener(e -> {
+                                                if (callback != null) callback.onSuccess(); // Non-critical failure
+                                            });
+                                } else {
+                                    if (callback != null) callback.onSuccess();
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+                                if (callback != null) callback.onError(e.getMessage());
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+    }
+
+    public void completeBooking(String bookingId, String roomId, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS).document(bookingId)
+                .update("status", DatabaseConstants.BOOKING_COMPLETED, "updatedAt", System.currentTimeMillis())
+                .addOnSuccessListener(aVoid -> {
+                    if (roomId != null && !roomId.isEmpty()) {
+                        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)
+                                .update("status", DatabaseConstants.ROOM_AVAILABLE)
+                                .addOnSuccessListener(v -> callback.onSuccess())
+                                .addOnFailureListener(e -> callback.onSuccess());
+                    } else {
+                        callback.onSuccess();
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void getCompletedBookingForKos(String studentId, String kosId, BookingCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_BOOKINGS)
+                .whereEqualTo("studentId", studentId)
+                .whereEqualTo("kosId", kosId)
+                .whereEqualTo("status", DatabaseConstants.BOOKING_COMPLETED)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        com.google.firebase.firestore.QueryDocumentSnapshot doc = (com.google.firebase.firestore.QueryDocumentSnapshot) queryDocumentSnapshots.getDocuments().get(0);
+                        Booking b = doc.toObject(Booking.class);
+                        b.setId(doc.getId());
+                        callback.onSuccess(b);
+                    } else {
+                        callback.onError("No completed booking found");
+                    }
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+}

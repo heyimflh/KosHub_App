@@ -7,7 +7,8 @@
     android:background="@color/owner_card_white"
     android:elevation="8dp"
     android:gravity="center_vertical"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:clipToPadding="false">
 
     <!-- Dashboard -->
     <LinearLayout

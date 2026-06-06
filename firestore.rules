@@ -1,0 +1,354 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HELPER FUNCTIONS ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userRole() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? userDoc().data.role
+        : null;
+    }
+
+    function isStudent() {
+      return userRole() == "student";
+    }
+
+    function isOwner() {
+      return userRole() == "owner";
+    }
+
+    function isValidRole(role) {
+      return role in ["student", "owner"];
+    }
+
+    function unchanged(field) {
+      return !(field in request.resource.data) || request.resource.data[field] == resource.data[field];
+    }
+
+    function hasOnlyAllowedFields(allowed) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
+    }
+
+    function isChatParticipantByData(data) {
+      return isSignedIn() && (
+        ("studentId" in data && data.studentId == request.auth.uid) ||
+        ("ownerId" in data && data.ownerId == request.auth.uid) ||
+        ("senderId" in data && data.senderId == request.auth.uid) ||
+        ("receiverId" in data && data.receiverId == request.auth.uid) ||
+        ("participants" in data && request.auth.uid in data.participants) ||
+        ("participantIds" in data && request.auth.uid in data.participantIds) ||
+        ("userIds" in data && request.auth.uid in data.userIds) ||
+        ("members" in data && request.auth.uid in data.members)
+      );
+    }
+
+    function isValidCoordinates(data) {
+      return data.latitude != 0.0
+        && data.longitude != 0.0
+        && data.latitude >= -90
+        && data.latitude <= 90
+        && data.longitude >= -180
+        && data.longitude <= 180;
+    }
+
+    // --- COLLECTION RULES ---
+
+    // USERS
+    match /users/{userId} {
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && isValidRole(request.resource.data.role);
+
+      // Student/Owner can read their own profile.
+      // For demo: allow others to read public fields if needed for booking/chat.
+      allow read: if isSignedIn();
+
+      allow update: if isSelf(userId)
+        && unchanged("role");
+
+      allow delete: if false;
+    }
+
+    // KOS
+    match /kos/{kosId} {
+      allow read: if isSignedIn();
+
+      allow create: if isOwner()
+        && request.resource.data.ownerId == request.auth.uid
+        && isValidCoordinates(request.resource.data);
+
+      allow update: if isOwner()
+        && resource.data.ownerId == request.auth.uid
+        && unchanged("ownerId")
+        && isValidCoordinates(request.resource.data);
+
+      allow delete: if isOwner()
+        && resource.data.ownerId == request.auth.uid;
+    }
+
+    // ROOMS
+    match /rooms/{roomId} {
+      allow read: if isSignedIn();
+
+      allow create: if isOwner()
+        && request.resource.data.ownerId == request.auth.uid;
+
+      allow update: if isOwner()
+        && resource.data.ownerId == request.auth.uid
+        && unchanged("ownerId")
+        && unchanged("kosId");
+
+      allow delete: if isOwner()
+        && resource.data.ownerId == request.auth.uid;
+    }
+
+    // BOOKINGS
+    match /bookings/{bookingId} {
+      allow read: if isSignedIn()
+        && (
+          resource.data.studentId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
+
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.status == "pending"
+        && (
+          !("paymentStatus" in request.resource.data) ||
+          request.resource.data.paymentStatus == "unpaid"
+        );
+
+      allow update: if isSignedIn()
+        && (
+          // A. Student update (Demo Payment Flow)
+          (
+            resource.data.studentId == request.auth.uid
+            && unchanged("studentId")
+            && unchanged("ownerId")
+            && unchanged("kosId")
+            && unchanged("roomId")
+            && unchanged("totalPrice")
+            && unchanged("price")
+            // TODO SECURITY: Production must update paymentStatus from backend
+            && hasOnlyAllowedFields([
+                 "paymentStatus", "status", "gatewayTransactionId",
+                 "totalBayar", "qrisString", "paymentCreatedAt",
+                 "paidAt", "updatedAt", "statusHistory"
+               ])
+          )
+          ||
+          // B. Owner update (Accept/Reject/Manage)
+          (
+            resource.data.ownerId == request.auth.uid
+            && unchanged("ownerId")
+            && unchanged("studentId")
+            && unchanged("kosId")
+            && unchanged("roomId")
+            && hasOnlyAllowedFields(["status", "updatedAt", "statusHistory", "updatedBy", "note"])
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // PAYMENTS
+    match /payments/{paymentId} {
+      allow read: if isSignedIn()
+        && (
+          resource.data.studentId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
+
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.status == "pending";
+
+      // TODO SECURITY: Production must update from backend
+      allow update: if isStudent()
+        && resource.data.studentId == request.auth.uid
+        && hasOnlyAllowedFields(["status", "updatedAt", "paidAt", "gatewayTransactionId"]);
+
+      allow delete: if false;
+    }
+
+    // TRANSACTIONS
+    match /transactions/{transactionId} {
+      allow read: if isSignedIn()
+        && (
+          resource.data.studentId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
+
+      // TODO SECURITY: Production transaction should be created by backend
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.type == "rent_payment"
+        && request.resource.data.status in ["available", "pending"];
+
+      allow update: if isOwner()
+        && resource.data.ownerId == request.auth.uid
+        && hasOnlyAllowedFields(["status", "updatedAt"]);
+
+      allow delete: if false;
+    }
+
+    // FAVORITES
+    match /favorites/{favoriteId} {
+      function isFavoriteOwnerById() {
+        return isSignedIn()
+          && favoriteId.matches(request.auth.uid + "_.*");
+      }
+
+      allow get: if isFavoriteOwnerById()
+        || (
+          isSignedIn()
+          && resource.data.userId == request.auth.uid
+        );
+
+      allow list: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.kosId is string
+        && request.resource.data.kosId.size() > 0
+        && favoriteId == request.auth.uid + "_" + request.resource.data.kosId;
+
+      allow delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+
+      allow update: if false;
+    }
+
+    // CHATS
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && isChatParticipantByData(resource.data);
+
+      allow create: if isSignedIn() && isChatParticipantByData(request.resource.data);
+
+      allow update: if isSignedIn()
+        && isChatParticipantByData(resource.data)
+        && isChatParticipantByData(request.resource.data);
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn()
+          && isChatParticipantByData(get(/databases/$(database)/documents/chats/$(chatId)).data);
+
+        allow create: if isSignedIn()
+          && isChatParticipantByData(get(/databases/$(database)/documents/chats/$(chatId)).data)
+          && request.resource.data.senderId == request.auth.uid;
+
+        allow update, delete: if false;
+      }
+    }
+
+    // MESSAGES (Top-level fallback)
+    match /messages/{messageId} {
+      allow read: if isSignedIn() && isChatParticipantByData(resource.data);
+
+      allow create: if isSignedIn()
+        && request.resource.data.senderId == request.auth.uid
+        && (
+          ("receiverId" in request.resource.data && request.resource.data.receiverId is string) ||
+          ("chatId" in request.resource.data && request.resource.data.chatId is string)
+        );
+
+      allow update, delete: if false;
+    }
+
+    // COMPLAINTS
+    match /complaints/{complaintId} {
+      allow read: if isSignedIn()
+        && (
+          resource.data.studentId == request.auth.uid ||
+          resource.data.ownerId == request.auth.uid
+        );
+
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid;
+
+      allow update: if isSignedIn()
+        && (
+          (isStudent() && resource.data.studentId == request.auth.uid && resource.data.status != "resolved") ||
+          (isOwner() && resource.data.ownerId == request.auth.uid)
+        );
+
+      allow delete: if false;
+    }
+
+    // REVIEWS
+    match /reviews/{reviewId} {
+      allow read: if isSignedIn();
+
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+
+      allow update, delete: if isSelf(resource.data.studentId);
+    }
+
+    // WITHDRAWALS
+    match /withdrawals/{withdrawalId} {
+      allow read: if isOwner()
+        && resource.data.ownerId == request.auth.uid;
+
+      allow create: if isOwner()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == "pending";
+
+      // TODO SECURITY: Approval must be backend/admin
+      allow update: if false;
+
+      allow delete: if false;
+    }
+
+    // NOTIFICATIONS
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn()
+        && resource.data.recipientId == request.auth.uid;
+
+      allow update: if isSignedIn()
+        && resource.data.recipientId == request.auth.uid
+        && hasOnlyAllowedFields(["read", "readAt", "updatedAt"]);
+
+      allow create: if isSignedIn();
+      allow delete: if false;
+    }
+
+    // FCM TOKENS
+    match /users/{userId}/fcmTokens/{tokenId} {
+      allow read, write: if isSelf(userId);
+    }
+
+    // PROMOS
+    match /promos/{promoId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner()
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isOwner()
+        && resource.data.ownerId == request.auth.uid;
+    }
+
+    // --- DEFAULT DENY ---
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

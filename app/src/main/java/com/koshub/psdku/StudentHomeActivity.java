@@ -1,14 +1,17 @@
 package com.koshub.psdku;
 
+import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -21,26 +24,48 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.slider.RangeSlider;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.koshub.psdku.models.Favorite;
+import com.koshub.psdku.repositories.FCMTokenRepository;
+import com.koshub.psdku.repositories.FavoriteRepository;
+import com.koshub.psdku.repositories.KosRepository;
+import com.koshub.psdku.repositories.NotificationRepository;
+import com.koshub.psdku.utils.NotificationHelper;
+import com.koshub.psdku.utils.NotificationPermissionHelper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public class StudentHomeActivity extends AppCompatActivity implements KosAdapter.OnKosClickListener {
 
     private RecyclerView rvKosList;
     private KosAdapter adapter;
     private TextView tvResultCount;
+    private View layoutEmptyState;
+    private View layoutErrorState;
     private List<KosItem> allKosList = new ArrayList<>();
     private List<KosItem> filteredList = new ArrayList<>();
     private EditText etSearch;
+    private ProgressBar progressBar;
+    private ValueAnimator skeletonAnimator;
+    private SkeletonAdapter skeletonAdapter = new SkeletonAdapter();
+    private KosRepository kosRepository;
+    private ListenerRegistration kosListener;
+    private ListenerRegistration notificationListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_student_home);
+
+        kosRepository = KosRepository.getInstance();
+        progressBar = findViewById(R.id.progressBar);
 
         // Handle window insets for status bar
         View navbar = findViewById(R.id.navbar);
@@ -64,108 +89,155 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
             });
         }
 
+        setupViews();
         initData();
         NavigationHelper.cachedKosList = allKosList;
-        setupViews();
         setupSearch();
         setupQuickChips();
         setupToggle();
         setupBottomNav();
         
+        // Notification & Permissions
+        NotificationHelper.createNotificationChannels(this);
+        NotificationPermissionHelper.askNotificationPermission(this);
+        FCMTokenRepository.getInstance().saveCurrentToken();
+        setupNotificationBadge();
+
         // Initial count update
         updateResultCount();
     }
 
+    private void setupNotificationBadge() {
+        TextView tvBadge = findViewById(R.id.tvNotifBadge);
+        if (tvBadge == null) return;
+        
+        notificationListener = NotificationRepository.getInstance().listenUnreadCount(new NotificationRepository.CountCallback() {
+            @Override
+            public void onSuccess(int count) {
+                if (count > 0) {
+                    tvBadge.setVisibility(View.VISIBLE);
+                    tvBadge.setText(count > 9 ? "9+" : String.valueOf(count));
+                } else {
+                    tvBadge.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                Log.e("KosHubNotification", "Badge error: " + message);
+            }
+        });
+    }
+
     private void initData() {
-        allKosList = new ArrayList<>();
+        setLoading(true);
+        if (layoutErrorState != null) layoutErrorState.setVisibility(View.GONE);
 
-        // Base location for UNS Kampus 6 PGSD Kebumen
-        double baseLat = -7.68307;
-        double baseLng = 109.6645;
+        // Remove old listener if exists
+        if (kosListener != null) {
+            kosListener.remove();
+        }
 
-        allKosList.add(new KosItem(
-                "Kos Putri Premium Sakura", "Jl. Mawar No. 17, Kebumen",
-                "Rp 1.2jt", 1200000, "8 mnt", 8, "4.9", "Putri",
-                Arrays.asList("AC", "WiFi", "K. Mandi Dalam"),
-                R.drawable.kos_01, true, null,
-                baseLat + 0.001, baseLng - 0.001));
+        kosListener = kosRepository.listenAllKosItems(new KosRepository.KosItemListCallback() {
+            @Override
+            public void onSuccess(List<KosItem> items) {
+                setLoading(false);
+                if (layoutErrorState != null) layoutErrorState.setVisibility(View.GONE);
 
-        allKosList.add(new KosItem(
-                "Kos Campur Nusantara", "Jl. Sungai Lukulo No. 21, Kebumen",
-                "Rp 550rb", 550000, "7 mnt", 7, "4.3", "Campur",
-                Arrays.asList("WiFi", "Dapur", "Parkir Motor"),
-                R.drawable.kos_02, false, "Sisa 2 Kamar",
-                baseLat - 0.001, baseLng + 0.001));
+                allKosList.clear();
+                allKosList.addAll(items);
 
-        allKosList.add(new KosItem(
-                "Kos Putra Harmoni", "Jl. Pendidikan No. 12, Kebumen",
-                "Rp 750rb", 750000, "5 mnt", 5, "4.8", "Putra",
-                Arrays.asList("WiFi", "K. Mandi Dalam", "Laundry"),
-                R.drawable.kos_03, false, null,
-                baseLat + 0.0005, baseLng + 0.0005));
+                applyFavoriteStates();
 
-        allKosList.add(new KosItem(
-                "Kos Putri Melati Eksklusif", "Jl. Melati No. 12, Kebumen",
-                "Rp 900rb", 900000, "10 mnt", 10, "4.9", "Putri",
-                Arrays.asList("AC", "WiFi", "Lemari"),
-                R.drawable.kos_04, false, "Sisa 1 Kamar",
-                baseLat - 0.0008, baseLng - 0.0008));
+                // Preserve search/filter if user is currently typing
+                String currentSearch = etSearch != null ? etSearch.getText().toString() : "";
+                if (!currentSearch.isEmpty()) {
+                    filterBySearch(currentSearch);
+                } else {
+                    filteredList.clear();
+                    filteredList.addAll(items);
+                    if (adapter != null) adapter.notifyDataSetChanged();
+                    updateResultCount();
+                }
 
-        allKosList.add(new KosItem(
-                "Kos Putra Sederhana Jaya", "Jl. Kebumen Raya No. 5, Kebumen",
-                "Rp 500rb", 500000, "3 mnt", 3, "4.2", "Putra",
-                Arrays.asList("Parkir", "Laundry", "WiFi"),
-                R.drawable.kos_05, false, null,
-                baseLat + 0.0003, baseLng - 0.0003));
+                NavigationHelper.cachedKosList = new ArrayList<>(allKosList);
 
-        allKosList.add(new KosItem(
-                "Kos Putri Anggrek", "Jl. Anggrek No. 8, Kebumen",
-                "Rp 650rb", 650000, "6 mnt", 6, "4.6", "Putri",
-                Arrays.asList("AC", "WiFi", "K. Mandi Dalam"),
-                R.drawable.kos_06, false, null,
-                baseLat + 0.0007, baseLng + 0.0002));
+                if (allKosList.isEmpty()) {
+                    if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.VISIBLE);
+                } else {
+                    if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
+                }
+            }
 
-        allKosList.add(new KosItem(
-                "Kos Campur Perwira", "Jl. Perwira No. 15, Kebumen",
-                "Rp 450rb", 450000, "4 mnt", 4, "4.1", "Campur",
-                Arrays.asList("WiFi", "Parkir Motor", "Dapur"),
-                R.drawable.kos_07, false, "Sisa 3 Kamar",
-                baseLat - 0.0006, baseLng + 0.0004));
+            @Override
+            public void onError(String message) {
+                setLoading(false);
+                if (layoutErrorState != null) {
+                    layoutErrorState.setVisibility(View.VISIBLE);
+                    View btnRetry = layoutErrorState.findViewById(R.id.btnRetry);
+                    if (btnRetry != null) btnRetry.setOnClickListener(v -> initData());
+                }
+                if (layoutEmptyState != null) layoutEmptyState.setVisibility(View.GONE);
 
-        allKosList.add(new KosItem(
-                "Kos Putra Barokah", "Jl. Pahlawan No. 22, Kebumen",
-                "Rp 600rb", 600000, "5 mnt", 5, "4.5", "Putra",
-                Arrays.asList("WiFi", "K. Mandi Dalam", "Lemari"),
-                R.drawable.kos_08, false, null,
-                baseLat + 0.0012, baseLng - 0.0007));
+                showToast("Gagal memuat data: " + message);
+            }
+        });
+    }
 
-        allKosList.add(new KosItem(
-                "Kos Putri Cendana", "Jl. Cendana No. 3, Kebumen",
-                "Rp 800rb", 800000, "7 mnt", 7, "4.7", "Putri",
-                Arrays.asList("AC", "WiFi", "K. Mandi Dalam", "Lemari"),
-                R.drawable.kos_09, true, null,
-                baseLat - 0.0004, baseLng - 0.0012));
-
-        allKosList.add(new KosItem(
-                "Kos Campur Merdeka", "Jl. Merdeka No. 10, Kebumen",
-                "Rp 475rb", 475000, "12 mnt", 12, "4.0", "Campur",
-                Arrays.asList("WiFi", "Parkir"),
-                R.drawable.kos_10, false, null,
-                baseLat + 0.0015, baseLng + 0.001));
-
-        filteredList = new ArrayList<>(allKosList);
-        NavigationHelper.cachedKosList = new ArrayList<>(allKosList);
+    private void setLoading(boolean loading) {
+        if (loading) {
+            if (rvKosList != null) {
+                rvKosList.setAdapter(skeletonAdapter);
+                rvKosList.setAlpha(1.0f);
+            }
+            if (progressBar != null) progressBar.setVisibility(View.GONE);
+            
+            // Shimmer animation
+            if (skeletonAnimator == null) {
+                skeletonAnimator = ValueAnimator.ofFloat(0.4f, 1.0f);
+                skeletonAnimator.setDuration(800);
+                skeletonAnimator.setRepeatCount(ValueAnimator.INFINITE);
+                skeletonAnimator.setRepeatMode(ValueAnimator.REVERSE);
+                skeletonAnimator.addUpdateListener(animation -> {
+                    if (rvKosList != null && rvKosList.getAdapter() instanceof SkeletonAdapter) {
+                        rvKosList.setAlpha((float) animation.getAnimatedValue());
+                    }
+                });
+            }
+            if (!skeletonAnimator.isRunning()) skeletonAnimator.start();
+            
+        } else {
+            if (rvKosList != null) {
+                rvKosList.setAdapter(adapter);
+                rvKosList.setAlpha(1.0f);
+            }
+            if (progressBar != null) progressBar.setVisibility(View.GONE);
+            
+            if (skeletonAnimator != null) {
+                skeletonAnimator.cancel();
+            }
+        }
     }
 
     private void setupViews() {
         rvKosList = findViewById(R.id.rvKosList);
-        rvKosList.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new KosAdapter(filteredList, this);
-        rvKosList.setAdapter(adapter);
+        tvResultCount = findViewById(R.id.tvResultCount);
+        layoutEmptyState = findViewById(R.id.layoutEmptyStateHome);
+        layoutErrorState = findViewById(R.id.layoutErrorState);
+        etSearch = findViewById(R.id.etSearch);
+        progressBar = findViewById(R.id.progressBar);
+
+        if (rvKosList != null) {
+            rvKosList.setLayoutManager(new LinearLayoutManager(this));
+            adapter = new KosAdapter(filteredList, this);
+            rvKosList.setAdapter(adapter);
+        }
 
         // Notification button
-        findViewById(R.id.btnNotification).setOnClickListener(v ->
-                Toast.makeText(this, "Belum ada notifikasi baru", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnNotification).setOnClickListener(v -> {
+            Intent intent = new Intent(this, NotificationActivity.class);
+            NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
+        });
     }
 
     private void setupSearch() {
@@ -284,7 +356,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
                     intent.putExtra("kos_list", new ArrayList<>(allKosList));
                     NavigationTransitionHelper.navigateMainWithIntent(this, intent);
                 } catch (Exception e) {
-                    Toast.makeText(this, "Gagal membuka peta: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    showToast("Gagal membuka peta: " + e.getMessage());
                     e.printStackTrace();
                 }
             });
@@ -300,15 +372,58 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
         View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_filter, null);
         dialog.setContentView(sheetView);
 
+        RangeSlider rangeSlider = sheetView.findViewById(R.id.rangeSliderHarga);
+        TextView tvHargaMin = sheetView.findViewById(R.id.tvHargaMin);
+        TextView tvHargaMax = sheetView.findViewById(R.id.tvHargaMax);
+
+        rangeSlider.addOnChangeListener((slider, value, fromUser) -> {
+            List<Float> values = slider.getValues();
+            tvHargaMin.setText(String.format(Locale.GERMANY, "Rp %,.0f", values.get(0)).replace(',', '.'));
+            tvHargaMax.setText(String.format(Locale.GERMANY, "Rp %,.0f", values.get(1)).replace(',', '.'));
+        });
+
+        // Setup Chips
+        int[] chipIds = {
+                R.id.chipFilterPutra, R.id.chipFilterPutri, R.id.chipFilterCampur,
+                R.id.chipFilterWifi, R.id.chipFilterAC, R.id.chipFilterKamarMandi,
+                R.id.chipFilterParkir, R.id.chipFilterLaundry
+        };
+
+        for (int id : chipIds) {
+            TextView chip = sheetView.findViewById(id);
+            if (chip != null) {
+                chip.setOnClickListener(v -> toggleChipState(chip));
+            }
+        }
+
         // Apply filter button
         sheetView.findViewById(R.id.btnApplyFilter).setOnClickListener(v -> {
+            List<Float> values = rangeSlider.getValues();
+            int minPrice = values.get(0).intValue();
+            int maxPrice = values.get(1).intValue();
+
+            String selectedCategory = "";
+            if (isChipActive(sheetView, R.id.chipFilterPutra)) selectedCategory = "Putra";
+            else if (isChipActive(sheetView, R.id.chipFilterPutri)) selectedCategory = "Putri";
+            else if (isChipActive(sheetView, R.id.chipFilterCampur)) selectedCategory = "Campur";
+
+            List<String> selectedFacilities = new ArrayList<>();
+            if (isChipActive(sheetView, R.id.chipFilterWifi)) selectedFacilities.add("WiFi");
+            if (isChipActive(sheetView, R.id.chipFilterAC)) selectedFacilities.add("AC");
+            if (isChipActive(sheetView, R.id.chipFilterKamarMandi)) selectedFacilities.add("K. Mandi Dalam");
+            if (isChipActive(sheetView, R.id.chipFilterParkir)) selectedFacilities.add("Parkir");
+            if (isChipActive(sheetView, R.id.chipFilterLaundry)) selectedFacilities.add("Laundry");
+
+            filterByAdvanced(minPrice, maxPrice, selectedCategory, selectedFacilities);
             dialog.dismiss();
-            Toast.makeText(this, "Filter diterapkan", Toast.LENGTH_SHORT).show();
         });
 
         // Reset filter button
         sheetView.findViewById(R.id.btnResetFilter).setOnClickListener(v -> {
-            Toast.makeText(this, "Filter direset", Toast.LENGTH_SHORT).show();
+            etSearch.setText("");
+            filterByCategory("");
+            showToast("Filter direset");
+            dialog.dismiss();
         });
 
         // Close button
@@ -317,9 +432,65 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
         dialog.show();
     }
 
+    private void toggleChipState(TextView chip) {
+        boolean isActive = chip.getTag() != null && (boolean) chip.getTag();
+        isActive = !isActive;
+        chip.setTag(isActive);
+
+        if (isActive) {
+            chip.setBackgroundResource(R.drawable.bg_quick_chip_active);
+            chip.setTextColor(ContextCompat.getColor(this, R.color.text_white));
+        } else {
+            chip.setBackgroundResource(R.drawable.bg_quick_chip_inactive);
+            chip.setTextColor(ContextCompat.getColor(this, R.color.home_text_secondary));
+        }
+    }
+
+    private boolean isChipActive(View parent, int resId) {
+        View chip = parent.findViewById(resId);
+        return chip != null && chip.getTag() != null && (boolean) chip.getTag();
+    }
+
+    private void filterByAdvanced(int minPrice, int maxPrice, String category, List<String> selectedFacilities) {
+        filteredList.clear();
+        for (KosItem item : allKosList) {
+            boolean matchesPrice = item.getPriceValue() >= minPrice && item.getPriceValue() <= maxPrice;
+            boolean matchesCategory = category.isEmpty() || item.getCategory().equalsIgnoreCase(category);
+            boolean matchesFacilities = true;
+            if (!selectedFacilities.isEmpty()) {
+                if (item.getFacilities() == null) {
+                    matchesFacilities = false;
+                } else {
+                    for (String facility : selectedFacilities) {
+                        if (!item.getFacilities().contains(facility)) {
+                            matchesFacilities = false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (matchesPrice && matchesCategory && matchesFacilities) {
+                filteredList.add(item);
+            }
+        }
+        adapter.notifyDataSetChanged();
+        updateResultCount();
+        
+        if (filteredList.isEmpty()) {
+            layoutEmptyState.setVisibility(View.VISIBLE);
+        } else {
+            layoutEmptyState.setVisibility(View.GONE);
+        }
+    }
+
     private void updateResultCount() {
         if (tvResultCount != null && filteredList != null) {
             tvResultCount.setText(filteredList.size() + " kos");
+            if (layoutEmptyState != null) {
+                layoutEmptyState.setVisibility(filteredList.isEmpty() ? View.VISIBLE : View.GONE);
+                rvKosList.setVisibility(filteredList.isEmpty() ? View.GONE : View.VISIBLE);
+            }
         }
     }
 
@@ -328,15 +499,94 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     }
 
     @Override
+    protected void onDestroy() {
+        if (kosListener != null) {
+            kosListener.remove();
+        }
+        if (notificationListener != null) {
+            notificationListener.remove();
+        }
+        super.onDestroy();
+    }
+
+    @Override
     public void onKosClick(KosItem item, int position) {
         Intent intent = new Intent(this, PropertyDetailBookingActivity.class);
         intent.putExtra("kos_item", item);
+        intent.putExtra("kos_id", item.getId());
+        intent.putExtra("owner_id", item.getOwnerId());
+        
+        // Add coordinates and basic info for detail view logic
+        intent.putExtra("kos_lat", item.getLatitude());
+        intent.putExtra("kos_lng", item.getLongitude());
+        intent.putExtra("kos_name", item.getName());
+        intent.putExtra("kos_address", item.getAddress());
+
         NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
     }
 
     @Override
     public void onFavoriteClick(KosItem item, int position) {
-        String msg = item.isFavorite() ? "Ditambahkan ke favorit" : "Dihapus dari favorit";
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        FavoriteRepository.getInstance().setFavorite(item, item.isFavorite(), new FavoriteRepository.SimpleCallback() {
+            @Override
+            public void onSuccess(String message) {
+                showToast(message);
+            }
+
+            @Override
+            public void onError(String message) {
+                showToast(message);
+                // Revert state on error
+                item.setFavorite(!item.isFavorite());
+                adapter.notifyItemChanged(position);
+            }
+        });
+    }
+
+    private void applyFavoriteStates() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        FavoriteRepository.getInstance().getFavoritesByUser(uid, new FavoriteRepository.FavoriteListCallback() {
+            @Override
+            public void onSuccess(List<Favorite> favorites) {
+                java.util.Set<String> favoriteKosIds = new java.util.HashSet<>();
+                for (Favorite fav : favorites) {
+                    favoriteKosIds.add(fav.getKosId());
+                }
+
+                for (KosItem item : allKosList) {
+                    item.setFavorite(favoriteKosIds.contains(item.getId()));
+                }
+                
+                for (KosItem item : filteredList) {
+                    item.setFavorite(favoriteKosIds.contains(item.getId()));
+                }
+
+                if (adapter != null) {
+                    adapter.notifyDataSetChanged();
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                Log.e("KosHubFavorite", "Failed to sync favorites: " + message);
+            }
+        });
+    }
+
+    @Override
+    public void onNavigateClick(KosItem item, int position) {
+        Intent navIntent = new Intent(this, MapViewRouteNavigationActivity.class);
+        navIntent.putExtra("kos_lat", item.getLatitude());
+        navIntent.putExtra("kos_lng", item.getLongitude());
+        navIntent.putExtra("kos_name", item.getName());
+        // Pass the whole list as well to ensure markers are loaded
+        navIntent.putExtra("kos_list", new ArrayList<>(allKosList));
+        NavigationTransitionHelper.navigateMainWithIntent(this, navIntent);
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }

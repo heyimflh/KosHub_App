@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/owner_background"
-    android:fitsSystemWindows="true">
+    android:background="@color/owner_background">
 
     <!-- Navbar (Static/Top) -->
     <LinearLayout
@@ -52,6 +51,20 @@
                 android:layout_height="20dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_bell" />
+
+            <TextView
+                android:id="@+id/tvNotifBadge"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="4dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/bg_notif_badge"
+                android:gravity="center"
+                android:textColor="@color/text_white"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
         </FrameLayout>
     </LinearLayout>
 
@@ -60,6 +73,7 @@
 
     <!-- Scrollable Content -->
     <ScrollView
+        android:id="@+id/scrollOwnerDashboard"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/navbarOwner"
@@ -101,6 +115,7 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tvOwnerDateToday"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/owner_date_today"
@@ -165,6 +180,7 @@
                         android:id="@+id/statTotalKos"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:minHeight="130dp"
                         android:layout_marginEnd="6dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_owner_stat_card"
@@ -187,13 +203,16 @@
                         </FrameLayout>
 
                         <TextView
+                            android:id="@+id/tvStatValueKos"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
                             android:fontFamily="sans-serif-black"
                             android:text="@string/owner_stat_total_kos_value"
                             android:textColor="@color/owner_text_primary"
-                            android:textSize="22sp" />
+                            android:textSize="18sp"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -205,6 +224,7 @@
                             android:textSize="13sp" />
 
                         <TextView
+                            android:id="@+id/tvStatIndicatorKos"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -218,6 +238,7 @@
                         android:id="@+id/statKamarTerisi"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:minHeight="130dp"
                         android:layout_marginStart="6dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_owner_stat_card"
@@ -240,13 +261,16 @@
                         </FrameLayout>
 
                         <TextView
+                            android:id="@+id/tvStatValueTerisi"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
                             android:fontFamily="sans-serif-black"
                             android:text="@string/owner_stat_kamar_terisi_value"
                             android:textColor="@color/owner_text_primary"
-                            android:textSize="22sp" />
+                            android:textSize="18sp"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -258,6 +282,7 @@
                             android:textSize="13sp" />
 
                         <TextView
+                            android:id="@+id/tvStatIndicatorKamar"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -279,6 +304,7 @@
                         android:id="@+id/statBookingMasuk"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:minHeight="130dp"
                         android:layout_marginEnd="6dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_owner_stat_card"
@@ -301,13 +327,16 @@
                         </FrameLayout>
 
                         <TextView
+                            android:id="@+id/tvStatValueBooking"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
                             android:fontFamily="sans-serif-black"
                             android:text="@string/owner_stat_booking_masuk_value"
                             android:textColor="@color/owner_text_primary"
-                            android:textSize="22sp" />
+                            android:textSize="18sp"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -319,6 +348,7 @@
                             android:textSize="13sp" />
 
                         <TextView
+                            android:id="@+id/tvStatIndicatorBooking"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -332,6 +362,7 @@
                         android:id="@+id/statPendapatan"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:minHeight="130dp"
                         android:layout_marginStart="6dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_owner_stat_card"
@@ -354,13 +385,16 @@
                         </FrameLayout>
 
                         <TextView
+                            android:id="@+id/tvStatValuePendapatan"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
                             android:fontFamily="sans-serif-black"
                             android:text="@string/owner_stat_pendapatan_value"
                             android:textColor="@color/owner_text_primary"
-                            android:textSize="22sp" />
+                            android:textSize="18sp"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -372,6 +406,7 @@
                             android:textSize="13sp" />
 
                         <TextView
+                            android:id="@+id/tvStatIndicatorPendapatan"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
@@ -446,13 +481,16 @@
                                 android:textSize="11sp" />
 
                             <TextView
+                                android:id="@+id/tvSaldoTersedia"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif-black"
-                                android:text="Rp 5.000.000"
+                                android:text="Rp 0"
                                 android:textColor="@color/brand_green"
-                                android:textSize="18sp" />
+                                android:textSize="18sp"
+                                android:maxLines="1"
+                                android:ellipsize="end" />
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -487,13 +525,16 @@
                                 android:textSize="11sp" />
 
                             <TextView
+                                android:id="@+id/tvSaldoPending"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:fontFamily="sans-serif-black"
-                                android:text="Rp 1.750.000"
+                                android:text="Rp 0"
                                 android:textColor="@color/status_pending_text"
-                                android:textSize="18sp" />
+                                android:textSize="18sp"
+                                android:maxLines="1"
+                                android:ellipsize="end" />
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -505,7 +546,7 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Row 4: Action Needed Mini Cards -->
+                <!-- Row 4: Action Needed Mini Cards - HIDDEN (Consolidated into Alerts) -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -513,13 +554,15 @@
                     android:fontFamily="sans-serif-medium"
                     android:text="@string/owner_action_needed_title"
                     android:textColor="@color/owner_text_primary"
-                    android:textSize="14sp" />
+                    android:textSize="14sp"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:visibility="gone">
 
                     <!-- Komplain Mini -->
                     <LinearLayout
@@ -555,6 +598,7 @@
                                 android:textColor="@color/status_rejected_text"
                                 android:textSize="12sp" />
                             <TextView
+                                android:id="@+id/tvKomplainCount"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="3 baru"
@@ -597,6 +641,7 @@
                                 android:textColor="@color/status_active_text"
                                 android:textSize="12sp" />
                             <TextView
+                                android:id="@+id/tvCheckinCount"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="2 booking"
@@ -604,6 +649,50 @@
                                 android:textSize="10sp" />
                         </LinearLayout>
                     </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layoutPerluPerhatian"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/bg_owner_card"
+                    android:elevation="2dp"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:src="@drawable/ic_owner_warning"
+                            app:tint="@color/status_rejected_text" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="Perlu Perhatian"
+                            android:textColor="@color/status_rejected_text"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvPerluPerhatianContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:lineSpacingExtra="4dp"
+                        android:textColor="@color/owner_text_secondary"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
 
@@ -633,6 +722,7 @@
                             android:textSize="15sp"
                             android:textStyle="bold" />
                         <TextView
+                            android:id="@+id/tvOccupancyPercent"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/owner_occupancy_percent"
@@ -652,6 +742,7 @@
                         android:progressDrawable="@drawable/bg_owner_progress_bar" />
 
                     <TextView
+                        android:id="@+id/tvOccupancyDetail"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
@@ -668,7 +759,7 @@
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <!-- ===== H. ALERTS SECTION ===== -->
+                <!-- ===== H. ALERTS SECTION (Consolidated) ===== -->
                 <LinearLayout
                     android:id="@+id/cardAlerts"
                     android:layout_width="match_parent"
@@ -700,26 +791,14 @@
                     </LinearLayout>
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:id="@+id/tvAlertContent"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="@string/owner_alert_1"
+                        android:lineSpacingExtra="4dp"
+                        android:text="Memuat data perhatian..."
                         android:textColor="@color/owner_text_primary"
-                        android:textSize="12sp" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/owner_alert_2"
-                        android:textColor="@color/owner_text_primary"
-                        android:textSize="12sp" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/owner_alert_3"
-                        android:textColor="@color/owner_text_primary"
-                        android:textSize="12sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
 
                 <!-- ===== D. QUICK ACTIONS ===== -->
@@ -970,125 +1049,13 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Booking Item 1 -->
-                    <LinearLayout
-                        android:id="@+id/bookingItem1"
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvRecentBookings"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        android:background="@drawable/bg_owner_menu_ripple"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="4dp">
-
-                        <FrameLayout
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_owner_stat_icon">
-                            <ImageView
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:layout_gravity="center"
-                                android:contentDescription="User"
-                                android:src="@drawable/ic_owner_people" />
-                        </FrameLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-medium"
-                                android:text="Muhammad Fakhri"
-                                android:textColor="@color/owner_text_primary"
-                                android:textSize="14sp" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Kos Melati - K03 • 19 Mei 2026"
-                                android:textColor="@color/owner_text_muted"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/bg_owner_booking_pending"
-                            android:text="@string/owner_booking_status_pending"
-                            android:textColor="@color/owner_booking_pending_text"
-                            android:textSize="10sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="10dp"
-                        android:layout_marginBottom="10dp"
-                        android:background="@color/owner_divider" />
-
-                    <!-- Booking Item 2 -->
-                    <LinearLayout
-                        android:id="@+id/bookingItem2"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_owner_menu_ripple"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="4dp">
-
-                        <FrameLayout
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:background="@drawable/bg_owner_stat_icon">
-                            <ImageView
-                                android:layout_width="22dp"
-                                android:layout_height="22dp"
-                                android:layout_gravity="center"
-                                android:contentDescription="User"
-                                android:src="@drawable/ic_owner_people" />
-                        </FrameLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-medium"
-                                android:text="Siti Nurhaliza"
-                                android:textColor="@color/owner_text_primary"
-                                android:textSize="14sp" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Kos Harmoni - K01 • 18 Mei 2026"
-                                android:textColor="@color/owner_text_muted"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/bg_owner_booking_accepted"
-                            android:text="@string/owner_booking_status_accepted"
-                            android:textColor="@color/owner_booking_accepted_text"
-                            android:textSize="10sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
+                        android:nestedScrollingEnabled="false"
+                        android:overScrollMode="never" />
                 </LinearLayout>
 
                 <!-- ===== F. PROPERTY OVERVIEW ===== -->
@@ -1128,201 +1095,13 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Property 1 -->
-                    <LinearLayout
-                        android:id="@+id/propertyItem1"
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvRecentProperty"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
-                        android:background="@drawable/bg_owner_menu_ripple"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="4dp">
-
-                        <FrameLayout
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:background="@drawable/bg_owner_action_icon">
-                            <ImageView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:layout_gravity="center"
-                                android:contentDescription="Kos"
-                                android:src="@drawable/ic_owner_building" />
-                        </FrameLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="sans-serif-medium"
-                                    android:text="Kos Melati Indah"
-                                    android:textColor="@color/owner_text_primary"
-                                    android:textSize="14sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:background="@drawable/bg_owner_property_active"
-                                    android:text="@string/owner_property_badge_active"
-                                    android:textColor="@color/owner_property_active_text"
-                                    android:textSize="10sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
-                                android:text="Dekat Kampus UNS • 12 kamar"
-                                android:textColor="@color/owner_text_muted"
-                                android:textSize="11sp" />
-                            <LinearLayout
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
-                                <ImageView
-                                    android:layout_width="12dp"
-                                    android:layout_height="12dp"
-                                    android:contentDescription="Rating"
-                                    android:src="@drawable/ic_owner_star" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="3dp"
-                                    android:text="4.8"
-                                    android:textColor="@color/owner_text_secondary"
-                                    android:textSize="11sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:text="3 kamar tersedia"
-                                    android:textColor="@color/owner_stat_revenue_accent"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:contentDescription="Detail"
-                            android:src="@drawable/ic_owner_chevron_right" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginTop="10dp"
-                        android:layout_marginBottom="10dp"
-                        android:background="@color/owner_divider" />
-
-                    <!-- Property 2 -->
-                    <LinearLayout
-                        android:id="@+id/propertyItem2"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_owner_menu_ripple"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="4dp">
-
-                        <FrameLayout
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:background="@drawable/bg_owner_action_icon">
-                            <ImageView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:layout_gravity="center"
-                                android:contentDescription="Kos"
-                                android:src="@drawable/ic_owner_building" />
-                        </FrameLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
-                                <TextView
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:fontFamily="sans-serif-medium"
-                                    android:text="Kos Putra Harmoni"
-                                    android:textColor="@color/owner_text_primary"
-                                    android:textSize="14sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:background="@drawable/bg_owner_property_active"
-                                    android:text="@string/owner_property_badge_active"
-                                    android:textColor="@color/owner_property_active_text"
-                                    android:textSize="10sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
-                                android:text="Jl. Pendidikan No. 12 • 8 kamar"
-                                android:textColor="@color/owner_text_muted"
-                                android:textSize="11sp" />
-                            <LinearLayout
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="3dp"
-                                android:gravity="center_vertical"
-                                android:orientation="horizontal">
-                                <ImageView
-                                    android:layout_width="12dp"
-                                    android:layout_height="12dp"
-                                    android:contentDescription="Rating"
-                                    android:src="@drawable/ic_owner_star" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="3dp"
-                                    android:text="4.6"
-                                    android:textColor="@color/owner_text_secondary"
-                                    android:textSize="11sp" />
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="8dp"
-                                    android:text="2 kamar tersedia"
-                                    android:textColor="@color/owner_stat_revenue_accent"
-                                    android:textSize="11sp" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:contentDescription="Detail"
-                            android:src="@drawable/ic_owner_chevron_right" />
-                    </LinearLayout>
+                        android:nestedScrollingEnabled="false"
+                        android:overScrollMode="never" />
                 </LinearLayout>
 
                 <!-- ===== G. REVENUE CARD ===== -->
@@ -1346,6 +1125,7 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tvRevenueTotal"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
@@ -1375,6 +1155,7 @@
                             android:textColor="@color/owner_text_secondary"
                             android:textSize="12sp" />
                         <TextView
+                            android:id="@+id/tvRevenueMasukValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/owner_revenue_masuk_value"
@@ -1403,6 +1184,7 @@
                             android:textColor="@color/owner_text_secondary"
                             android:textSize="12sp" />
                         <TextView
+                            android:id="@+id/tvRevenuePendingValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/owner_revenue_pending_value"
@@ -1432,6 +1214,7 @@
                             android:textColor="@color/owner_text_secondary"
                             android:textSize="12sp" />
                         <TextView
+                            android:id="@+id/tvRevenueEstimasiValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/owner_revenue_estimasi_value"

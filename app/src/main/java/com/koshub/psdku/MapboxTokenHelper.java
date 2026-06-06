@@ -5,34 +5,49 @@ import android.util.Log;
 
 public class MapboxTokenHelper {
     private static final String TAG = "MapboxSafety";
-    private static final String PLACEHOLDER = "YOUR_MAPBOX_PUBLIC_TOKEN_HERE";
 
     /**
-     * Checks if the Mapbox token is valid.
-     * A valid token is not empty, not the placeholder, and starts with "pk.".
+     * Checks if the Mapbox token is valid using a 2-layer approach:
+     * 1. Check BuildConfig.MAPBOX_TOKEN (from gradle.properties)
+     * 2. Fallback to string resource "mapbox_access_token"
      */
     public static boolean hasValidMapboxToken(Context context) {
         if (context == null) return false;
+
+        // Layer 1: Check BuildConfig
+        String buildConfigToken = BuildConfig.MAPBOX_TOKEN;
+        if (isValidToken(buildConfigToken)) {
+            return true;
+        }
+
+        // Layer 2: Check String Resource (Backward Compatibility)
         try {
             int resId = context.getResources().getIdentifier("mapbox_access_token", "string", context.getPackageName());
-            if (resId == 0) {
-                Log.e(TAG, "Mapbox token resource not found (mapbox_access_token)");
-                return false;
+            if (resId != 0) {
+                String resToken = context.getString(resId);
+                if (isValidToken(resToken)) {
+                    return true;
+                }
             }
-            
-            String token = context.getString(resId);
-            boolean isValid = token != null 
-                    && !token.trim().isEmpty() 
-                    && !token.equals(PLACEHOLDER) 
-                    && token.startsWith("pk.");
-            
-            if (!isValid) {
-                Log.e(TAG, "Mapbox token is invalid or missing.");
-            }
-            return isValid;
         } catch (Exception e) {
-            Log.e(TAG, "Error validating Mapbox token", e);
-            return false;
+            Log.e(TAG, "Error reading Mapbox token from resources", e);
         }
+
+        Log.w(TAG, "Mapbox token is invalid or missing. Features requiring Mapbox will be disabled.");
+        return false;
+    }
+
+    private static boolean isValidToken(String token) {
+        // A valid token must:
+        // 1. Not be null or empty
+        // 2. Start with 'pk.' (public) or 'sk.' (secret)
+        // 3. Have a minimum reasonable length for a real token (usually > 50 chars)
+        // 4. Not be a generic placeholder
+        return token != null 
+                && !token.trim().isEmpty() 
+                && (token.startsWith("pk.") || token.startsWith("sk."))
+                && token.length() > 20
+                && !token.toUpperCase().contains("YOUR_")
+                && !token.toUpperCase().contains("_HERE");
     }
 }

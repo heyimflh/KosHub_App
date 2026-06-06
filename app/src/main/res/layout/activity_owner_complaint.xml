@@ -8,6 +8,7 @@
 
     <!-- Header -->
     <RelativeLayout
+        android:id="@+id/headerComplaint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/brand_green"
@@ -88,6 +89,7 @@
         android:layout_weight="1">
 
         <ScrollView
+            android:id="@+id/scrollComplaint"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_above="@id/ownerBottomNav">

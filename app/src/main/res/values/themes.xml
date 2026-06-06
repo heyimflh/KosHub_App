@@ -70,4 +70,26 @@
         <item name="android:windowLightNavigationBar">false</item>
     </style>
 
+    <style name="Theme.KosHub.Material" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">#007A4D</item>
+        <item name="colorPrimaryVariant">#005F3B</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#007A4D</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F7FCF8</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+    </style>
+
+    <style name="Theme.KosHub.PlacesAutocomplete" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:windowBackground">@color/background_screen</item>
+        <item name="android:statusBarColor">@color/background_screen</item>
+        <item name="android:navigationBarColor">@color/background_screen</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+    </style>
+
 </resources>

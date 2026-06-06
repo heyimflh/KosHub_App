@@ -70,6 +70,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="24dp" />
 
+                <!-- Review Prompt (Conditional) -->
+                <include layout="@layout/include_review_prompt" />
+
                 <!-- Reviews -->
                 <include layout="@layout/include_property_reviews" />
 
@@ -79,9 +82,13 @@
     </ScrollView>
 
     <!-- Floating Top Navigation (overlay) -->
-    <include layout="@layout/include_property_top_nav" />
+    <include
+        android:id="@+id/topPropertyNav"
+        layout="@layout/include_property_top_nav" />
 
     <!-- Sticky Bottom Booking Bar (overlay) -->
-    <include layout="@layout/include_property_bottom_booking_bar" />
+    <include
+        android:id="@+id/bottomBookingBar"
+        layout="@layout/include_property_bottom_booking_bar" />
 
 </FrameLayout>

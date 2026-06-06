@@ -1,0 +1,7 @@
+# Deny access to sensitive files
+<FilesMatch "\.(json|env|log|example)$">
+    Require all denied
+</FilesMatch>
+
+# Prevent directory listing
+Options -Indexes

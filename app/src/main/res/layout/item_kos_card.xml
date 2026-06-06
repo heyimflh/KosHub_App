@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="24dp"
@@ -118,10 +119,10 @@
                 android:ellipsize="end"
                 android:fontFamily="sans-serif-black"
                 android:maxLines="1"
-                android:text="Kos Putri Premium Sakura"
                 android:textColor="@color/home_text_dark"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="Kos Putri Premium Sakura" />
 
             <LinearLayout
                 android:id="@+id/ratingRow"
@@ -221,6 +222,7 @@
 
             <!-- Distance Pill -->
             <LinearLayout
+                android:id="@+id/btnNavigate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
@@ -231,7 +233,9 @@
                 android:paddingStart="12dp"
                 android:paddingTop="8dp"
                 android:paddingEnd="12dp"
-                android:paddingBottom="8dp">
+                android:paddingBottom="8dp"
+                android:clickable="true"
+                android:focusable="true">
 
                 <ImageView
                     android:layout_width="14dp"
@@ -247,7 +251,9 @@
                     android:fontFamily="sans-serif-medium"
                     android:text="8 mnt"
                     android:textColor="@color/brand_green"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
             </LinearLayout>
         </RelativeLayout>
     </LinearLayout>

@@ -12,6 +12,8 @@
     <string name="login_title_owner">Halo, Mitra KosHub!</string>
     <string name="login_subtitle_owner">Kelola kos Anda dengan lebih efisien dan capai lebih banyak penyewa.</string>
     <string name="hint_email">Alamat Email</string>
+    <string name="hint_name">Nama Lengkap</string>
+    <string name="hint_phone">Nomor WhatsApp</string>
     <string name="hint_password">Kata Sandi</string>
     <string name="forgot_password">Lupa Kata Sandi?</string>
     <string name="btn_login">Masuk Sekarang</string>
@@ -76,13 +78,13 @@
     <string name="profile_completion_percent">75%</string>
     <string name="profile_completion_cta">Lengkapi Sekarang</string>
     <string name="profile_stat_booking">Booking</string>
-    <string name="profile_stat_booking_value">12</string>
+    <string name="profile_stat_booking_value">0</string>
     <string name="profile_stat_favorite">Favorit</string>
-    <string name="profile_stat_favorite_value">24</string>
+    <string name="profile_stat_favorite_value">0</string>
     <string name="profile_stat_review">Ulasan</string>
-    <string name="profile_stat_review_value">8</string>
+    <string name="profile_stat_review_value">0</string>
     <string name="profile_stat_transaction">Transaksi</string>
-    <string name="profile_stat_transaction_value">Rp 5.2jt</string>
+    <string name="profile_stat_transaction_value">Rp 0</string>
     <string name="profile_history_title">Riwayat Sewa</string>
     <string name="profile_history_see_all">Lihat Semua</string>
     <string name="profile_history_status_done">Selesai</string>
@@ -141,6 +143,8 @@
     <string name="detail_section_fasilitas">Fasilitas</string>
     <string name="detail_section_lokasi">Lokasi</string>
     <string name="detail_section_ulasan">Ulasan</string>
+    <string name="empty_review_title">Belum ada ulasan</string>
+    <string name="empty_review_sub">Jadilah yang pertama memberikan ulasan!</string>
     <string name="detail_section_deskripsi">Deskripsi</string>
     <string name="detail_title">Nama Kos Eksklusif</string>
     <string name="detail_location">Kec. Jebres, Surakarta</string>
@@ -152,8 +156,8 @@
     <string name="detail_sisa_kamar">Tersisa 2 kamar</string>
     <string name="detail_btn_waitlist">Waitlist</string>
     <string name="detail_btn_booking">Booking Sekarang</string>
-    <string name="detail_rating">4.8</string>
-    <string name="detail_rating_count">(120 Ulasan)</string>
+    <string name="detail_rating">—</string>
+    <string name="detail_rating_count">(Belum ada ulasan)</string>
     <string name="detail_description">Kos nyaman dengan fasilitas lengkap, dekat dengan kampus dan pusat perbelanjaan.</string>
     <string name="detail_route_title">Rute Tercepat</string>
     <string name="detail_route_distance">1.2 km</string>
@@ -163,8 +167,49 @@
     <string name="waiting_page_title">Daftar Tunggu</string>
 
     <!-- Mapbox & Safety -->
-    <string name="mapbox_access_token" translatable="false">YOUR_MAPBOX_PUBLIC_TOKEN_HERE</string>
+    <string name="mapbox_access_token" translatable="false"></string>
     <string name="map_fallback_title">Peta belum tersedia</string>
-    <string name="map_fallback_sub">Tambahkan Mapbox access token untuk mengaktifkan fitur peta.</string>
+    <string name="map_fallback_sub">Fitur peta tidak tersedia. Pastikan koneksi internet aktif.</string>
+
+    <!-- CS Contact Info -->
+    <string name="cs_whatsapp_number">085700622035</string>
+    <string name="cs_whatsapp_url">https://wa.me/6285700622035?text=Halo+KosHub+CS</string>
+    <string name="cs_email_address">mufallah06@gmail.com</string>
+
+    <!-- Payment Refinement -->
+    <string name="status_waiting_payment">Menunggu Pembayaran</string>
+    <string name="btn_pay_now">Bayar Sekarang</string>
+    <string name="btn_continue_payment">Lanjutkan Pembayaran</string>
+    <string name="status_paid">Sudah Dibayar</string>
+
+    <!-- Payment Screen -->
+    <string name="payment_qris_title">Pembayaran QRIS</string>
+    <string name="payment_total_loading">Total: Memuat...</string>
+    <string name="payment_timer_loading">Berlaku hingga: Memuat...</string>
+    <string name="payment_status_preparing">Menyiapkan pembayaran...</string>
+    <string name="payment_status_requesting">Meminta data QRIS...</string>
+    <string name="payment_scan_instruction">Silakan scan QRIS di atas</string>
+    <string name="payment_expired_status">Pembayaran Kedaluwarsa</string>
+    <string name="payment_error_booking_id">Booking ID tidak ditemukan. Silakan kembali dan coba lagi.</string>
+    <string name="payment_total_failed">Total: Gagal</string>
+    <string name="payment_timer_failed">Berlaku hingga: --:--</string>
+    <string name="payment_timer_format">Berlaku hingga: %s</string>
+    <string name="payment_total_format">Total: Rp %,.0f</string>
+    <string name="payment_btn_cancel">Batal</string>
+    <string name="payment_waiting_status">Menunggu pembayaran...</string>
+
+    <!-- ETA and Maps -->
+    <string name="eta_calculating">Hitung</string>
+    <string name="eta_invalid">Cek Maps</string>
+    <string name="eta_short_format">± %d mnt</string>
+    <string name="eta_detail_format">± %d menit jalan kaki</string>
+    <string name="btn_open_maps">Buka Maps</string>
+
+    <!-- Structured Data Form -->
+    <string name="mgmt_structured_data_title">Data Terstruktur (Otomatis Deskripsi)</string>
+    <string name="mgmt_btn_room_features">🛏️ Fasilitas Kamar</string>
+    <string name="mgmt_btn_access_features">🚶 Akses Lokasi</string>
+    <string name="mgmt_btn_security_features">🛡️ Keamanan</string>
+    <string name="mgmt_btn_rules">📜 Aturan Kos</string>
 </resources>
 

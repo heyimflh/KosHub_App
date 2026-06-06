@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.koshub.psdku" />
+                  <option name="mobileSdkAppId" value="1:344678532216:android:c421d864cbd7e9f699198d" />
+                  <option name="projectId" value="koshub-app" />
+                  <option name="projectNumber" value="344678532216" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

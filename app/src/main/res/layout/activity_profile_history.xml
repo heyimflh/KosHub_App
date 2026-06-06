@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/profile_background">
@@ -273,6 +274,7 @@
                             </FrameLayout>
 
                             <TextView
+                                android:id="@+id/tvStatBookingValue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
@@ -320,6 +322,7 @@
                             </FrameLayout>
 
                             <TextView
+                                android:id="@+id/tvStatFavoriteValue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
@@ -375,6 +378,7 @@
                             </FrameLayout>
 
                             <TextView
+                                android:id="@+id/tvStatReviewValue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
@@ -422,6 +426,7 @@
                             </FrameLayout>
 
                             <TextView
+                                android:id="@+id/tvStatTransactionValue"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="8dp"
@@ -473,6 +478,15 @@
 
                     <!-- Menu: Wishlist Kos -->
                     <include layout="@layout/include_profile_menu_item_wishlist" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="68dp"
+                        android:background="@color/profile_menu_divider" />
+
+                    <!-- Menu: Keamanan Akun -->
+                    <include layout="@layout/include_profile_menu_item_security" />
 
                     <View
                         android:layout_width="match_parent"
@@ -597,6 +611,7 @@
                                     android:orientation="horizontal">
 
                                     <TextView
+                                        android:id="@+id/tvHistoryTitle1"
                                         android:layout_width="0dp"
                                         android:layout_height="wrap_content"
                                         android:layout_weight="1"
@@ -619,6 +634,7 @@
                                 </LinearLayout>
 
                                 <TextView
+                                    android:id="@+id/tvHistorySub1"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="3dp"
@@ -690,6 +706,7 @@
 
                     <!-- Divider -->
                     <View
+                        android:id="@+id/dividerHistory1"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginTop="12dp"
@@ -741,7 +758,7 @@
                                     android:ellipsize="end"
                                     android:fontFamily="sans-serif-medium"
                                     android:maxLines="1"
-                                    android:text="Kos Putra Harmoni"
+                                    tools:text="Kos Putra Harmoni"
                                     android:textColor="@color/profile_text_primary"
                                     android:textSize="14sp" />
 
@@ -791,6 +808,7 @@
 
                     <!-- Divider -->
                     <View
+                        android:id="@+id/dividerHistory2"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:layout_marginTop="12dp"
@@ -842,7 +860,7 @@
                                     android:ellipsize="end"
                                     android:fontFamily="sans-serif-medium"
                                     android:maxLines="1"
-                                    android:text="Kos Campur Nusantara"
+                                    tools:text="Kos Campur Nusantara"
                                     android:textColor="@color/profile_text_primary"
                                     android:textSize="14sp" />
 

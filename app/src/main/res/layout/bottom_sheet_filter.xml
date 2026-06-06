@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@color/home_card_white"
@@ -74,6 +75,51 @@
             android:paddingStart="16dp"
             android:paddingEnd="16dp" />
 
+        <!-- Rentang Harga -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="Rentang Harga"
+            android:textColor="@color/home_text_dark"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.slider.RangeSlider
+            android:id="@+id/rangeSliderHarga"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:valueFrom="300000"
+            android:valueTo="3000000"
+            android:stepSize="100000"
+            app:values="@array/initial_price_range"
+            app:thumbColor="@color/brand_green"
+            app:trackColorActive="@color/brand_green" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+            <TextView
+                android:id="@+id/tvHargaMin"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Rp 300.000"
+                android:textColor="@color/home_text_secondary"
+                android:textSize="12sp" />
+            <TextView
+                android:id="@+id/tvHargaMax"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rp 3.000.000"
+                android:textColor="@color/home_text_secondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
         <!-- Type -->
         <TextView
             android:layout_width="wrap_content"
@@ -92,6 +138,7 @@
             android:orientation="horizontal">
 
             <TextView
+                android:id="@+id/chipFilterPutra"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_quick_chip_inactive"
@@ -104,6 +151,7 @@
                 android:textSize="13sp" />
 
             <TextView
+                android:id="@+id/chipFilterPutri"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
@@ -117,6 +165,7 @@
                 android:textSize="13sp" />
 
             <TextView
+                android:id="@+id/chipFilterCampur"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
@@ -148,6 +197,7 @@
             android:orientation="horizontal">
 
             <TextView
+                android:id="@+id/chipFilterWifi"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_quick_chip_inactive"
@@ -160,6 +210,7 @@
                 android:textSize="12sp" />
 
             <TextView
+                android:id="@+id/chipFilterAC"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
@@ -173,6 +224,7 @@
                 android:textSize="12sp" />
 
             <TextView
+                android:id="@+id/chipFilterKamarMandi"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
@@ -193,6 +245,7 @@
             android:orientation="horizontal">
 
             <TextView
+                android:id="@+id/chipFilterParkir"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_quick_chip_inactive"
@@ -205,6 +258,7 @@
                 android:textSize="12sp" />
 
             <TextView
+                android:id="@+id/chipFilterLaundry"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"

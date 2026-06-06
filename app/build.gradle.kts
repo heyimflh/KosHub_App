@@ -1,5 +1,8 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -21,19 +24,59 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Load local.properties for API keys
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { stream -> 
+                localProperties.load(stream) 
+            }
+        }
+
+        // Mapbox Token (Existing)
+        buildConfigField("String", "MAPBOX_TOKEN", "\"${project.findProperty("MAPBOX_TOKEN") ?: ""}\"")
+
+        // Gemini API Configuration
+        // Note: Add GEMINI_API_KEY to local.properties, do not commit to version control.
+        val geminiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
+        val geminiModel = localProperties.getProperty("GEMINI_MODEL") ?: "gemini-3.5-flash"
+
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+        buildConfigField("String", "GEMINI_MODEL", "\"$geminiModel\"")
+
+        // Groq API Configuration
+        val groqKey = localProperties.getProperty("GROQ_API_KEY") ?: ""
+        val groqModel = localProperties.getProperty("GROQ_MODEL") ?: "llama-3.3-70b-versatile"
+
+        buildConfigField("String", "GROQ_API_KEY", "\"$groqKey\"")
+        buildConfigField("String", "GROQ_MODEL", "\"$groqModel\"")
+
+        // Google Maps API Configuration
+        val googleMapsKey = localProperties.getProperty("GOOGLE_MAPS_KEY") ?: ""
+        buildConfigField("String", "GOOGLE_MAPS_KEY", "\"$googleMapsKey\"")
+        manifestPlaceholders["GOOGLE_MAPS_KEY"] = googleMapsKey
     }
 
     buildTypes {
 
         release {
 
-            isMinifyEnabled = false
+            isDebuggable = false
+
+            isMinifyEnabled = true
+
+            isShrinkResources = true
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     packaging {
@@ -64,7 +107,29 @@ dependencies {
 
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
-    implementation("com.mapbox.maps:android:11.10.0")
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
+    implementation("com.google.android.libraries.places:places:3.5.0")
+
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-messaging")
+
+    // Google Sign In
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+
+    // Image Loading
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+
+    // Network
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Cloudinary (Using core to avoid video analytics endpoints)
+    implementation("com.cloudinary:cloudinary-android-core:3.0.2")
 
     testImplementation(libs.junit)
 

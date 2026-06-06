@@ -6,7 +6,8 @@
     android:background="@color/home_nav_bg"
     android:elevation="8dp"
     android:gravity="center_vertical"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:clipToPadding="false">
 
     <!-- Home -->
     <LinearLayout

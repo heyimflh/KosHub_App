@@ -1,0 +1,690 @@
+package com.koshub.psdku.repositories;
+
+import android.net.Uri;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.koshub.psdku.KosItem;
+import com.koshub.psdku.R;
+import com.koshub.psdku.models.Kos;
+import com.koshub.psdku.models.Promo;
+import com.koshub.psdku.models.Room;
+import com.koshub.psdku.services.FirebaseService;
+import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.KosMapper;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Repository for Kos data.
+ * Handles Firestore and Firebase Storage interactions.
+ */
+public class KosRepository {
+    private static final String TAG = "KosRepository";
+    private static KosRepository instance;
+    private final FirebaseFirestore db;
+    private final FirebaseStorage storage;
+    private final FirebaseAuth auth;
+
+    private KosRepository() {
+        this.db = FirebaseService.getFirestore();
+        this.storage = FirebaseService.getStorage();
+        this.auth = FirebaseService.getAuth();
+    }
+
+    public static synchronized KosRepository getInstance() {
+        if (instance == null) {
+            instance = new KosRepository();
+        }
+        return instance;
+    }
+
+    public interface KosListCallback {
+        void onSuccess(List<Kos> kosList);
+        void onError(String message);
+    }
+
+    public interface KosItemListCallback {
+        void onSuccess(List<KosItem> items);
+        void onError(String message);
+    }
+
+    public interface KosCallback {
+        void onSuccess(Kos kos);
+        void onError(String message);
+    }
+
+    public interface SimpleCallback {
+        void onSuccess();
+        void onError(String message);
+    }
+
+    public interface UploadCallback {
+        void onSuccess(String downloadUrl);
+        void onError(String message);
+    }
+
+    public interface RoomListCallback {
+        void onSuccess(List<Room> rooms);
+        void onError(String message);
+    }
+
+    public interface StatsCallback {
+        void onSuccess(com.koshub.psdku.models.OwnerKosStats stats);
+        void onError(String message);
+    }
+
+    /**
+     * Fetch all kos items from Firestore with basic pagination (limit).
+     */
+    public void getAllKos(KosListCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_KOS)
+                .orderBy(DatabaseConstants.FIELD_CREATED_AT, Query.Direction.DESCENDING)
+                .limit(20) // Pro: Limit result to 20 for initial load
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Kos> list = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        Kos kos = doc.toObject(Kos.class);
+                        kos.setId(doc.getId());
+
+                        // FILTER: Skip kos dengan koordinat invalid atau data Google Places tidak lengkap
+                        if (isValidGooglePlaceKos(kos)) {
+                            list.add(kos);
+                        }
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    public void getAllKosItems(KosItemListCallback callback) {
+        getAllKos(new KosListCallback() {
+            @Override
+            public void onSuccess(List<Kos> kosList) {
+                if (kosList.isEmpty()) {
+                    callback.onSuccess(new ArrayList<>());
+                } else {
+                    callback.onSuccess(KosMapper.toKosItemList(kosList));
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                callback.onError(message);
+            }
+        });
+    }
+
+    /**
+     * Realtime listener for all kos items.
+     * Use this for student home screen to auto-update property list.
+     */
+    public ListenerRegistration listenAllKosItems(KosItemListCallback callback) {
+        return db.collection(DatabaseConstants.COLLECTION_KOS)
+                .orderBy(DatabaseConstants.FIELD_CREATED_AT, Query.Direction.DESCENDING)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (value != null) {
+                        List<Kos> kosList = new ArrayList<>();
+                        for (QueryDocumentSnapshot doc : value) {
+                            Kos kos = doc.toObject(Kos.class);
+                            kos.setId(doc.getId());
+
+                            // FILTER: Skip kos dengan koordinat invalid atau alamat tidak lengkap
+                            if (isValidGooglePlaceKos(kos)) {
+                                kosList.add(kos);
+                            }
+                        }
+                        callback.onSuccess(KosMapper.toKosItemList(kosList));
+                    }
+                });
+    }
+
+    public void getKosById(String kosId, KosCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        Kos kos = documentSnapshot.toObject(Kos.class);
+                        if (kos != null) {
+                            kos.setId(documentSnapshot.getId());
+                            callback.onSuccess(kos);
+                        } else {
+                            callback.onError("Failed to parse data");
+                        }
+                    } else {
+                        callback.onError("Kos not found");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    /**
+     * Realtime listener for a single kos item.
+     */
+    public ListenerRegistration listenKosById(String kosId, KosCallback callback) {
+        return db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (value != null && value.exists()) {
+                        Kos kos = value.toObject(Kos.class);
+                        if (kos != null) {
+                            kos.setId(value.getId());
+                            callback.onSuccess(kos);
+                        } else {
+                            callback.onError("Failed to parse data");
+                        }
+                    } else {
+                        callback.onError("Kos not found");
+                    }
+                });
+    }
+
+    public void getKosByOwner(String ownerId, KosListCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_KOS)
+                .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, ownerId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Kos> list = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        Kos kos = doc.toObject(Kos.class);
+                        kos.setId(doc.getId());
+
+                        // FILTER: Skip kos dengan koordinat invalid atau data Google Places tidak lengkap
+                        if (isValidGooglePlaceKos(kos)) {
+                            list.add(kos);
+                        }
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    public void createKos(Kos kos, SimpleCallback callback) {
+        if (auth.getCurrentUser() == null) {
+            callback.onError("Not authenticated");
+            return;
+        }
+
+        // Strict Address Validation
+        if (!isValidGooglePlaceKos(kos)) {
+            callback.onError("Alamat kos tidak valid. Silakan pilih alamat dari Google Maps.");
+            return;
+        }
+
+        kos.setOwnerId(auth.getUid());
+        kos.setCreatedAt(System.currentTimeMillis());
+        kos.setUpdatedAt(System.currentTimeMillis());
+
+        db.collection(DatabaseConstants.COLLECTION_KOS).add(kos)
+                .addOnSuccessListener(documentReference -> {
+                    kos.setId(documentReference.getId());
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    public void updateKos(Kos kos, SimpleCallback callback) {
+        // Strict Address Validation
+        if (!isValidGooglePlaceKos(kos)) {
+            callback.onError("Alamat kos tidak valid. Silakan pilih alamat dari Google Maps.");
+            return;
+        }
+
+        kos.setUpdatedAt(System.currentTimeMillis());
+        db.collection(DatabaseConstants.COLLECTION_KOS).document(kos.getId()).set(kos)
+                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    public void deleteKos(String kosId, SimpleCallback callback) {
+        com.google.firebase.auth.FirebaseUser user = auth.getCurrentUser();
+        String uid = user != null ? user.getUid() : null;
+
+        if (uid == null) {
+            callback.onError("Kamu harus login terlebih dahulu.");
+            return;
+        }
+
+        if (kosId == null || kosId.isEmpty()) {
+            callback.onError("Data kos tidak valid.");
+            return;
+        }
+
+        // 1. Ambil dokumen kos untuk verifikasi owner
+        db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        callback.onError("Kos tidak ditemukan.");
+                        return;
+                    }
+
+                    Kos kos = documentSnapshot.toObject(Kos.class);
+                    String ownerId = documentSnapshot.getString(DatabaseConstants.FIELD_OWNER_ID);
+                    if (kos == null || !uid.equals(ownerId)) {
+                        callback.onError("Kamu tidak memiliki izin menghapus kos ini.");
+                        return;
+                    }
+
+                    // 2. Cek booking aktif (Query wajib sertakan ownerId agar rules approve)
+                    db.collection(DatabaseConstants.COLLECTION_BOOKINGS)
+                            .whereEqualTo(DatabaseConstants.FIELD_KOS_ID, kosId)
+                            .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, uid)
+                            .get()
+                            .addOnSuccessListener(bookingSnapshots -> {
+                                List<String> activeStatuses = Arrays.asList(
+                                        DatabaseConstants.BOOKING_PENDING,
+                                        DatabaseConstants.BOOKING_WAITING_PAYMENT,
+                                        DatabaseConstants.BOOKING_ACCEPTED,
+                                        DatabaseConstants.BOOKING_WAITING_CHECKIN,
+                                        DatabaseConstants.BOOKING_ACTIVE
+                                );
+
+                                boolean hasActiveBooking = false;
+                                for (QueryDocumentSnapshot bDoc : bookingSnapshots) {
+                                    String status = bDoc.getString(DatabaseConstants.FIELD_STATUS);
+                                    if (status != null && activeStatuses.contains(status)) {
+                                        hasActiveBooking = true;
+                                        break;
+                                    }
+                                }
+
+                                if (hasActiveBooking) {
+                                    callback.onError("Kos masih memiliki booking aktif. Selesaikan atau batalkan booking terlebih dahulu.");
+                                    return;
+                                }
+
+                                // 3. Ambil semua kamar untuk dihapus (Query wajib sertakan ownerId)
+                                db.collection(DatabaseConstants.COLLECTION_ROOMS)
+                                        .whereEqualTo(DatabaseConstants.FIELD_KOS_ID, kosId)
+                                        .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, uid)
+                                        .get()
+                                        .addOnSuccessListener(roomSnapshots -> {
+                                            com.google.firebase.firestore.WriteBatch batch = db.batch();
+
+                                            // Masukkan semua kamar ke batch
+                                            for (QueryDocumentSnapshot roomDoc : roomSnapshots) {
+                                                batch.delete(roomDoc.getReference());
+                                            }
+
+                                            // Masukkan kos ke batch
+                                            batch.delete(documentSnapshot.getReference());
+
+                                            // Commit batch
+                                            batch.commit()
+                                                    .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                                    .addOnFailureListener(e -> {
+                                                        android.util.Log.e(TAG, "deleteKos batch failed", e);
+                                                        callback.onError("Gagal menghapus kos: " + e.getMessage());
+                                                    });
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            android.util.Log.e(TAG, "deleteKos failed at room check", e);
+                                            callback.onError("Gagal memverifikasi kamar. Pastikan rules sudah dipublish dan Anda adalah pemilik kos.");
+                                        });
+                            })
+                            .addOnFailureListener(e -> {
+                                android.util.Log.e(TAG, "deleteKos failed at booking check", e);
+                                callback.onError("Gagal memverifikasi booking. Pastikan rules sudah dipublish dan Anda adalah pemilik kos.");
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.e(TAG, "deleteKos initial fetch failed", e);
+                    callback.onError("Gagal memproses: " + e.getMessage());
+                });
+    }
+
+    public void uploadKosImage(Uri imageUri, String kosId, UploadCallback callback) {
+        String uid = auth.getUid();
+        if (uid == null) {
+            callback.onError("Not authenticated");
+            return;
+        }
+        StorageReference ref = storage.getReference().child("kos/" + uid + "/" + kosId + "/" + System.currentTimeMillis() + ".jpg");
+        ref.putFile(imageUri)
+                .addOnSuccessListener(taskSnapshot -> ref.getDownloadUrl()
+                        .addOnSuccessListener(uri -> callback.onSuccess(uri.toString()))
+                        .addOnFailureListener(e -> callback.onError(e.getMessage())))
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    public void addRoom(Room room, SimpleCallback callback) {
+        if (auth.getCurrentUser() == null) {
+            callback.onError("Not authenticated");
+            return;
+        }
+        room.setOwnerId(auth.getUid());
+        room.setCreatedAt(System.currentTimeMillis());
+        room.setUpdatedAt(System.currentTimeMillis());
+
+        db.collection(DatabaseConstants.COLLECTION_ROOMS).add(room)
+                .addOnSuccessListener(documentReference -> {
+                    room.setId(documentReference.getId());
+                    // Update availableRooms count on Kos
+                    updateAvailableRoomsCount(room.getKosId());
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    public void createPromo(Promo promo, SimpleCallback callback) {
+        DocumentReference promoRef = db.collection("promos").document();
+        promo.setId(promoRef.getId());
+
+        promoRef.set(promo)
+                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void getRoomsByKos(String kosId, RoomListCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_ROOMS)
+                .whereEqualTo(DatabaseConstants.FIELD_KOS_ID, kosId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Room> list = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        Room room = doc.toObject(Room.class);
+                        room.setId(doc.getId());
+                        list.add(room);
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    public void getRoomsByOwner(String ownerId, RoomListCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_ROOMS)
+                .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, ownerId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Room> list = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        Room room = doc.toObject(Room.class);
+                        room.setId(doc.getId());
+                        list.add(room);
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    public void calculateOwnerKosStats(String ownerId, StatsCallback callback) {
+        com.koshub.psdku.models.OwnerKosStats stats = new com.koshub.psdku.models.OwnerKosStats();
+        
+        // 1. Get Kos Count
+        db.collection(DatabaseConstants.COLLECTION_KOS)
+                .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, ownerId)
+                .get()
+                .addOnSuccessListener(kosSnapshots -> {
+                    stats.setTotalKos(kosSnapshots.size());
+                    
+                    // 2. Get Room Stats
+                    db.collection(DatabaseConstants.COLLECTION_ROOMS)
+                            .whereEqualTo(DatabaseConstants.FIELD_OWNER_ID, ownerId)
+                            .get()
+                            .addOnSuccessListener(roomSnapshots -> {
+                                int totalRooms = roomSnapshots.size();
+                                int occupied = 0;
+                                int available = 0;
+                                int maintenance = 0;
+                                
+                                for (QueryDocumentSnapshot doc : roomSnapshots) {
+                                    String status = doc.getString(DatabaseConstants.FIELD_STATUS);
+                                    if (status == null) status = DatabaseConstants.ROOM_AVAILABLE;
+                                    
+                                    switch (status) {
+                                        case DatabaseConstants.ROOM_OCCUPIED:
+                                        case DatabaseConstants.ROOM_BOOKED:
+                                            occupied++;
+                                            break;
+                                        case DatabaseConstants.ROOM_AVAILABLE:
+                                            available++;
+                                            break;
+                                        case DatabaseConstants.ROOM_MAINTENANCE:
+                                            maintenance++;
+                                            break;
+                                    }
+                                }
+                                
+                                stats.setTotalRooms(totalRooms);
+                                stats.setOccupiedRooms(occupied);
+                                stats.setAvailableRooms(available);
+                                stats.setMaintenanceRooms(maintenance);
+                                if (totalRooms > 0) {
+                                    stats.setOccupancyRate((double) occupied / totalRooms * 100);
+                                }
+                                
+                                callback.onSuccess(stats);
+                            })
+                            .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+                })
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    public void updateRoomStatus(String roomId, String status, String kosId, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)
+                .update(DatabaseConstants.FIELD_STATUS, status, DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis())
+                .addOnSuccessListener(aVoid -> {
+                    updateAvailableRoomsCount(kosId);
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        callback.onError("Kamu tidak memiliki izin untuk mengakses data ini.");
+                    } else {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    public void updateKosFacilities(String kosId, List<String> facilities, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_KOS)
+                .document(kosId)
+                .update(
+                        DatabaseConstants.FIELD_FACILITIES, facilities,
+                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis()
+                )
+                .addOnSuccessListener(a -> { if (callback != null) callback.onSuccess(); })
+                .addOnFailureListener(e -> { if (callback != null) callback.onError(e.getMessage()); });
+    }
+
+    public void startRoomMaintenance(Room room, String maintenanceType, String note, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(room.getId())
+                .update(
+                        DatabaseConstants.FIELD_STATUS, DatabaseConstants.ROOM_MAINTENANCE,
+                        "maintenanceType", maintenanceType,
+                        "maintenanceNote", note,
+                        "maintenanceStartedAt", System.currentTimeMillis(),
+                        "maintenanceUpdatedAt", System.currentTimeMillis(),
+                        "maintenancePreviousStatus", room.getStatus(),
+                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis()
+                )
+                .addOnSuccessListener(a -> {
+                    updateAvailableRoomsCount(room.getKosId());
+                    if (callback != null) callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+    }
+
+    public void updateRoomMaintenanceNote(String roomId, String maintenanceType, String note, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(roomId)
+                .update(
+                        "maintenanceType", maintenanceType,
+                        "maintenanceNote", note,
+                        "maintenanceUpdatedAt", System.currentTimeMillis(),
+                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis()
+                )
+                .addOnSuccessListener(a -> { if (callback != null) callback.onSuccess(); })
+                .addOnFailureListener(e -> { if (callback != null) callback.onError(e.getMessage()); });
+    }
+
+    public void finishRoomMaintenance(Room room, SimpleCallback callback) {
+        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(room.getId())
+                .update(
+                        DatabaseConstants.FIELD_STATUS, DatabaseConstants.ROOM_AVAILABLE,
+                        "maintenanceCompletedAt", System.currentTimeMillis(),
+                        "maintenanceUpdatedAt", System.currentTimeMillis(),
+                        "maintenanceStatus", "completed",
+                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis()
+                )
+                .addOnSuccessListener(a -> {
+                    updateAvailableRoomsCount(room.getKosId());
+                    if (callback != null) callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+    }
+
+    public void cancelRoomMaintenance(Room room, SimpleCallback callback) {
+        String statusToRestore = room.getMaintenancePreviousStatus() != null ? room.getMaintenancePreviousStatus() : DatabaseConstants.ROOM_AVAILABLE;
+        db.collection(DatabaseConstants.COLLECTION_ROOMS).document(room.getId())
+                .update(
+                        DatabaseConstants.FIELD_STATUS, statusToRestore,
+                        "maintenanceUpdatedAt", System.currentTimeMillis(),
+                        "maintenanceStatus", "cancelled",
+                        DatabaseConstants.FIELD_UPDATED_AT, System.currentTimeMillis()
+                )
+                .addOnSuccessListener(a -> {
+                    updateAvailableRoomsCount(room.getKosId());
+                    if (callback != null) callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+    }
+
+    private void updateAvailableRoomsCount(String kosId) {
+        db.collection(DatabaseConstants.COLLECTION_ROOMS)
+                .whereEqualTo(DatabaseConstants.FIELD_KOS_ID, kosId)
+                .whereEqualTo(DatabaseConstants.FIELD_STATUS, DatabaseConstants.ROOM_AVAILABLE)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    int count = queryDocumentSnapshots.size();
+                    db.collection(DatabaseConstants.COLLECTION_KOS).document(kosId)
+                            .update(DatabaseConstants.FIELD_AVAILABLE_ROOMS, count);
+                });
+    }
+
+    /**
+     * Validasi alamat kos secara ketat menggunakan data Google Places.
+     * Wajib memiliki placeId dan koordinat yang valid.
+     */
+    private boolean isValidGooglePlaceKos(Kos kos) {
+        if (kos == null) return false;
+
+        String address = kos.getAddress();
+        String placeId = kos.getPlaceId();
+        double lat = kos.getLatitude();
+        double lng = kos.getLongitude();
+
+        // Check null/empty
+        if (address == null || address.trim().isEmpty()) return false;
+        if (placeId == null || placeId.trim().isEmpty()) return false;
+
+        // Check coordinates (0.0 is strictly forbidden for real addresses)
+        if (lat == 0.0 && lng == 0.0) return false;
+
+        // Check coordinate ranges
+        if (lat < -90 || lat > 90) return false;
+        if (lng < -180 || lng > 180) return false;
+
+        return true;
+    }
+}
