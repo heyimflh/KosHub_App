@@ -14,6 +14,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -21,9 +22,16 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseUser;
 import com.koshub.psdku.repositories.AuthRepository;
 import com.koshub.psdku.utils.DatabaseConstants;
+import com.koshub.psdku.utils.SessionManager;
 import com.koshub.psdku.utils.ValidationHelper;
 
 public class RegisterActivity extends AppCompatActivity {
@@ -31,8 +39,12 @@ public class RegisterActivity extends AppCompatActivity {
     private boolean isPasswordVisible = false;
     private String selectedRole = DatabaseConstants.ROLE_STUDENT;
     private AuthRepository authRepository;
+    private GoogleSignInClient googleSignInClient;
+    private SessionManager sessionManager;
     private ProgressBar progressBar;
     private View btnRegister;
+    private View btnGoogleRegister;
+    private static final int RC_GOOGLE_REGISTER = 9002;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,8 +52,10 @@ public class RegisterActivity extends AppCompatActivity {
         setContentView(R.layout.activity_register);
 
         authRepository = AuthRepository.getInstance();
+        sessionManager = new SessionManager(this);
         progressBar = findViewById(R.id.progressBar);
         btnRegister = findViewById(R.id.btnRegister);
+        btnGoogleRegister = findViewById(R.id.btnGoogleRegister);
 
         // Handle window insets for status bar
         View root = findViewById(R.id.imgLogo);
@@ -55,9 +69,11 @@ public class RegisterActivity extends AppCompatActivity {
             });
         }
 
+        setupGoogleSignIn();
         setupRoleToggle();
         setupPasswordToggle();
         setupRegisterButton();
+        setupGoogleRegisterButton();
         setupTermsText();
         setupNavigation();
     }
@@ -221,8 +237,133 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void setLoading(boolean loading) {
         if (progressBar != null) progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
-        btnRegister.setEnabled(!loading);
-        btnRegister.setAlpha(loading ? 0.5f : 1.0f);
+        
+        if (btnRegister != null) {
+            btnRegister.setEnabled(!loading);
+            btnRegister.setAlpha(loading ? 0.5f : 1.0f);
+        }
+
+        if (btnGoogleRegister != null) {
+            btnGoogleRegister.setEnabled(!loading);
+            btnGoogleRegister.setAlpha(loading ? 0.5f : 1.0f);
+        }
+    }
+
+    private void setupGoogleSignIn() {
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build();
+
+        googleSignInClient = GoogleSignIn.getClient(this, gso);
+    }
+
+    private void setupGoogleRegisterButton() {
+        if (btnGoogleRegister == null) return;
+
+        btnGoogleRegister.setOnClickListener(v -> {
+            if (googleSignInClient == null) {
+                Toast.makeText(this, "Google Sign-In belum siap.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            setLoading(true);
+
+            // Sign out dulu agar user bisa memilih akun Google saat register.
+            googleSignInClient.signOut().addOnCompleteListener(task -> {
+                Intent signInIntent = googleSignInClient.getSignInIntent();
+                startActivityForResult(signInIntent, RC_GOOGLE_REGISTER);
+            });
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == RC_GOOGLE_REGISTER) {
+            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+            try {
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                if (account != null) {
+                    firebaseRegisterWithGoogle(account);
+                } else {
+                    setLoading(false);
+                    Toast.makeText(this, "Akun Google tidak ditemukan.", Toast.LENGTH_SHORT).show();
+                }
+            } catch (ApiException e) {
+                setLoading(false);
+                Toast.makeText(this, "Google register gagal: " + e.getStatusCode(), Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void firebaseRegisterWithGoogle(GoogleSignInAccount account) {
+        setLoading(true);
+
+        authRepository.loginWithGoogle(account, selectedRole, new AuthRepository.AuthCallback<FirebaseUser>() {
+            @Override
+            public void onSuccess(FirebaseUser user) {
+                fetchUserRoleAndRedirect(user);
+            }
+
+            @Override
+            public void onError(String message) {
+                setLoading(false);
+                Toast.makeText(RegisterActivity.this, message, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void fetchUserRoleAndRedirect(FirebaseUser user) {
+        if (user == null) {
+            setLoading(false);
+            Toast.makeText(this, "Data user tidak valid.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        authRepository.getUserRole(user.getUid(), new AuthRepository.UserRoleCallback() {
+            @Override
+            public void onRoleFetched(String role) {
+                setLoading(false);
+
+                String provider = user.getProviderData().size() > 1
+                        ? user.getProviderData().get(1).getProviderId()
+                        : DatabaseConstants.PROVIDER_GOOGLE;
+
+                sessionManager.createLoginSession(
+                        user.getUid(),
+                        user.getDisplayName(),
+                        user.getEmail(),
+                        role,
+                        provider
+                );
+
+                Toast.makeText(RegisterActivity.this, "Pendaftaran Google berhasil.", Toast.LENGTH_SHORT).show();
+                redirectByRole(role);
+            }
+
+            @Override
+            public void onError(String message) {
+                setLoading(false);
+                authRepository.logout(RegisterActivity.this, null);
+                Toast.makeText(RegisterActivity.this, "Gagal mengambil data user: " + message, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void redirectByRole(String role) {
+        Intent intent;
+
+        if (DatabaseConstants.ROLE_OWNER.equals(role)) {
+            intent = new Intent(this, OwnerDashboardActivity.class);
+        } else {
+            intent = new Intent(this, StudentHomeActivity.class);
+        }
+
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void showSuccessDialog() {
