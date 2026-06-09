@@ -24,6 +24,7 @@ public class ReviewFormActivity extends AppCompatActivity {
     private TextView tvKosName;
     private String bookingId;
     private String kosId, kosName, reviewId;
+    private long existingCreatedAt = 0;
     private Booking currentBooking;
 
     @Override
@@ -36,8 +37,8 @@ public class ReviewFormActivity extends AppCompatActivity {
         kosName = getIntent().getStringExtra("KOS_NAME");
         reviewId = getIntent().getStringExtra("REVIEW_ID");
 
-        if (bookingId == null && kosId == null) {
-            Toast.makeText(this, "Data tidak valid", Toast.LENGTH_SHORT).show();
+        if (bookingId == null && reviewId == null) {
+            Toast.makeText(this, "Review harus dibuat dari booking yang valid.", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -46,12 +47,8 @@ public class ReviewFormActivity extends AppCompatActivity {
         
         if (bookingId != null) {
             loadBookingData();
-        } else {
-            tvKosName.setText(kosName);
-            btnSubmit.setEnabled(true);
-        }
-
-        if (reviewId != null) {
+        } else if (reviewId != null) {
+            // If editing existing review, we might need booking info from it or just allow edit
             loadExistingReview();
         }
     }
@@ -61,9 +58,16 @@ public class ReviewFormActivity extends AppCompatActivity {
                 .addOnSuccessListener(doc -> {
                     Review r = doc.toObject(Review.class);
                     if (r != null) {
+                        bookingId = r.getBookingId();
+                        kosId = r.getKosId();
+                        kosName = r.getKosName();
+                        existingCreatedAt = r.getCreatedAt();
+                        
+                        tvKosName.setText(kosName);
                         ratingBar.setRating((float) r.getRating());
                         etComment.setText(r.getComment());
                         ((TextView)btnSubmit).setText("Update Ulasan");
+                        btnSubmit.setEnabled(true);
                     }
                 });
     }
@@ -108,6 +112,16 @@ public class ReviewFormActivity extends AppCompatActivity {
         float rating = ratingBar.getRating();
         String comment = etComment.getText().toString().trim();
 
+        if (bookingId == null || bookingId.isEmpty()) {
+            Toast.makeText(this, "Review harus dibuat dari booking yang valid.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (currentBooking == null && reviewId == null) {
+            Toast.makeText(this, "Data booking belum siap.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         if (rating == 0) {
             Toast.makeText(this, "Rating wajib dipilih", Toast.LENGTH_SHORT).show();
             return;
@@ -121,6 +135,7 @@ public class ReviewFormActivity extends AppCompatActivity {
         Review review = new Review();
         if (reviewId != null) {
             review.setId(reviewId);
+            review.setCreatedAt(existingCreatedAt);
         }
         review.setBookingId(bookingId);
         

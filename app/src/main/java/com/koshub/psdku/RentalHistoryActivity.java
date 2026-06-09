@@ -210,6 +210,13 @@ public class RentalHistoryActivity extends AppCompatActivity {
     }
 
     private void openReviewForm(Booking booking) {
+        String status = booking.getStatus();
+        if (!DatabaseConstants.BOOKING_ACTIVE.equals(status) && 
+            !DatabaseConstants.BOOKING_COMPLETED.equals(status)) {
+            Toast.makeText(this, "Review hanya tersedia untuk penghuni aktif atau selesai.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         Intent intent = new Intent(this, ReviewFormActivity.class);
         intent.putExtra("BOOKING_ID", booking.getId());
         intent.putExtra("KOS_ID", booking.getKosId());

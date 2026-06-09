@@ -68,7 +68,8 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private TextView tvDetailPriceValue, tvDetailBadgeCategory, tvDetailBadgeSisa, tvDetailBottomSisa;
     private TextView tvDetailRouteDistance, tvDetailRouteTime;
     private View btnOpenMaps;
-    private TextView tvDetailRating, tvDetailRatingCount;
+    private TextView tvTitleRating, tvTitleRatingCount;
+    private TextView tvReviewsAverage, tvReviewsCount;
     private ChipGroup amenityChipGroup;
     private LinearLayout reviewContainer;
     private View layoutReviewPrompt;
@@ -78,6 +79,7 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private KosItem currentItem;
     private com.koshub.psdku.models.Kos latestKosData;
     private ListenerRegistration kosListener;
+    private ListenerRegistration reviewsListener;
     private Double currentDistanceKm;
     private Integer currentEtaMinutes;
     private boolean isFavorited = false;
@@ -184,8 +186,11 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         tvDetailRouteDistance = findViewById(R.id.tvDetailRouteDistance);
         tvDetailRouteTime = findViewById(R.id.tvDetailRouteTime);
         btnOpenMaps = findViewById(R.id.btnOpenMaps);
-        tvDetailRating = findViewById(R.id.tvDetailRating);
-        tvDetailRatingCount = findViewById(R.id.tvDetailRatingCount);
+        
+        tvTitleRating = findViewById(R.id.tvTitleRating);
+        tvTitleRatingCount = findViewById(R.id.tvTitleRatingCount);
+        tvReviewsAverage = findViewById(R.id.tvReviewsAverage);
+        tvReviewsCount = findViewById(R.id.tvReviewsCount);
         
         amenityChipGroup = findViewById(R.id.amenityChipGroup);
         reviewContainer = findViewById(R.id.reviewContainer);
@@ -416,17 +421,10 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         // Gallery Update
         setupImageGallery(gallery, kos.getImageRes());
 
-        // Rating
-        if (tvDetailRating != null) {
-            tvDetailRating.setText(kos.getRatingAverage() > 0
-                    ? String.format(Locale.getDefault(), "%.1f", kos.getRatingAverage())
-                    : "—");
-        }
-        if (tvDetailRatingCount != null) {
-            tvDetailRatingCount.setText(kos.getRatingCount() > 0
-                    ? String.format(Locale.getDefault(), "(%d Ulasan)", kos.getRatingCount())
-                    : "(Belum ada ulasan)");
-        }
+        // Rating Fallback
+        double avg = kos.getRatingAverage() > 0 ? kos.getRatingAverage() : kos.getRating();
+        int count = kos.getRatingCount();
+        updateRatingViews(avg, count);
 
         // Amenities
         populateAmenities(kos.getFacilities(), kos.getRoomFeatures(), kos.getAccessFeatures(), kos.getSecurityFeatures());
@@ -605,19 +603,60 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     private void loadRealReviews() {
         if (currentItem == null || currentItem.getId() == null) return;
         
-        ReviewRepository.getInstance().getReviewsByKos(currentItem.getId(), new ReviewRepository.ReviewListCallback() {
-            @Override
-            public void onSuccess(List<com.koshub.psdku.models.Review> reviews) {
-                populateReviewsReal(reviews);
-            }
+        if (reviewsListener != null) {
+            reviewsListener.remove();
+            reviewsListener = null;
+        }
 
-            @Override
-            public void onError(String message) {
-                android.util.Log.e("KosHubReview", "Load reviews failed: " + message);
-                // Fallback or empty state
-            }
-        });
+        reviewsListener = ReviewRepository.getInstance().listenReviewsByKos(
+                currentItem.getId(),
+                new ReviewRepository.ReviewListCallback() {
+                    @Override
+                    public void onSuccess(List<com.koshub.psdku.models.Review> reviews) {
+                        populateReviewsReal(reviews);
+                        updateRatingFromReviews(reviews);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        android.util.Log.e("KosHubReview", "Load reviews failed: " + message);
+                    }
+                }
+        );
     }
+
+    private void updateRatingFromReviews(List<com.koshub.psdku.models.Review> reviews) {
+        double total = 0;
+        int count = 0;
+
+        if (reviews != null) {
+            for (com.koshub.psdku.models.Review r : reviews) {
+                if (r != null && r.getRating() >= 1 && r.getRating() <= 5) {
+                    total += r.getRating();
+                    count++;
+                }
+            }
+        }
+
+        double average = count > 0 ? total / count : 0;
+        updateRatingViews(average, count);
+    }
+
+    private void updateRatingViews(double average, int count) {
+        String ratingText = count > 0
+                ? String.format(Locale.getDefault(), "%.1f", average)
+                : "—";
+
+        String countText = count > 0
+                ? String.format(Locale.getDefault(), "(%d Ulasan)", count)
+                : "(Belum ada ulasan)";
+
+        if (tvTitleRating != null) tvTitleRating.setText(ratingText);
+        if (tvTitleRatingCount != null) tvTitleRatingCount.setText(countText);
+        if (tvReviewsAverage != null) tvReviewsAverage.setText(ratingText);
+        if (tvReviewsCount != null) tvReviewsCount.setText(countText);
+    }
+
 
     private void checkAndShowReviewButton() {
         if (currentItem == null || FirebaseAuth.getInstance().getCurrentUser() == null) {
@@ -626,48 +665,63 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         }
 
         String uid = FirebaseAuth.getInstance().getUid();
-        ReviewRepository.getInstance().getUserReviewForKos(currentItem.getId(), uid, new ReviewRepository.ReviewCallback() {
+        
+        // Use getReviewableBookingForKos to check if user is eligible (active or completed)
+        ReviewRepository.getInstance().getReviewableBookingForKos(uid, currentItem.getId(), new BookingRepository.BookingCallback() {
             @Override
-            public void onSuccess(com.koshub.psdku.models.Review myReview) {
+            public void onSuccess(Booking reviewableBooking) {
                 if (layoutReviewPrompt == null) return;
-                layoutReviewPrompt.setVisibility(View.VISIBLE);
+                
+                // Now check if a review already exists for THIS specific booking
+                ReviewRepository.getInstance().getUserReviewForKos(currentItem.getId(), uid, new ReviewRepository.ReviewCallback() {
+                    @Override
+                    public void onSuccess(com.koshub.psdku.models.Review myReview) {
+                        layoutReviewPrompt.setVisibility(View.VISIBLE);
 
-                TextView tvTitle = layoutReviewPrompt.findViewById(R.id.tvReviewPromptTitle);
-                TextView tvSub = layoutReviewPrompt.findViewById(R.id.tvReviewPromptSub);
-                TextView btn = layoutReviewPrompt.findViewById(R.id.btnWriteReviewPrompt);
-                ImageView ivIcon = layoutReviewPrompt.findViewById(R.id.ivReviewPromptIcon);
+                        TextView tvTitle = layoutReviewPrompt.findViewById(R.id.tvReviewPromptTitle);
+                        TextView tvSub = layoutReviewPrompt.findViewById(R.id.tvReviewPromptSub);
+                        TextView btn = layoutReviewPrompt.findViewById(R.id.btnWriteReviewPrompt);
+                        ImageView ivIcon = layoutReviewPrompt.findViewById(R.id.ivReviewPromptIcon);
 
-                if (myReview != null) {
-                    // User already reviewed
-                    if (tvTitle != null) tvTitle.setText("Ulasanmu dikirim");
-                    if (tvSub != null) tvSub.setText("Kamu memberi rating " + (int)myReview.getRating() + " bintang");
-                    if (btn != null) btn.setText("Edit Ulasan");
-                    if (ivIcon != null) ivIcon.setImageResource(R.drawable.ic_star_filled);
-                } else {
-                    // No review yet
-                    if (tvTitle != null) tvTitle.setText("Bagikan pengalamanmu");
-                    if (tvSub != null) tvSub.setText("Bantu mahasiswa lain memilih kos yang tepat.");
-                    if (btn != null) btn.setText("Tulis Ulasan");
-                    if (ivIcon != null) ivIcon.setImageResource(R.drawable.ic_chat_review);
-                }
-
-                if (btn != null) {
-                    btn.setOnClickListener(v -> {
-                        Intent intent = new Intent(PropertyDetailBookingActivity.this, ReviewFormActivity.class);
-                        intent.putExtra("KOS_ID", currentItem.getId());
-                        intent.putExtra("KOS_NAME", currentItem.getName());
                         if (myReview != null) {
-                            intent.putExtra("REVIEW_ID", myReview.getId());
+                            // User already reviewed
+                            if (tvTitle != null) tvTitle.setText("Ulasanmu dikirim");
+                            if (tvSub != null) tvSub.setText("Kamu memberi rating " + (int)myReview.getRating() + " bintang");
+                            if (btn != null) btn.setText("Edit Ulasan");
+                            if (ivIcon != null) ivIcon.setImageResource(R.drawable.ic_star_filled);
+                        } else {
+                            // No review yet
+                            if (tvTitle != null) tvTitle.setText("Bagikan pengalamanmu");
+                            if (tvSub != null) tvSub.setText("Bantu mahasiswa lain memilih kos yang tepat.");
+                            if (btn != null) btn.setText("Tulis Ulasan");
+                            if (ivIcon != null) ivIcon.setImageResource(R.drawable.ic_chat_review);
                         }
-                        NavigationTransitionHelper.navigateDetailWithIntent(PropertyDetailBookingActivity.this, intent);
-                    });
-                }
+
+                        if (btn != null) {
+                            btn.setOnClickListener(v -> {
+                                Intent intent = new Intent(PropertyDetailBookingActivity.this, ReviewFormActivity.class);
+                                intent.putExtra("KOS_ID", currentItem.getId());
+                                intent.putExtra("KOS_NAME", currentItem.getName());
+                                intent.putExtra("BOOKING_ID", reviewableBooking.getId());
+                                if (myReview != null) {
+                                    intent.putExtra("REVIEW_ID", myReview.getId());
+                                }
+                                NavigationTransitionHelper.navigateDetailWithIntent(PropertyDetailBookingActivity.this, intent);
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        layoutReviewPrompt.setVisibility(View.GONE);
+                    }
+                });
             }
 
             @Override
             public void onError(String message) {
-                // Fallback to simple logic if check fails
-                if (layoutReviewPrompt != null) layoutReviewPrompt.setVisibility(View.VISIBLE);
+                // Not eligible for review
+                if (layoutReviewPrompt != null) layoutReviewPrompt.setVisibility(View.GONE);
             }
         });
     }
@@ -694,7 +748,10 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
             tvName.setText(r.getStudentName());
             
             java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd MMM yyyy", Locale.getDefault());
-            String dateStr = sdf.format(new java.util.Date(r.getCreatedAt()));
+            long displayTime = r.getCreatedAt() > 0 ? r.getCreatedAt() : r.getUpdatedAt();
+            if (displayTime <= 0) displayTime = System.currentTimeMillis();
+            String dateStr = sdf.format(new java.util.Date(displayTime));
+
             tvSub.setText("Mahasiswa • " + dateStr + " • ⭐ " + r.getRating());
             tvText.setText(r.getComment());
             
@@ -870,6 +927,7 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (mapViewDetail != null) mapViewDetail.onResume();
+        checkAndShowReviewButton();
     }
 
     @Override
@@ -883,6 +941,10 @@ public class PropertyDetailBookingActivity extends AppCompatActivity {
         super.onDestroy();
         if (kosListener != null) {
             kosListener.remove();
+        }
+        if (reviewsListener != null) {
+            reviewsListener.remove();
+            reviewsListener = null;
         }
         if (mapViewDetail != null) mapViewDetail.onDestroy();
     }

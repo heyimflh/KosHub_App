@@ -23,9 +23,10 @@ public class KosMapper {
         int distanceMinutes = kos.getDistanceMinutes();
 
         // Map rating
+        double avg = kos.getRatingAverage() > 0 ? kos.getRatingAverage() : kos.getRating();
         String ratingText;
-        if (kos.getRatingAverage() > 0) {
-            ratingText = String.format(java.util.Locale.getDefault(), "%.1f", kos.getRatingAverage());
+        if (avg > 0) {
+            ratingText = String.format(java.util.Locale.getDefault(), "%.1f", avg);
         } else {
             ratingText = "—";
         }
@@ -67,7 +68,7 @@ public class KosMapper {
         item.setId(kos.getId());
         item.setOwnerId(kos.getOwnerId());
         item.setPlaceId(kos.getPlaceId());
-        item.setRatingAverage(kos.getRatingAverage());
+        item.setRatingAverage(avg);
         item.setRatingCount(kos.getRatingCount());
         item.setSecurityFeatures(kos.getSecurityFeatures());
         item.setAccessFeatures(kos.getAccessFeatures());

@@ -35,12 +35,16 @@ import com.koshub.psdku.repositories.NotificationRepository;
 import com.koshub.psdku.utils.NotificationHelper;
 import com.koshub.psdku.utils.NotificationPermissionHelper;
 
+import com.koshub.psdku.repositories.ReviewRepository;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class StudentHomeActivity extends AppCompatActivity implements KosAdapter.OnKosClickListener {
 
@@ -58,6 +62,8 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
     private KosRepository kosRepository;
     private ListenerRegistration kosListener;
     private ListenerRegistration notificationListener;
+    private ListenerRegistration reviewsRatingListener;
+    private Map<String, ReviewRepository.RatingSummary> ratingSummaryMap = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,6 +97,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
 
         setupViews();
         initData();
+        setupRatingSummaryListener();
         NavigationHelper.cachedKosList = allKosList;
         setupSearch();
         setupQuickChips();
@@ -147,6 +154,7 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
                 allKosList.clear();
                 allKosList.addAll(items);
 
+                applyRatingSummaries(allKosList);
                 applyFavoriteStates();
 
                 // Preserve search/filter if user is currently typing
@@ -498,6 +506,54 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
         return allKosList;
     }
 
+    private void setupRatingSummaryListener() {
+        if (reviewsRatingListener != null) {
+            reviewsRatingListener.remove();
+            reviewsRatingListener = null;
+        }
+
+        reviewsRatingListener = ReviewRepository.getInstance().listenRatingSummaries(
+                new ReviewRepository.RatingSummaryCallback() {
+                    @Override
+                    public void onSuccess(Map<String, ReviewRepository.RatingSummary> summaries) {
+                        ratingSummaryMap.clear();
+                        ratingSummaryMap.putAll(summaries);
+                        applyRatingSummariesToCurrentLists();
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        Log.e("KosHubReview", "Rating summary listener failed: " + message);
+                    }
+                }
+        );
+    }
+
+    private void applyRatingSummariesToCurrentLists() {
+        applyRatingSummaries(allKosList);
+        applyRatingSummaries(filteredList);
+
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
+
+        NavigationHelper.cachedKosList = new ArrayList<>(allKosList);
+    }
+
+    private void applyRatingSummaries(List<KosItem> list) {
+        if (list == null || ratingSummaryMap == null) return;
+
+        for (KosItem item : list) {
+            if (item == null || item.getId() == null) continue;
+
+            ReviewRepository.RatingSummary summary = ratingSummaryMap.get(item.getId());
+            if (summary != null && summary.count > 0) {
+                item.setRatingAverage(summary.average);
+                item.setRatingCount(summary.count);
+            }
+        }
+    }
+
     @Override
     protected void onDestroy() {
         if (kosListener != null) {
@@ -505,6 +561,10 @@ public class StudentHomeActivity extends AppCompatActivity implements KosAdapter
         }
         if (notificationListener != null) {
             notificationListener.remove();
+        }
+        if (reviewsRatingListener != null) {
+            reviewsRatingListener.remove();
+            reviewsRatingListener = null;
         }
         super.onDestroy();
     }

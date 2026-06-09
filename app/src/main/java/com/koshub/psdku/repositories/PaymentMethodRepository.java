@@ -83,21 +83,29 @@ public class PaymentMethodRepository {
                 });
     }
 
+    private boolean isPermissionDenied(Exception e) {
+        return e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED;
+    }
+
     public void addPaymentMethod(PaymentMethod method, SimpleCallback callback) {
         if (method.getUserId() == null) {
-            callback.onError("User ID is required");
+            if (callback != null) callback.onError("User ID is required");
             return;
         }
         method.setCreatedAt(System.currentTimeMillis());
         method.setUpdatedAt(System.currentTimeMillis());
         db.collection(DatabaseConstants.COLLECTION_PAYMENT_METHODS).add(method)
-                .addOnSuccessListener(doc -> callback.onSuccess())
+                .addOnSuccessListener(doc -> {
+                    if (callback != null) callback.onSuccess();
+                })
                 .addOnFailureListener(e -> {
-                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
-                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                        callback.onError("Akses database belum diizinkan. Periksa Firestore Rules.");
-                    } else {
-                        callback.onError(e.getMessage());
+                    if (callback != null) {
+                        if (isPermissionDenied(e)) {
+                            callback.onError("Akses database belum diizinkan. Periksa Firestore Rules.");
+                        } else {
+                            callback.onError(e.getMessage());
+                        }
                     }
                 });
     }
@@ -105,14 +113,34 @@ public class PaymentMethodRepository {
     public void updatePaymentMethod(PaymentMethod method, SimpleCallback callback) {
         method.setUpdatedAt(System.currentTimeMillis());
         db.collection(DatabaseConstants.COLLECTION_PAYMENT_METHODS).document(method.getId()).set(method)
-                .addOnSuccessListener(aVoid -> callback.onSuccess())
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnSuccessListener(aVoid -> {
+                    if (callback != null) callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) {
+                        if (isPermissionDenied(e)) {
+                            callback.onError("Akses ditolak. Periksa Firestore Rules.");
+                        } else {
+                            callback.onError(e.getMessage());
+                        }
+                    }
+                });
     }
 
     public void deletePaymentMethod(String methodId, SimpleCallback callback) {
         db.collection(DatabaseConstants.COLLECTION_PAYMENT_METHODS).document(methodId).delete()
-                .addOnSuccessListener(aVoid -> callback.onSuccess())
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnSuccessListener(aVoid -> {
+                    if (callback != null) callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) {
+                        if (isPermissionDenied(e)) {
+                            callback.onError("Akses ditolak. Gagal menghapus.");
+                        } else {
+                            callback.onError(e.getMessage());
+                        }
+                    }
+                });
     }
 
     public void setDefaultMethod(String userId, String methodId, SimpleCallback callback) {
@@ -126,10 +154,28 @@ public class PaymentMethodRepository {
                         batch.update(doc.getReference(), "isDefault", isTarget);
                     }
                     batch.commit()
-                            .addOnSuccessListener(aVoid -> callback.onSuccess())
-                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                            .addOnSuccessListener(aVoid -> {
+                                if (callback != null) callback.onSuccess();
+                            })
+                            .addOnFailureListener(e -> {
+                                if (callback != null) {
+                                    if (isPermissionDenied(e)) {
+                                        callback.onError("Akses ditolak saat update default method.");
+                                    } else {
+                                        callback.onError(e.getMessage());
+                                    }
+                                }
+                            });
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (callback != null) {
+                        if (isPermissionDenied(e)) {
+                            callback.onError("Akses database belum diizinkan. Periksa Firestore Rules.");
+                        } else {
+                            callback.onError(e.getMessage());
+                        }
+                    }
+                });
     }
 
     public void ensureDefaultQrisMethod(String userId, SimpleCallback callback) {
@@ -147,9 +193,17 @@ public class PaymentMethodRepository {
                         qris.setActive(true);
                         addPaymentMethod(qris, callback);
                     } else {
-                        callback.onSuccess();
+                        if (callback != null) callback.onSuccess();
                     }
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    if (callback != null) {
+                        if (isPermissionDenied(e)) {
+                            callback.onError("Akses database belum diizinkan. Periksa Firestore Rules.");
+                        } else {
+                            callback.onError(e.getMessage());
+                        }
+                    }
+                });
     }
 }

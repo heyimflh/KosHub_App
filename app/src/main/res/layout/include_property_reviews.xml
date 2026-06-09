@@ -30,7 +30,7 @@
             android:contentDescription="Star" />
 
         <TextView
-            android:id="@+id/tvDetailRating"
+            android:id="@+id/tvReviewsAverage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
@@ -41,7 +41,7 @@
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/tvDetailRatingCount"
+            android:id="@+id/tvReviewsCount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"

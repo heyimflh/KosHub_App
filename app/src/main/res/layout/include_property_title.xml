@@ -87,7 +87,7 @@
             android:contentDescription="Star" />
 
         <TextView
-            android:id="@+id/tvDetailRating"
+            android:id="@+id/tvTitleRating"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="4.5"
@@ -96,7 +96,7 @@
             android:textSize="14sp" />
 
         <TextView
-            android:id="@+id/tvDetailRatingCount"
+            android:id="@+id/tvTitleRatingCount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"

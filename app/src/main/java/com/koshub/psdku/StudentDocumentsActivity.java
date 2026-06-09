@@ -132,8 +132,13 @@ public class StudentDocumentsActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
-                showToast(message);
+                if (message.contains("Akses ditolak") || message.contains("PERMISSION_DENIED")) {
+                    showToast("Akses database belum diizinkan. Periksa Firestore Rules.");
+                } else {
+                    showToast(message);
+                }
                 renderDocumentCards(); // Ensure slots are shown even on error
+                updateProgress();
             }
         });
     }

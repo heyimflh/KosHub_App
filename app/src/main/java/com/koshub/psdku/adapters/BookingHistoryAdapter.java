@@ -162,8 +162,14 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
                 btnAction.setVisibility(View.GONE);
             }
             
-            // Review button is always visible as requested
-            btnReview.setVisibility(View.VISIBLE);
+            // Review button visibility logic
+            if (DatabaseConstants.BOOKING_ACTIVE.equals(status) || 
+                DatabaseConstants.BOOKING_COMPLETED.equals(status)) {
+                btnReview.setVisibility(View.VISIBLE);
+                btnReview.setText("Beri Ulasan");
+            } else {
+                btnReview.setVisibility(View.GONE);
+            }
         }
     }
 }

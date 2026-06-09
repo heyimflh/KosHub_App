@@ -154,12 +154,12 @@ public class StudentPaymentMethodsActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
-                if (message.contains("Akses database belum diizinkan")) {
+                if (message.contains("Akses database belum diizinkan") || message.contains("PERMISSION_DENIED")) {
                     showToast("Akses database belum diizinkan. Periksa Firestore Rules.");
                 } else {
                     showToast(message);
                 }
-                listenToMethods();
+                listenToMethods(); // Still listen to show empty state if permission denied
             }
         });
     }
@@ -175,7 +175,11 @@ public class StudentPaymentMethodsActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
-                showToast(message);
+                if (message.contains("Akses ditolak") || message.contains("PERMISSION_DENIED")) {
+                    showToast("Akses database belum diizinkan. Periksa Firestore Rules.");
+                } else {
+                    showToast(message);
+                }
                 updateUI(); // Force update UI to show empty state correctly
             }
         });

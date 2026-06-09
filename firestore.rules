@@ -65,6 +65,35 @@ service cloud.firestore {
         && data.longitude <= 180;
     }
 
+    function isRatingAggregateOnlyUpdate() {
+      return isStudent()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "ratingAverage",
+          "ratingCount",
+          "rating",
+          "updatedAt"
+        ])
+        && request.resource.data.ratingAverage is number
+        && request.resource.data.rating is number
+        && request.resource.data.ratingCount is number
+        && request.resource.data.ratingAverage >= 0
+        && request.resource.data.ratingAverage <= 5
+        && request.resource.data.rating >= 0
+        && request.resource.data.rating <= 5
+        && request.resource.data.ratingCount >= 0;
+    }
+
+    function bookingDoc(bookingId) {
+      return get(/databases/$(database)/documents/bookings/$(bookingId));
+    }
+
+    function hasEligibleReviewBooking(bookingId, kosId) {
+      return exists(/databases/$(database)/documents/bookings/$(bookingId))
+        && bookingDoc(bookingId).data.studentId == request.auth.uid
+        && bookingDoc(bookingId).data.kosId == kosId
+        && bookingDoc(bookingId).data.status in ["active", "completed"];
+    }
+
     // --- COLLECTION RULES ---
 
     // USERS
@@ -91,10 +120,13 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid
         && isValidCoordinates(request.resource.data);
 
-      allow update: if isOwner()
-        && resource.data.ownerId == request.auth.uid
-        && unchanged("ownerId")
-        && isValidCoordinates(request.resource.data);
+      allow update: if (
+          isOwner()
+          && resource.data.ownerId == request.auth.uid
+          && unchanged("ownerId")
+          && isValidCoordinates(request.resource.data)
+        )
+        || isRatingAggregateOnlyUpdate();
 
       allow delete: if isOwner()
         && resource.data.ownerId == request.auth.uid;
@@ -324,10 +356,21 @@ service cloud.firestore {
 
       allow create: if isStudent()
         && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.bookingId == reviewId
         && request.resource.data.rating >= 1
-        && request.resource.data.rating <= 5;
+        && request.resource.data.rating <= 5
+        && hasEligibleReviewBooking(request.resource.data.bookingId, request.resource.data.kosId);
 
-      allow update, delete: if isSelf(resource.data.studentId);
+      allow update: if isStudent()
+        && resource.data.studentId == request.auth.uid
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.bookingId == resource.data.bookingId
+        && request.resource.data.kosId == resource.data.kosId
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && hasEligibleReviewBooking(resource.data.bookingId, resource.data.kosId);
+
+      allow delete: if false;
     }
 
     // WITHDRAWALS
@@ -370,6 +413,72 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isOwner()
         && resource.data.ownerId == request.auth.uid;
+    }
+
+    // PAYMENT METHODS - Student-owned payment/refund methods
+    match /paymentMethods/{methodId} {
+      allow get, list: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.type in ["qris", "bank", "ewallet"];
+
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "id",
+          "userId",
+          "type",
+          "providerName",
+          "accountName",
+          "accountNumber",
+          "maskedNumber",
+          "isDefault",
+          "default",
+          "isActive",
+          "active",
+          "createdAt",
+          "updatedAt"
+        ]);
+
+      allow delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // STUDENT DOCUMENTS - Student-owned verification documents
+    match /studentDocuments/{documentId} {
+      allow get, list: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.type in ["ktp", "ktm", "supporting"]
+        && request.resource.data.status == "pending";
+
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.status == "pending"
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "id",
+          "userId",
+          "type",
+          "title",
+          "fileUrl",
+          "fileName",
+          "status",
+          "rejectionReason",
+          "uploadedAt",
+          "updatedAt",
+          "verifiedAt",
+          "verifiedBy"
+        ]);
+
+      allow delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
     }
 
     // --- DEFAULT DENY ---

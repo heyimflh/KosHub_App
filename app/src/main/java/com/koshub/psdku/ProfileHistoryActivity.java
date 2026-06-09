@@ -623,8 +623,18 @@ public class ProfileHistoryActivity extends AppCompatActivity {
             btnAmbilKunci.setOnClickListener(v -> showAmbilKunciDialog(latest));
         } else if (DatabaseConstants.BOOKING_ACTIVE.equals(latest.getStatus())) {
             layoutTenantActions.setVisibility(View.VISIBLE);
-            btnAmbilKunci.setVisibility(View.GONE);
+            btnAmbilKunci.setVisibility(View.VISIBLE);
             btnLaporkanKomplain.setVisibility(View.VISIBLE);
+            
+            btnAmbilKunci.setText("Beri Review");
+            btnAmbilKunci.setOnClickListener(v -> {
+                Intent intent = new Intent(this, ReviewFormActivity.class);
+                intent.putExtra("BOOKING_ID", latest.getId());
+                intent.putExtra("KOS_ID", latest.getKosId());
+                intent.putExtra("KOS_NAME", latest.getKosName());
+                NavigationTransitionHelper.navigateDetailWithIntent(this, intent);
+            });
+
             btnLaporkanKomplain.setText("Komplain");
             btnLaporkanKomplain.setOnClickListener(v -> {
                 Intent intent = new Intent(this, TenantComplaintFormActivity.class);

@@ -111,7 +111,13 @@ public class StudentDocumentRepository {
                     StudentDocument doc;
                     if (!queryDocumentSnapshots.isEmpty()) {
                         doc = queryDocumentSnapshots.getDocuments().get(0).toObject(StudentDocument.class);
-                        doc.setId(queryDocumentSnapshots.getDocuments().get(0).getId());
+                        if (doc != null) {
+                            doc.setId(queryDocumentSnapshots.getDocuments().get(0).getId());
+                        } else {
+                            doc = new StudentDocument();
+                            doc.setUserId(userId);
+                            doc.setType(type);
+                        }
                     } else {
                         doc = new StudentDocument();
                         doc.setUserId(userId);
@@ -128,30 +134,44 @@ public class StudentDocumentRepository {
                         db.collection(DatabaseConstants.COLLECTION_STUDENT_DOCUMENTS).document(doc.getId()).set(doc)
                                 .addOnSuccessListener(aVoid -> {
                                     updateUserDocumentCache(userId, type, imageUrl);
-                                    callback.onSuccess();
+                                    if (callback != null) callback.onSuccess();
                                 })
                                 .addOnFailureListener(e -> {
-                                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
-                                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                                        callback.onError("Gagal mengupdate: Akses ditolak.");
-                                    } else {
-                                        callback.onError(e.getMessage());
+                                    if (callback != null) {
+                                        if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                                            ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                                            callback.onError("Gagal mengupdate: Akses ditolak.");
+                                        } else {
+                                            callback.onError(e.getMessage());
+                                        }
                                     }
                                 });
                     } else {
                         db.collection(DatabaseConstants.COLLECTION_STUDENT_DOCUMENTS).add(doc)
                                 .addOnSuccessListener(dr -> {
                                     updateUserDocumentCache(userId, type, imageUrl);
-                                    callback.onSuccess();
+                                    if (callback != null) callback.onSuccess();
                                 })
                                 .addOnFailureListener(e -> {
-                                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
-                                        ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                                        callback.onError("Gagal menambah: Akses ditolak.");
-                                    } else {
-                                        callback.onError(e.getMessage());
+                                    if (callback != null) {
+                                        if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                                            ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                                            callback.onError("Gagal menambah: Akses ditolak.");
+                                        } else {
+                                            callback.onError(e.getMessage());
+                                        }
                                     }
                                 });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) {
+                        if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException &&
+                                ((com.google.firebase.firestore.FirebaseFirestoreException) e).getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            callback.onError("Akses database belum diizinkan. Periksa Firestore Rules untuk studentDocuments.");
+                        } else {
+                            callback.onError(e.getMessage());
+                        }
                     }
                 });
     }
